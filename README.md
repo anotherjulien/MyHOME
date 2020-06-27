@@ -1,2 +1,2 @@
-# MyHOME_Up
-MyHOME_Up integration for Home-Assistant
+# MyHOME
+MyHOME integration for Home-Assistant
