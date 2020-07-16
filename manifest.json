@@ -1,0 +1,15 @@
+{
+  "domain": "myhome",
+  "name": "MyHOME",
+  "config_flow": true,
+  "documentation": "",
+  "requirements": ["OWNd==0.6.7"],
+  "ssdp": [
+    {
+      "manufacturer": "BTicino S.p.A.",
+      "modelName": "F454"
+    }
+  ],
+  "codeowners": []
+}
+  
