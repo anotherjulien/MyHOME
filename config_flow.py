@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 
 from OWNd.connection import OWNSession, OWNGateway
 from OWNd.discovery import find_gateways
+from OWNd.message import OWNEvent, OWNLightingEvent
 import async_timeout
 import voluptuous as vol
 
@@ -29,6 +30,9 @@ from .const import (
     CONF_MANUFACTURER,
     CONF_MANUFACTURER_URL,
     CONF_UDN,
+    CONF_WHO,
+    CONF_WHERE,
+    CONF_PARENT_ID,
     DOMAIN,
     LOGGER,
 )
@@ -37,12 +41,12 @@ class MyhomeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a MyHome config flow."""
 
     VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
+    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_PUSH
 
     # pylint: disable=no-member # https://github.com/PyCQA/pylint/issues/3167
 
     def __init__(self):
-        """Initialize the Hue flow."""
+        """Initialize the MyHome flow."""
         self.gateway: Optional[OWNGateway] = None
         self.discovered_gateways: Optional[Dict[str, OWNGateway]] = None
 
@@ -204,3 +208,28 @@ class MyhomeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if self.gateway.port is None:
             return await self.async_step_port()
         return await self.async_step_test_connection()
+
+class MyHomeWho1ConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
+
+    def __init__(self, hass, message: OWNLightingEvent, parent: str):
+        """Initialize the WHO=1 flow."""
+        self.hass = hass
+        self.gateway = parent
+        self._id = message.unique_id
+        self.who = message.who
+        self.where = message.where
+        self.name = f"A{message.where[:len(message.where)//2]}PL{message.where[len(message.where)//2:]}"
+
+    async def get_entry(self) -> config_entries.ConfigEntry:
+        await self.async_set_unique_id(self._id)
+        self._abort_if_unique_id_configured(updates=None)
+
+        return self.async_create_entry(
+            title=self.name,
+            data={
+                CONF_ID: self._id,
+                CONF_PARENT_ID: self.gateway,
+                CONF_WHO: self.who,
+                CONF_WHERE: self.where,
+            },
+        )

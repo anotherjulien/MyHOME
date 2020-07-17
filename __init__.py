@@ -20,11 +20,9 @@ from .const import (
     DOMAIN,
     LOGGER,
 )
-from  .gateway import MyHOMEGateway
+from .gateway import MyHOMEGateway
 
 _LOGGER = logging.getLogger(__name__)
-
-CONF_WHERE = "where"
 
 CONFIG_SCHEMA = vol.Schema(
     {
@@ -39,30 +37,18 @@ CONFIG_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA
 )
 
+PLATFORMS = ["light"]
+
 async def async_setup(hass, config):
     """Set up the MyHOME component."""
-    # if DOMAIN not in config:
-    #     return True
-    
-    # host = config[DOMAIN][CONF_HOST]
-    # myhome = None
+    hass.data[DOMAIN] = {}
 
-    # try:
-    #     myhome = MyHOME(device=device, logger=_LOGGER)
-    #     myhome.start()
-    # except Exception as exception:
-    #     _LOGGER.error("Cannot setup MyHOME component: %s", exception)
-    #     return False
+    if DOMAIN not in config:
+        return True
 
-    # def stop_monitor(event):
-    #     """Stop the SCSGate."""
-    #     _LOGGER.info("Stopping MyHOME monitor thread")
-    #     myhome.stop()
+    LOGGER.error("configuration.yaml not supported for this component!")
 
-    # hass.bus.listen_once(EVENT_HOMEASSISTANT_STOP, stop_monitor)
-    # hass.data[DOMAIN] = myhome
-
-    return True
+    return False
 
 async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.ConfigEntry):
 
@@ -71,13 +57,7 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.Conf
     if not await myhome_gateway.test():
         return False
 
-    
-    LOGGER.info(f"{DOMAIN}")
-    LOGGER.info(f"{DOMAIN in hass.data}")
-    LOGGER.info(entry.entry_id)
-    LOGGER.info(myhome_gateway)
-
-    hass.data[DOMAIN][entry.entry_id] = myhome_gateway
+    hass.data[DOMAIN][myhome_gateway.id] = myhome_gateway
 
     device_registry = await dr.async_get_registry(hass)
     device_registry.async_get_or_create(
@@ -92,11 +72,11 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.Conf
 
     await myhome_gateway.connect()
 
-    hass.async_create_task(myhome_gateway.listening_loop())
+    myhome_gateway.listening_task = hass.async_create_task(myhome_gateway.listening_loop())
 
     return True
 
-class MyHOME:
-
-    def __init__(self, device, logger):
-        super().__init__()
+async def async_unload_entry(hass, entry):
+    """Unload a config entry."""
+    myhome_gateway = hass.data[DOMAIN][entry.entry_id]
+    await myhome_gateway.close_listener()
