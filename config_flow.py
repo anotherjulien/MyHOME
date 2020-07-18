@@ -12,13 +12,15 @@ import voluptuous as vol
 from homeassistant import config_entries, core
 from homeassistant.components import ssdp
 from homeassistant.const import (
-    CONF_IP_ADDRESS, 
+    CONF_HOST, 
     CONF_PORT, 
     CONF_PASSWORD, 
     CONF_NAME, 
     CONF_MAC, 
     CONF_ID, 
     CONF_FRIENDLY_NAME,
+    CONF_LIGHTS,
+    CONF_COVERS,
 )
 from homeassistant.helpers import aiohttp_client
 
@@ -115,7 +117,7 @@ class MyhomeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 title=f"{gateway.modelName} Gateway",
                 data={
                     CONF_ID: gateway.serial,
-                    CONF_IP_ADDRESS: gateway.address,
+                    CONF_HOST: gateway.address,
                     CONF_PORT: gateway.port,
                     CONF_PASSWORD: gateway.password,
                     CONF_SSDP_LOCATION: gateway.ssdp_location,
@@ -128,6 +130,8 @@ class MyhomeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_FIRMWARE: gateway.modelNumber,
                     CONF_MAC: gateway.serial,
                     CONF_UDN: gateway.UDN,
+                    CONF_LIGHTS: {},
+                    CONF_COVERS: {},
                 },
             )
         else:
@@ -196,7 +200,7 @@ class MyhomeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         gateway = OWNGateway.build_from_discovery_info(discovery_info)
         LOGGER.info("FOUND %s", gateway.address)
-        updatable = {CONF_IP_ADDRESS: gateway.address, CONF_NAME: gateway.modelName, CONF_FRIENDLY_NAME: gateway.friendlyName, CONF_ID: gateway.UDN, CONF_FIRMWARE: gateway.firmware}
+        updatable = {CONF_HOST: gateway.address, CONF_NAME: gateway.modelName, CONF_FRIENDLY_NAME: gateway.friendlyName, CONF_ID: gateway.UDN, CONF_FIRMWARE: gateway.firmware}
         if gateway.port is not None:
             updatable[CONF_PORT] = gateway.port
 
@@ -208,28 +212,3 @@ class MyhomeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if self.gateway.port is None:
             return await self.async_step_port()
         return await self.async_step_test_connection()
-
-class MyHomeWho1ConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
-
-    def __init__(self, hass, message: OWNLightingEvent, parent: str):
-        """Initialize the WHO=1 flow."""
-        self.hass = hass
-        self.gateway = parent
-        self._id = message.unique_id
-        self.who = message.who
-        self.where = message.where
-        self.name = f"A{message.where[:len(message.where)//2]}PL{message.where[len(message.where)//2:]}"
-
-    async def get_entry(self) -> config_entries.ConfigEntry:
-        await self.async_set_unique_id(self._id)
-        self._abort_if_unique_id_configured(updates=None)
-
-        return self.async_create_entry(
-            title=self.name,
-            data={
-                CONF_ID: self._id,
-                CONF_PARENT_ID: self.gateway,
-                CONF_WHO: self.who,
-                CONF_WHERE: self.where,
-            },
-        )

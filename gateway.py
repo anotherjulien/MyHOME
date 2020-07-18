@@ -27,7 +27,6 @@ from homeassistant.const import (
 )
 from homeassistant.helpers import aiohttp_client
 
-from .config_flow import MyHomeWho1ConfigFlowHandler
 from .const import (
     CONF_FIRMWARE,
     CONF_SSDP_LOCATION,
@@ -62,7 +61,7 @@ class MyHOMEGateway:
             "serialNumber": config_entry.data[CONF_MAC],
             "UDN": config_entry.data[CONF_UDN],
         }
-        self._hass = hass
+        self.hass = hass
         self.config_entry =  config_entry
         self.gateway = OWNGateway(build_info)
         self.test_session = OWNSession(gateway=self.gateway, logger=LOGGER)
@@ -70,6 +69,7 @@ class MyHOMEGateway:
         self._terminate_listener = False
         self.is_connected = False
         self.listening_task: asyncio.tasks.Task
+        self._lights = {}
 
     @property
     def mac(self) -> str:
@@ -95,6 +95,12 @@ class MyHOMEGateway:
     def firmware(self) -> str:
         return self.gateway.firmware
 
+    def add_light(self, where: str, parameters: dict) -> None:
+        self._lights[where] = parameters
+
+    def get_lights(self) -> dict:
+        return self._lights
+
     async def test(self) -> bool:
         result = await self.test_session.test_connection()
         return result["Success"]
@@ -109,29 +115,35 @@ class MyHOMEGateway:
         self.is_connected = True
 
     async def listening_loop(self):
+        self.hass.async_create_task(
+            self.hass.config_entries.async_forward_entry_setup(self.config_entry, "light")
+        )
         self._terminate_listener = False
         while not self._terminate_listener:
             message = await self.event_session.get_next()
-            if message:
-                LOGGER.debug("Received: %s", message)
-                if message.is_event():
-                    if message.who == 1:
-                        if message.unique_id in self._hass.data[DOMAIN]:
-                            await self._hass.data[DOMAIN][message.unique_id].handle_event(message)
-                        else:
-                            LOGGER.info(f"NEW DEVICE NEEDED {message.unique_id}")
-                            LOGGER.info(self._hass.data[DOMAIN])
-                            config_flow = MyHomeWho1ConfigFlowHandler(hass=self._hass, message=message, parent=self.id)
-                            config_entry = await config_flow.get_entry()
-                            self._hass.async_create_task(self._hass.config_entries.async_forward_entry_setup(config_entry(), "light"))
-                    #LOGGER.info(message.human_readable_log)
+            LOGGER.debug("Received: %s", message)
+            if not message:
+                LOGGER.info(f"Received : {message}")
+                #break
+            elif message.is_event():
+                if message.who == 1:
+                    if message.unique_id in self.hass.data[DOMAIN]:
+                        self.hass.data[DOMAIN][message.unique_id].handle_event(message)
+                    else:
+                        LOGGER.info(f"NEW DEVICE NEEDED {message.unique_id}")
+                #LOGGER.info(message.human_readable_log)
 
     async def close_listener(self, event=None) -> None:
         LOGGER.info("CLOSING")
-        #self._terminate_listener = True
+        self._terminate_listener = True
         await self.event_session.close()
         self.is_connected = False
-        #self.listening_task.cancel()
+        self.listening_task.cancel()
     
     async def send(self, message: OWNCommand):
-        await OWNCommandSession.send_to_gateway(message=message, gateway=self.gateway)
+        command_session = OWNCommandSession(gateway=self.gateway, logger=LOGGER)
+        await command_session.send(message=message)
+    
+    async def send_status_request(self, message: OWNCommand):
+        command_session = OWNCommandSession(gateway=self.gateway, logger=LOGGER)
+        await command_session.send(message=message, is_status_request=True)

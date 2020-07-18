@@ -1,5 +1,6 @@
 """ MyHOME integration. """
 import logging
+import asyncio
 from threading import Lock
 
 from OWNd.connection import OWNSession
@@ -17,6 +18,7 @@ from homeassistant.helpers import config_validation as cv, device_registry as dr
 
 from .const import (
     CONF_FIRMWARE,
+    CONF_GATEWAY,
     DOMAIN,
     LOGGER,
 )
@@ -57,7 +59,7 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.Conf
     if not await myhome_gateway.test():
         return False
 
-    hass.data[DOMAIN][myhome_gateway.id] = myhome_gateway
+    hass.data[DOMAIN][CONF_GATEWAY] = myhome_gateway
 
     device_registry = await dr.async_get_registry(hass)
     device_registry.async_get_or_create(
@@ -72,7 +74,7 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.Conf
 
     await myhome_gateway.connect()
 
-    myhome_gateway.listening_task = hass.async_create_task(myhome_gateway.listening_loop())
+    myhome_gateway.listening_task = asyncio.create_task(myhome_gateway.listening_loop())
 
     return True
 
