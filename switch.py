@@ -5,6 +5,8 @@ import voluptuous as vol
 
 from homeassistant.components.switch import (
     PLATFORM_SCHEMA,
+    DEVICE_CLASS_OUTLET,
+    DEVICE_CLASS_SWITCH,
     SwitchEntity,
 )
 from homeassistant.const import (
@@ -96,7 +98,7 @@ class MyHOMESwitch(SwitchEntity):
         self._id = f"{self._who}-{self._where}"
         if self._name is None:
             self._name = f"A{self._where[:len(self._where)//2]}PL{self._where[len(self._where)//2:]}"
-        self.device_class == "outlet" if device_class.lower() == "outlet" else "switch"
+        self._device_class = DEVICE_CLASS_OUTLET if device_class.lower() == "outlet" else DEVICE_CLASS_SWITCH
         self._gateway = gateway
         self._is_on = False
 
@@ -121,6 +123,11 @@ class MyHOMESwitch(SwitchEntity):
             "via_device": (DOMAIN, self._gateway.id),
         }
     
+    @property
+    def device_class(self):
+        """Return the device class if any."""
+        return self._device_class
+
     @property
     def should_poll(self):
         """No polling needed for a MyHome device."""

@@ -143,6 +143,9 @@ class MyHOMEGateway:
             self.hass.config_entries.async_forward_entry_setup(self.config_entry, "switch")
         )
         self.hass.async_create_task(
+            self.hass.config_entries.async_forward_entry_setup(self.config_entry, "cover")
+        )
+        self.hass.async_create_task(
             self.hass.config_entries.async_forward_entry_setup(self.config_entry, "binary_sensor")
         )
         self._terminate_listener = False
@@ -152,7 +155,7 @@ class MyHOMEGateway:
             if not message:
                 LOGGER.info(f"Received : {message}")
             elif message.is_event():
-                if message.who == 1 or message.who == 25:
+                if message.who == 1 or message.who == 2 or message.who == 25:
                     if message.unique_id in self.hass.data[DOMAIN]:
                         self.hass.data[DOMAIN][message.unique_id].handle_event(message)
                     else:
