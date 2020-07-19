@@ -70,6 +70,9 @@ class MyHOMEGateway:
         self.is_connected = False
         self.listening_task: asyncio.tasks.Task
         self._lights = {}
+        self._switches = {}
+        self._binary_sensors = {}
+        self._covers = {}
 
     @property
     def mac(self) -> str:
@@ -100,6 +103,24 @@ class MyHOMEGateway:
 
     def get_lights(self) -> dict:
         return self._lights
+    
+    def add_switch(self, where: str, parameters: dict) -> None:
+        self._switches[where] = parameters
+
+    def get_switches(self) -> dict:
+        return self._switches
+    
+    def add_binary_sensor(self, where: str, parameters: dict) -> None:
+        self._binary_sensors[where] = parameters
+
+    def get_binary_sensors(self) -> dict:
+        return self._binary_sensors
+    
+    def add_cover(self, where: str, parameters: dict) -> None:
+        self._covers[where] = parameters
+
+    def get_covers(self) -> dict:
+        return self._covers
 
     async def test(self) -> bool:
         result = await self.test_session.test_connection()
@@ -118,20 +139,24 @@ class MyHOMEGateway:
         self.hass.async_create_task(
             self.hass.config_entries.async_forward_entry_setup(self.config_entry, "light")
         )
+        self.hass.async_create_task(
+            self.hass.config_entries.async_forward_entry_setup(self.config_entry, "switch")
+        )
+        self.hass.async_create_task(
+            self.hass.config_entries.async_forward_entry_setup(self.config_entry, "binary_sensor")
+        )
         self._terminate_listener = False
         while not self._terminate_listener:
             message = await self.event_session.get_next()
             LOGGER.debug("Received: %s", message)
             if not message:
                 LOGGER.info(f"Received : {message}")
-                #break
             elif message.is_event():
-                if message.who == 1:
+                if message.who == 1 or message.who == 25:
                     if message.unique_id in self.hass.data[DOMAIN]:
                         self.hass.data[DOMAIN][message.unique_id].handle_event(message)
                     else:
-                        LOGGER.info(f"NEW DEVICE NEEDED {message.unique_id}")
-                #LOGGER.info(message.human_readable_log)
+                        LOGGER.info(f"Unknown device: WHO={message.who} WHERE={message.where}")
 
     async def close_listener(self, event=None) -> None:
         LOGGER.info("CLOSING")

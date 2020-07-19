@@ -3,25 +3,16 @@ import logging
 
 import voluptuous as vol
 
-from homeassistant.components.light import (
-    ATTR_BRIGHTNESS,
-    ATTR_FLASH,
-    FLASH_LONG,
-    FLASH_SHORT,
-    SUPPORT_BRIGHTNESS,
-    SUPPORT_FLASH,
+from homeassistant.components.switch import (
     PLATFORM_SCHEMA,
-    LightEntity,
-    Light,
+    SwitchEntity,
 )
-
 from homeassistant.const import (
     CONF_NAME, 
     ATTR_ENTITY_ID,
     ATTR_STATE,
     CONF_DEVICES,
 )
-
 import homeassistant.helpers.config_validation as cv
 
 from .const import (
@@ -30,11 +21,12 @@ from .const import (
     CONF_WHERE,
     CONF_MANUFACTURER,
     CONF_DEVICE_MODEL,
-    CONF_DIMMABLE,
+    CONF_DEVICE_CLASS,
     DOMAIN,
     LOGGER,
 )
 from .gateway import MyHOMEGateway
+
 from OWNd.message import (
     OWNLightingEvent,
     OWNLightingCommand,
@@ -44,7 +36,7 @@ MYHOME_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_WHERE): cv.string,
         vol.Optional(CONF_NAME): cv.string,
-        vol.Optional(CONF_DIMMABLE): cv.boolean,
+        vol.Optional(CONF_DEVICE_CLASS): cv.string,
         vol.Optional(CONF_MANUFACTURER): cv.string,
         vol.Optional(CONF_DEVICE_MODEL): cv.string,
     }
@@ -65,23 +57,23 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         for _, entity_info in devices.items():
             name = entity_info[CONF_NAME] if CONF_NAME in entity_info else None
             where = entity_info[CONF_WHERE]
-            dimmable = entity_info[CONF_DIMMABLE] if CONF_DIMMABLE in entity_info else False
+            device_class = entity_info[CONF_DEVICE_CLASS] if CONF_DEVICE_CLASS in entity_info else "switch"
             manufacturer = entity_info[CONF_MANUFACTURER] if CONF_MANUFACTURER in entity_info else None
             model = entity_info[CONF_DEVICE_MODEL] if CONF_DEVICE_MODEL in entity_info else None
-            gateway.add_light(where, {CONF_NAME: name, CONF_DIMMABLE: dimmable, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model})
+            gateway.add_switch(where, {CONF_NAME: name, CONF_DEVICE_CLASS: device_class, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model})
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     devices = []
     gateway = hass.data[DOMAIN][CONF_GATEWAY]
 
-    gateway_devices = gateway.get_lights()
+    gateway_devices = gateway.get_switches()
     for device in gateway_devices.keys():
-        device = MyHOMELight(
+        device = MyHOMESwitch(
             hass=hass,
             where=device,
             name=gateway_devices[device][CONF_NAME],
-            dimmable=gateway_devices[device][CONF_DIMMABLE],
+            device_class=gateway_devices[device][CONF_DEVICE_CLASS],
             manufacturer=gateway_devices[device][CONF_MANUFACTURER],
             model=gateway_devices[device][CONF_DEVICE_MODEL],
             gateway=gateway
@@ -92,35 +84,24 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
     await gateway.send_status_request(OWNLightingCommand.status("0"))
 
-def eight_bits_to_percent(value: int) -> int:
-    return int(round(100/255*value, 0))
+class MyHOMESwitch(SwitchEntity):
 
-def percent_to_eight_bits(value: int) -> int:
-    return int(round(255/100*value, 0))
-
-class MyHOMELight(LightEntity):
-
-    def __init__(self, hass, name: str, where: str, dimmable: bool, manufacturer: str, model: str, gateway):
+    def __init__(self, hass, name: str, where: str, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGateway):
 
         self._name = name
-        self._where = where
         self._manufacturer = manufacturer or "BTicino S.p.A."
-        self._who = "1"
         self._model = model
+        self._who = "1"
+        self._where = where
         self._id = f"{self._who}-{self._where}"
         if self._name is None:
             self._name = f"A{self._where[:len(self._where)//2]}PL{self._where[len(self._where)//2:]}"
-        self._supported_features = 0
-        self._dimmable = dimmable
-        if self._dimmable:
-            self._supported_features |= SUPPORT_BRIGHTNESS
+        self.device_class == "outlet" if device_class.lower() == "outlet" else "switch"
         self._gateway = gateway
         self._is_on = False
-        self._brightness = 0
 
         hass.data[DOMAIN][self._id] = self
 
-    
     async def async_update(self):
         """Update the entity.
 
@@ -142,7 +123,7 @@ class MyHOMELight(LightEntity):
     
     @property
     def should_poll(self):
-        """No polling needed for a SCSGate light."""
+        """No polling needed for a MyHome device."""
         return False
 
     @property
@@ -160,27 +141,9 @@ class MyHOMELight(LightEntity):
         """Return true if light is on."""
         return self._is_on
 
-    @property
-    def brightness(self):
-        """Return the brightness of this light between 0..255."""
-        return self._brightness
-
-    @property
-    def supported_features(self):
-        """Flag supported features."""
-        return self._supported_features
-
     async def async_turn_on(self, **kwargs):
         """Turn the device on."""
-
-        if ATTR_BRIGHTNESS in kwargs:
-            percent_brightness = eight_bits_to_percent(kwargs[ATTR_BRIGHTNESS])
-            if percent_brightness > 0:
-                await self._gateway.send(OWNLightingCommand.set_brightness(self._where, percent_brightness))
-            else:
-                await self.async_turn_off
-        else:    
-            await self._gateway.send(OWNLightingCommand.switch_on(self._where))
+        await self._gateway.send(OWNLightingCommand.switch_on(self._where))
 
     async def async_turn_off(self, **kwargs):
         """Turn the device off."""
@@ -189,8 +152,4 @@ class MyHOMELight(LightEntity):
     def handle_event(self, message: OWNLightingEvent):
         """Handle a SCSGate message related with this light."""
         self._is_on = message.is_on
-        if self._dimmable and message.brightness is not None:
-            self._brightness = percent_to_eight_bits(message.brightness)
         self.async_schedule_update_ha_state()
-
-

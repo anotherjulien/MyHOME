@@ -1,27 +1,17 @@
-"""Support for MyHome lights."""
 import logging
 
 import voluptuous as vol
 
-from homeassistant.components.light import (
-    ATTR_BRIGHTNESS,
-    ATTR_FLASH,
-    FLASH_LONG,
-    FLASH_SHORT,
-    SUPPORT_BRIGHTNESS,
-    SUPPORT_FLASH,
+from homeassistant.components.binary_sensor import (
     PLATFORM_SCHEMA,
-    LightEntity,
-    Light,
+    BinarySensorEntity,
 )
-
 from homeassistant.const import (
     CONF_NAME, 
     ATTR_ENTITY_ID,
     ATTR_STATE,
     CONF_DEVICES,
 )
-
 import homeassistant.helpers.config_validation as cv
 
 from .const import (
@@ -30,21 +20,25 @@ from .const import (
     CONF_WHERE,
     CONF_MANUFACTURER,
     CONF_DEVICE_MODEL,
-    CONF_DIMMABLE,
+    CONF_DEVICE_CLASS,
+    CONF_INVERTED,
     DOMAIN,
     LOGGER,
 )
 from .gateway import MyHOMEGateway
+
 from OWNd.message import (
-    OWNLightingEvent,
-    OWNLightingCommand,
+    OWNDryContactEvent,
+    OWNDryContactCommand,
 )
 
 MYHOME_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_WHERE): cv.string,
+        vol.Optional(CONF_WHO): cv.string,
         vol.Optional(CONF_NAME): cv.string,
-        vol.Optional(CONF_DIMMABLE): cv.boolean,
+        vol.Optional(CONF_INVERTED): cv.boolean,
+        vol.Optional(CONF_DEVICE_CLASS): cv.string,
         vol.Optional(CONF_MANUFACTURER): cv.string,
         vol.Optional(CONF_DEVICE_MODEL): cv.string,
     }
@@ -65,23 +59,27 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         for _, entity_info in devices.items():
             name = entity_info[CONF_NAME] if CONF_NAME in entity_info else None
             where = entity_info[CONF_WHERE]
-            dimmable = entity_info[CONF_DIMMABLE] if CONF_DIMMABLE in entity_info else False
+            who = entity_info[CONF_WHO] if CONF_WHO in entity_info else "25"
+            inverted = entity_info[CONF_INVERTED] if CONF_INVERTED in entity_info else False
+            device_class = entity_info[CONF_DEVICE_CLASS] if CONF_DEVICE_CLASS in entity_info else None
             manufacturer = entity_info[CONF_MANUFACTURER] if CONF_MANUFACTURER in entity_info else None
             model = entity_info[CONF_DEVICE_MODEL] if CONF_DEVICE_MODEL in entity_info else None
-            gateway.add_light(where, {CONF_NAME: name, CONF_DIMMABLE: dimmable, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model})
+            gateway.add_binary_sensor(where, {CONF_WHO: who, CONF_NAME: name, CONF_INVERTED: inverted, CONF_DEVICE_CLASS: device_class, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model})
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     devices = []
     gateway = hass.data[DOMAIN][CONF_GATEWAY]
 
-    gateway_devices = gateway.get_lights()
+    gateway_devices = gateway.get_binary_sensors()
     for device in gateway_devices.keys():
-        device = MyHOMELight(
+        device = MyHOMEBinarySensor(
             hass=hass,
+            who=gateway_devices[device][CONF_WHO],
             where=device,
             name=gateway_devices[device][CONF_NAME],
-            dimmable=gateway_devices[device][CONF_DIMMABLE],
+            inverted=gateway_devices[device][CONF_INVERTED],
+            device_class=gateway_devices[device][CONF_DEVICE_CLASS],
             manufacturer=gateway_devices[device][CONF_MANUFACTURER],
             model=gateway_devices[device][CONF_DEVICE_MODEL],
             gateway=gateway
@@ -90,43 +88,35 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         
     async_add_entities(devices)
 
-    await gateway.send_status_request(OWNLightingCommand.status("0"))
+class MyHOMEBinarySensor(BinarySensorEntity):
 
-def eight_bits_to_percent(value: int) -> int:
-    return int(round(100/255*value, 0))
-
-def percent_to_eight_bits(value: int) -> int:
-    return int(round(255/100*value, 0))
-
-class MyHOMELight(LightEntity):
-
-    def __init__(self, hass, name: str, where: str, dimmable: bool, manufacturer: str, model: str, gateway):
+    def __init__(self, hass, name: str, who: str, where: str, inverted: bool, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGateway):
 
         self._name = name
-        self._where = where
         self._manufacturer = manufacturer or "BTicino S.p.A."
-        self._who = "1"
         self._model = model
+        self._who = who
+        self._where = where
+        self._inverted = inverted
         self._id = f"{self._who}-{self._where}"
         if self._name is None:
-            self._name = f"A{self._where[:len(self._where)//2]}PL{self._where[len(self._where)//2:]}"
-        self._supported_features = 0
-        self._dimmable = dimmable
-        if self._dimmable:
-            self._supported_features |= SUPPORT_BRIGHTNESS
+            self._name = f"Sensor {self._where[1:]}"
+        self.device_class == device_class.lower()
         self._gateway = gateway
         self._is_on = False
-        self._brightness = 0
 
         hass.data[DOMAIN][self._id] = self
 
-    
+    async def async_added_to_hass(self):
+        """When entity is added to hass."""
+        await self.async_update()
+
     async def async_update(self):
         """Update the entity.
 
         Only used by the generic entity update service.
         """
-        await self._gateway.send_status_request(OWNLightingCommand.status(self._where))
+        await self._gateway.send_status_request(OWNDryContactCommand.status(self._where))
 
     @property
     def device_info(self):
@@ -142,7 +132,7 @@ class MyHOMELight(LightEntity):
     
     @property
     def should_poll(self):
-        """No polling needed for a SCSGate light."""
+        """No polling needed for a MyHome device."""
         return False
 
     @property
@@ -157,40 +147,10 @@ class MyHOMELight(LightEntity):
 
     @property
     def is_on(self):
-        """Return true if light is on."""
-        return self._is_on
+        """Return true if sensor is on."""
+        return self._is_on if not self._inverted else not self._is_on
 
-    @property
-    def brightness(self):
-        """Return the brightness of this light between 0..255."""
-        return self._brightness
-
-    @property
-    def supported_features(self):
-        """Flag supported features."""
-        return self._supported_features
-
-    async def async_turn_on(self, **kwargs):
-        """Turn the device on."""
-
-        if ATTR_BRIGHTNESS in kwargs:
-            percent_brightness = eight_bits_to_percent(kwargs[ATTR_BRIGHTNESS])
-            if percent_brightness > 0:
-                await self._gateway.send(OWNLightingCommand.set_brightness(self._where, percent_brightness))
-            else:
-                await self.async_turn_off
-        else:    
-            await self._gateway.send(OWNLightingCommand.switch_on(self._where))
-
-    async def async_turn_off(self, **kwargs):
-        """Turn the device off."""
-        await self._gateway.send(OWNLightingCommand.switch_off(self._where))
-
-    def handle_event(self, message: OWNLightingEvent):
+    def handle_event(self, message: OWNDryContactEvent):
         """Handle a SCSGate message related with this light."""
         self._is_on = message.is_on
-        if self._dimmable and message.brightness is not None:
-            self._brightness = percent_to_eight_bits(message.brightness)
         self.async_schedule_update_ha_state()
-
-

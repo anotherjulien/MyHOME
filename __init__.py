@@ -39,7 +39,7 @@ CONFIG_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA
 )
 
-PLATFORMS = ["light"]
+PLATFORMS = ["light", "switch"]
 
 async def async_setup(hass, config):
     """Set up the MyHOME component."""
