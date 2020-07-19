@@ -73,6 +73,7 @@ class MyHOMEGateway:
         self._switches = {}
         self._binary_sensors = {}
         self._covers = {}
+        self._sensors = {}
 
     @property
     def mac(self) -> str:
@@ -121,6 +122,12 @@ class MyHOMEGateway:
 
     def get_covers(self) -> dict:
         return self._covers
+    
+    def add_sensor(self, where: str, parameters: dict) -> None:
+        self._sensors[where] = parameters
+
+    def get_sensors(self) -> dict:
+        return self._sensors
 
     async def test(self) -> bool:
         result = await self.test_session.test_connection()
@@ -136,18 +143,6 @@ class MyHOMEGateway:
         self.is_connected = True
 
     async def listening_loop(self):
-        self.hass.async_create_task(
-            self.hass.config_entries.async_forward_entry_setup(self.config_entry, "light")
-        )
-        self.hass.async_create_task(
-            self.hass.config_entries.async_forward_entry_setup(self.config_entry, "switch")
-        )
-        self.hass.async_create_task(
-            self.hass.config_entries.async_forward_entry_setup(self.config_entry, "cover")
-        )
-        self.hass.async_create_task(
-            self.hass.config_entries.async_forward_entry_setup(self.config_entry, "binary_sensor")
-        )
         self._terminate_listener = False
         while not self._terminate_listener:
             message = await self.event_session.get_next()
@@ -155,7 +150,7 @@ class MyHOMEGateway:
             if not message:
                 LOGGER.info(f"Received : {message}")
             elif message.is_event():
-                if message.who == 1 or message.who == 2 or message.who == 25:
+                if message.who == 1 or message.who == 2 or message.who == 18 or message.who == 25:
                     if message.unique_id in self.hass.data[DOMAIN]:
                         self.hass.data[DOMAIN][message.unique_id].handle_event(message)
                     else:

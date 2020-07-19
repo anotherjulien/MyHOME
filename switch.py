@@ -38,7 +38,7 @@ MYHOME_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_WHERE): cv.string,
         vol.Optional(CONF_NAME): cv.string,
-        vol.Optional(CONF_DEVICE_CLASS): cv.string,
+        vol.Optional(CONF_DEVICE_CLASS): vol.In([DEVICE_CLASS_OUTLET, DEVICE_CLASS_SWITCH]),
         vol.Optional(CONF_MANUFACTURER): cv.string,
         vol.Optional(CONF_DEVICE_MODEL): cv.string,
     }

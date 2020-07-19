@@ -4,6 +4,30 @@ import voluptuous as vol
 
 from homeassistant.components.binary_sensor import (
     PLATFORM_SCHEMA,
+    DEVICE_CLASS_BATTERY,
+    DEVICE_CLASS_BATTERY_CHARGING,
+    DEVICE_CLASS_COLD,
+    DEVICE_CLASS_CONNECTIVITY,
+    DEVICE_CLASS_DOOR,
+    DEVICE_CLASS_GARAGE_DOOR,
+    DEVICE_CLASS_GAS,
+    DEVICE_CLASS_HEAT,
+    DEVICE_CLASS_LIGHT,
+    DEVICE_CLASS_LOCK,
+    DEVICE_CLASS_MOISTURE,
+    DEVICE_CLASS_MOTION,
+    DEVICE_CLASS_MOVING,
+    DEVICE_CLASS_OCCUPANCY,
+    DEVICE_CLASS_OPENING,
+    DEVICE_CLASS_PLUG,
+    DEVICE_CLASS_POWER,
+    DEVICE_CLASS_PRESENCE,
+    DEVICE_CLASS_PROBLEM,
+    DEVICE_CLASS_SAFETY,
+    DEVICE_CLASS_SMOKE,
+    DEVICE_CLASS_SOUND,
+    DEVICE_CLASS_VIBRATION,
+    DEVICE_CLASS_WINDOW,
     BinarySensorEntity,
 )
 from homeassistant.const import (
@@ -38,7 +62,32 @@ MYHOME_SCHEMA = vol.Schema(
         vol.Optional(CONF_WHO): cv.string,
         vol.Optional(CONF_NAME): cv.string,
         vol.Optional(CONF_INVERTED): cv.boolean,
-        vol.Optional(CONF_DEVICE_CLASS): cv.string,
+        vol.Optional(CONF_DEVICE_CLASS): vol.In([
+            DEVICE_CLASS_BATTERY,
+            DEVICE_CLASS_BATTERY_CHARGING,
+            DEVICE_CLASS_COLD,
+            DEVICE_CLASS_CONNECTIVITY,
+            DEVICE_CLASS_DOOR,
+            DEVICE_CLASS_GARAGE_DOOR,
+            DEVICE_CLASS_GAS,
+            DEVICE_CLASS_HEAT,
+            DEVICE_CLASS_LIGHT,
+            DEVICE_CLASS_LOCK,
+            DEVICE_CLASS_MOISTURE,
+            DEVICE_CLASS_MOTION,
+            DEVICE_CLASS_MOVING,
+            DEVICE_CLASS_OCCUPANCY,
+            DEVICE_CLASS_OPENING,
+            DEVICE_CLASS_PLUG,
+            DEVICE_CLASS_POWER,
+            DEVICE_CLASS_PRESENCE,
+            DEVICE_CLASS_PROBLEM,
+            DEVICE_CLASS_SAFETY,
+            DEVICE_CLASS_SMOKE,
+            DEVICE_CLASS_SOUND,
+            DEVICE_CLASS_VIBRATION,
+            DEVICE_CLASS_WINDOW,
+            ]),
         vol.Optional(CONF_MANUFACTURER): cv.string,
         vol.Optional(CONF_DEVICE_MODEL): cv.string,
     }
@@ -101,7 +150,7 @@ class MyHOMEBinarySensor(BinarySensorEntity):
         self._id = f"{self._who}-{self._where}"
         if self._name is None:
             self._name = f"Sensor {self._where[1:]}"
-        self._device_class = device_class.lower()
+        self._device_class = device_class
         self._gateway = gateway
         self._is_on = False
 

@@ -39,7 +39,7 @@ CONFIG_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA
 )
 
-PLATFORMS = ["light", "switch"]
+PLATFORMS = ["light", "switch", "cover", "binary_sensor", "sensor"]
 
 async def async_setup(hass, config):
     """Set up the MyHOME component."""
@@ -73,6 +73,22 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.Conf
     )
 
     await myhome_gateway.connect()
+
+    hass.async_create_task(
+        hass.config_entries.async_forward_entry_setup(entry, "light")
+    )
+    hass.async_create_task(
+        hass.config_entries.async_forward_entry_setup(entry, "switch")
+    )
+    hass.async_create_task(
+        hass.config_entries.async_forward_entry_setup(entry, "cover")
+    )
+    hass.async_create_task(
+        hass.config_entries.async_forward_entry_setup(entry, "binary_sensor")
+    )
+    hass.async_create_task(
+        hass.config_entries.async_forward_entry_setup(entry, "sensor")
+    )
 
     myhome_gateway.listening_task = asyncio.create_task(myhome_gateway.listening_loop())
 
