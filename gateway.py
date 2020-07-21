@@ -143,6 +143,23 @@ class MyHOMEGateway:
         self.is_connected = True
 
     async def listening_loop(self):
+
+        # self.hass.async_create_task(
+        #     self.hass.config_entries.async_forward_entry_setup(self.config_entry, "light")
+        # )
+        # self.hass.async_create_task(
+        #     self.hass.config_entries.async_forward_entry_setup(self.config_entry, "switch")
+        # )
+        # self.hass.async_create_task(
+        #     self.hass.config_entries.async_forward_entry_setup(self.config_entry, "cover")
+        # )
+        # self.hass.async_create_task(
+        #     self.hass.config_entries.async_forward_entry_setup(self.config_entry, "binary_sensor")
+        # )
+        # self.hass.async_create_task(
+        #     self.hass.config_entries.async_forward_entry_setup(self.config_entry, "sensor")
+        # )
+
         self._terminate_listener = False
         while not self._terminate_listener:
             message = await self.event_session.get_next()
@@ -157,7 +174,7 @@ class MyHOMEGateway:
                         LOGGER.info(f"Unknown device: WHO={message.who} WHERE={message.where}")
 
     async def close_listener(self, event=None) -> None:
-        LOGGER.info("CLOSING")
+        LOGGER.info("Closing event listener")
         self._terminate_listener = True
         await self.event_session.close()
         self.is_connected = False

@@ -96,5 +96,5 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.Conf
 
 async def async_unload_entry(hass, entry):
     """Unload a config entry."""
-    myhome_gateway = hass.data[DOMAIN][entry.entry_id]
+    myhome_gateway = hass.data[DOMAIN][CONF_GATEWAY]
     await myhome_gateway.close_listener()
