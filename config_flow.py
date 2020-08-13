@@ -198,8 +198,8 @@ class MyhomeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if it has not been discovered on its own, and test the connection.
         """
 
-        gateway = OWNGateway.build_from_discovery_info(discovery_info)
-        LOGGER.info("FOUND %s", gateway.address)
+        gateway = await OWNGateway.build_from_discovery_info(discovery_info)
+        LOGGER.info("Found gateway: %s", gateway.address)
         updatable = {CONF_HOST: gateway.address, CONF_NAME: gateway.modelName, CONF_FRIENDLY_NAME: gateway.friendlyName, CONF_ID: gateway.UDN, CONF_FIRMWARE: gateway.firmware}
         if gateway.port is not None:
             updatable[CONF_PORT] = gateway.port
