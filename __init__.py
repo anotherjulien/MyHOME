@@ -90,7 +90,7 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.Conf
         hass.config_entries.async_forward_entry_setup(entry, "sensor")
     )
 
-    myhome_gateway.listening_task = asyncio.create_task(myhome_gateway.listening_loop())
+    myhome_gateway.listening_task = hass.loop.create_task(myhome_gateway.listening_loop())
 
     return True
 

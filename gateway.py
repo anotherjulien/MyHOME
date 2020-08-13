@@ -36,6 +36,10 @@ from .const import (
     CONF_MANUFACTURER_URL,
     CONF_UDN,
     CONF_PARENT_ID,
+    CONF_SHORT_PRESS,
+    CONF_SHORT_RELEASE,
+    CONF_LONG_PRESS,
+    CONF_LONG_RELEASE,
     DOMAIN,
     LOGGER,
 )
@@ -139,39 +143,60 @@ class MyHOMEGateway:
 
     async def connect(self) -> None:
         await self.event_session.connect()
-        #self._hass.bus.listen_once(EVENT_HOMEASSISTANT_STOP, self.close_listener)
+        #self.hass.bus.listen_once(EVENT_HOMEASSISTANT_STOP, self.close_listener)
         self.is_connected = True
 
     async def listening_loop(self):
-
-        # self.hass.async_create_task(
-        #     self.hass.config_entries.async_forward_entry_setup(self.config_entry, "light")
-        # )
-        # self.hass.async_create_task(
-        #     self.hass.config_entries.async_forward_entry_setup(self.config_entry, "switch")
-        # )
-        # self.hass.async_create_task(
-        #     self.hass.config_entries.async_forward_entry_setup(self.config_entry, "cover")
-        # )
-        # self.hass.async_create_task(
-        #     self.hass.config_entries.async_forward_entry_setup(self.config_entry, "binary_sensor")
-        # )
-        # self.hass.async_create_task(
-        #     self.hass.config_entries.async_forward_entry_setup(self.config_entry, "sensor")
-        # )
 
         self._terminate_listener = False
         while not self._terminate_listener:
             message = await self.event_session.get_next()
             LOGGER.debug("Received: %s", message)
             if not message:
-                LOGGER.info(f"Received : {message}")
-            elif message.is_event():
-                if message.who == 1 or message.who == 2 or message.who == 18 or message.who == 25:
+                LOGGER.info("Received: %s", message)
+            elif isinstance(message, OWNEnergyEvent) or isinstance(message, OWNLightingEvent) or isinstance(message, OWNAutomationEvent) or isinstance(message, OWNDryContactEvent):
+                if not message.is_translation():
                     if message.unique_id in self.hass.data[DOMAIN]:
                         self.hass.data[DOMAIN][message.unique_id].handle_event(message)
                     else:
-                        LOGGER.info(f"Unknown device: WHO={message.who} WHERE={message.where}")
+                        LOGGER.warning("Unknown device: WHO=%s WHERE=%s", message.who, message.where)
+                else:
+                    LOGGER.debug("Ignoring translation message %s", message)
+            elif isinstance(message, OWNCENPlusEvent):
+                event = None
+                if message.is_short_pressed:
+                    event = CONF_SHORT_PRESS
+                elif message.is_held or message.is_still_held:
+                    event = CONF_LONG_PRESS
+                elif message.is_released:
+                    event = CONF_LONG_RELEASE
+                else:
+                    event = None
+                self.hass.bus.async_fire(
+                    "myhome_cenplus_event",
+                    {"object": int(message.object), "pushbutton": int(message.push_button), "event": event},
+                )
+                LOGGER.info(message.human_readable_log)
+            elif isinstance(message, OWNCENEvent):
+                event = None
+                if message.is_pressed:
+                    event = CONF_SHORT_PRESS
+                elif message.is_released_after_short_press:
+                    event = CONF_SHORT_RELEASE
+                elif message.is_held:
+                    event = CONF_LONG_PRESS
+                elif message.is_released_after_long_press:
+                    event = CONF_LONG_RELEASE
+                else:
+                    event = None
+                self.hass.bus.async_fire(
+                    "myhome_cen_event",
+                    {"object": int(message.object), "pushbutton": int(message.push_button), "event": event},
+                )
+                LOGGER.info(message.human_readable_log)
+            else:
+                LOGGER.info("Unsupported message type: %s", message)
+
 
     async def close_listener(self, event=None) -> None:
         LOGGER.info("Closing event listener")
