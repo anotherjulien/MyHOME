@@ -92,6 +92,13 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.Conf
 
     myhome_gateway.listening_task = hass.loop.create_task(myhome_gateway.listening_loop())
 
+    async def handle_sync_time(call):
+        timezone = hass.config.as_dict()['time_zone']
+        message = OWNGatewayCommand.set_datetime_to_now(timezone)
+        await myhome_gateway.send(OWNGatewayCommand.set_datetime_to_now(timezone))
+    
+    hass.services.async_register(DOMAIN, "sync_time", handle_sync_time)
+
     return True
 
 async def async_unload_entry(hass, entry):

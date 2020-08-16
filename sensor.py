@@ -23,7 +23,7 @@ from homeassistant.const import (
     POWER_WATT,
     TEMP_CELSIUS,
 )
-import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers import config_validation as cv, entity_platform, service
 
 from .const import (
     CONF_GATEWAY,
@@ -46,6 +46,7 @@ from OWNd.message import (
     MESSAGE_TYPE_CURRENT_DAY_CONSUMPTION,
     MESSAGE_TYPE_CURRENT_MONTH_CONSUMPTION,
     OWNEnergyEvent,
+    OWNEnergyCommand,
 )
 
 MYHOME_SCHEMA = vol.Schema(
@@ -75,6 +76,15 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 
 _LOGGER = logging.getLogger(__name__)
 
+SERVICE_SEND_INSTANT_POWER = "start_sending_instant_power"
+SERVICE_PARTIAL_DAILY_CONSUMPTION = "get_partial_daily_consumption"
+SERVICE_HOURLY_CONSUMPTION = "get_hourly_consumption"
+
+ATTR_DURATION = "duration"
+ATTR_DATE = "date"
+ATTR_MONTH = "month"
+ATTR_DAY = "day"
+
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Legacy, config file not supported."""
     devices = config.get(CONF_DEVICES)
@@ -95,9 +105,12 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     devices = []
     gateway = hass.data[DOMAIN][CONF_GATEWAY]
 
+    energy_devices_configured = False
+
     gateway_devices = gateway.get_sensors()
     for device in gateway_devices.keys():
         if gateway_devices[device][CONF_DEVICE_CLASS] == DEVICE_CLASS_POWER:
+            energy_devices_configured = True
             device = MyHOMEPowerSensor(
                 hass=hass,
                 who=gateway_devices[device][CONF_WHO],
@@ -108,8 +121,32 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                 model=gateway_devices[device][CONF_DEVICE_MODEL],
                 gateway=gateway
             )
+
             devices.append(device)
-        
+    
+    if energy_devices_configured:
+        platform = entity_platform.current_platform.get()
+
+        platform.async_register_entity_service(
+            SERVICE_SEND_INSTANT_POWER,
+            {
+                vol.Optional(ATTR_DURATION): vol.All(
+                    vol.Coerce(int), vol.Range(min=1, max=255)
+                )
+            },
+            "start_sending_instant_power",
+        )
+
+        platform.async_register_entity_service(SERVICE_PARTIAL_DAILY_CONSUMPTION, {}, "get_partial_daily_consumption")
+
+        platform.async_register_entity_service(
+            SERVICE_HOURLY_CONSUMPTION,
+            {
+                vol.Required(ATTR_DATE): cv.date
+            },
+            "get_hourly_consumption",
+        )
+
     async_add_entities(devices)
 
 class MyHOMEPowerSensor(Entity):
@@ -189,3 +226,15 @@ class MyHOMEPowerSensor(Entity):
         if message.message_type == MESSAGE_TYPE_ACTIVE_POWER:
             self._value = message.active_power
             self.async_schedule_update_ha_state()
+    
+    async def start_sending_instant_power(self, duration):
+        """Request automatic instant power."""
+        await self._gateway.send(OWNEnergyCommand.start_sending_instant_power(self._where, duration))
+
+    async def get_partial_daily_consumption(self):
+        """Request today's power consumption so far."""
+        await self._gateway.send(OWNEnergyCommand.get_partial_daily_consumption(self._where))
+
+    async def get_hourly_consumption(self, date):
+        """Request hourly power consumption for specific day."""
+        await self._gateway.send(OWNEnergyCommand.get_hourly_consumption(self._where, date))

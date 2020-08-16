@@ -57,10 +57,8 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    LOGGER.debug("LIGHT PLATFORM SETUP")
     devices = config.get(CONF_DEVICES)
     gateway = hass.data[DOMAIN][CONF_GATEWAY]
-    LOGGER.debug(gateway)
 
     if devices:
         for _, entity_info in devices.items():
@@ -73,12 +71,10 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
-    LOGGER.debug("LIGHT ENTRY SETUP")
     devices = []
     gateway = hass.data[DOMAIN][CONF_GATEWAY]
 
     gateway_devices = gateway.get_lights()
-    LOGGER.debug(gateway_devices)
     for device in gateway_devices.keys():
         device = MyHOMELight(
             hass=hass,

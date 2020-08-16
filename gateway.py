@@ -194,6 +194,8 @@ class MyHOMEGateway:
                     {"object": int(message.object), "pushbutton": int(message.push_button), "event": event},
                 )
                 LOGGER.info(message.human_readable_log)
+            elif isinstance(message, OWNGatewayEvent) or isinstance(message, OWNGatewayCommand):
+                LOGGER.info(message.human_readable_log)
             else:
                 LOGGER.info("Unsupported message type: %s", message)
 
