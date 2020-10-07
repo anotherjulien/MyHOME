@@ -81,18 +81,18 @@ class MyhomeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="all_configured")
 
         if len(local_gateways) == 1:
-            self.gateway = await OWNGateway.build_from_discovery_info( local_gateways[0])
+            self.gateway = await OWNGateway.build_from_discovery_info(local_gateways[0])
             await self.async_set_unique_id(self.gateway.serial, raise_on_progress=False)
             return await self.async_step_test_connection()
 
-        self.discovered_gateways = {gateway.serial: gateway for gateway in local_gateways}
+        self.discovered_gateways = {gateway["serialNumber"]: gateway for gateway in local_gateways}
 
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(
                 {
                     vol.Required("serial"): vol.In(
-                        {gateway.serial: gateway.host for gateway in local_gateways}
+                        {gateway["serialNumber"]: gateway.host for gateway in local_gateways}
                     )
                 }
             ),
