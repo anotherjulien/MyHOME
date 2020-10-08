@@ -92,7 +92,7 @@ class MyhomeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(
                 {
                     vol.Required("serial"): vol.In(
-                        {gateway["serialNumber"]: gateway.host for gateway in local_gateways}
+                        {gateway["serialNumber"]: gateway["host"] for gateway in local_gateways}
                     )
                 }
             ),
