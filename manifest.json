@@ -8,6 +8,14 @@
     {
       "manufacturer": "BTicino S.p.A.",
       "modelName": "F454"
+    },
+    {
+      "manufacturer": "BTicino S.p.A.",
+      "modelName": "MH200N"
+    },
+    {
+      "manufacturer": "BTicino S.p.A.",
+      "modelName": "MH202"
     }
   ],
   "codeowners": []
