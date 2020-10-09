@@ -17,7 +17,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import aiohttp_client, config_validation as cv
 
 from homeassistant.const import (
-    CONF_IP_ADDRESS, 
+    CONF_HOST,
     CONF_PORT, 
     CONF_PASSWORD, 
     CONF_NAME, 
@@ -51,7 +51,7 @@ class MyHOMEGateway:
 
     def __init__(self, hass, config_entry):
         build_info = {
-            "address": config_entry.data[CONF_IP_ADDRESS],
+            "address": config_entry.data[CONF_HOST],
             "port": config_entry.data[CONF_PORT],
             "password": config_entry.data[CONF_PASSWORD],
             "ssdp_location": config_entry.data[CONF_SSDP_LOCATION],
