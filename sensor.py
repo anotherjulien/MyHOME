@@ -222,7 +222,7 @@ class MyHOMEPowerSensor(Entity):
         return self._unit
 
     def handle_event(self, message: OWNEnergyEvent):
-        """Handle a SCSGate message related with this light."""
+        """Handle an event message."""
         if message.message_type == MESSAGE_TYPE_ACTIVE_POWER:
             self._value = message.active_power
             self.async_schedule_update_ha_state()

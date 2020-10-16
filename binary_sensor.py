@@ -205,6 +205,6 @@ class MyHOMEBinarySensor(BinarySensorEntity):
         return self._is_on if not self._inverted else not self._is_on
 
     def handle_event(self, message: OWNDryContactEvent):
-        """Handle a SCSGate message related with this light."""
+        """Handle an event message."""
         self._is_on = message.is_on
         self.async_schedule_update_ha_state()

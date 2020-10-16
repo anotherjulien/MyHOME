@@ -157,6 +157,6 @@ class MyHOMESwitch(SwitchEntity):
         await self._gateway.send(OWNLightingCommand.switch_off(self._where))
 
     def handle_event(self, message: OWNLightingEvent):
-        """Handle a SCSGate message related with this light."""
+        """Handle an event message."""
         self._is_on = message.is_on
         self.async_schedule_update_ha_state()

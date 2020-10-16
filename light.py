@@ -186,7 +186,7 @@ class MyHOMELight(LightEntity):
         await self._gateway.send(OWNLightingCommand.switch_off(self._where))
 
     def handle_event(self, message: OWNLightingEvent):
-        """Handle a SCSGate message related with this light."""
+        """Handle an event message."""
         self._is_on = message.is_on
         if self._dimmable and message.brightness is not None:
             self._brightness = percent_to_eight_bits(message.brightness)

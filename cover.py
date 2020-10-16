@@ -209,7 +209,7 @@ class MyHOMECover(CoverEntity):
         await self._gateway.send(OWNAutomationCommand.stop_shutter(self._where))
 
     def handle_event(self, message: OWNAutomationEvent):
-        """Handle a MyHome Automation event message."""
+        """Handle an event message."""
         self._is_opening = message.is_opening
         self._is_closing = message.is_closing
         if message.is_closed is not None:
