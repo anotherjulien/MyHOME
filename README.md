@@ -32,7 +32,6 @@ light:
         dimmable: False
         manufacturer: BTicino
         model: F411U2
-        model: 64391
       main_bedroom_1:
         where: '23'
         name: Main bedroom
