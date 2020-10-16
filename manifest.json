@@ -7,7 +7,19 @@
   "ssdp": [
     {
       "manufacturer": "BTicino S.p.A.",
+      "modelName": "MHserver1"
+    },
+    {
+      "manufacturer": "BTicino S.p.A.",
       "modelName": "F454"
+    },
+    {
+      "manufacturer": "BTicino S.p.A.",
+      "modelName": "F453AV"
+    },
+    {
+      "manufacturer": "BTicino S.p.A.",
+      "modelName": "F452"
     },
     {
       "manufacturer": "BTicino S.p.A.",
@@ -15,7 +27,15 @@
     },
     {
       "manufacturer": "BTicino S.p.A.",
+      "modelName": "MH200"
+    },
+    {
+      "manufacturer": "BTicino S.p.A.",
       "modelName": "MH202"
+    },
+    {
+      "manufacturer": "BTicino S.p.A.",
+      "modelName": "MH201"
     }
   ],
   "codeowners": ["@anotherjulien"]
