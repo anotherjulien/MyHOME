@@ -174,16 +174,16 @@ class MyhomeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input is not None:
             # Validate user input
-            if 1 <= int(user_input["password"]) <= 65535:
-                self.gateway.port = int(user_input["port"])
+            if 1 <= int(user_input["password"]) <= 999999:
+                self.gateway.password = int(user_input["password"])
                 return await self.async_step_test_connection()
-            errors["port"] = "invalid_port"
+            errors["password"] = "invalid_password"
 
         return self.async_show_form(
             step_id="password",
             data_schema=vol.Schema(
                 {
-                    vol.Required("password"): str,
+                    vol.Required("password", description={"suggested_value": 12345}): int,
                 }
             ),
             errors=errors
