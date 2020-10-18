@@ -51,7 +51,6 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    """Legacy, config file not supported."""
     devices = config.get(CONF_DEVICES)
     gateway = hass.data[DOMAIN][CONF_GATEWAY]
 
