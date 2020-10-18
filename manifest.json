@@ -7,11 +7,7 @@
   "ssdp": [
     {
       "manufacturer": "BTicino S.p.A.",
-      "modelName": "MHserver1"
-    },
-    {
-      "manufacturer": "BTicino S.p.A.",
-      "modelName": "MyHOMEServer1"
+      "modelName": "MyHomeServer1"
     },
     {
       "manufacturer": "BTicino S.p.A.",
