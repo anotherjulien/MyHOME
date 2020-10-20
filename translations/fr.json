@@ -1,38 +1,42 @@
 {
-    "config": {
-      "step": {
-        "user": {
-          "title": "Choisisez votre serveur \"MyHome\"",
-          "data": {
-            "host": "Adresse IP"
-          }
-        },
-        "port": {
-          "title": "Entrez le port de connexion du serveur",
-          "data": {
-            "port": "Port"
-          }
-        },
-        "password": {
-          "title": "Entrez le mot de passe de connexion au serveur",
-          "data": {
-            "password": "Mot de passe"
-          }
+  "title": "Serveur MyHome {name}",
+  "config": {
+    "flow_title": "Serveur MyHome {name} ({host})",
+    "step": {
+      "user": {
+        "title": "Choisisez votre serveur \"MyHome\"",
+        "data": {
+          "host": "Adresse IP"
         }
       },
-      "error": {
-        "invalid_port": "Port invalide",
-        "invalid_password": "Mot de passe invalide",
-        "password_error": "Mot de passe invalide"
+      "port": {
+        "title": "Port du serveur",
+        "description": "Entrez le port utilier pour les communications OpenWebNet avec le serveur {name} {host}",
+        "data": {
+          "port": "Port"
+        }
       },
-      "abort": {
-        "discover_timeout": "Impossible de découvrir des serveurs MyHome",
-        "no_gateways": "Aucun serveur MyHome découvert",
-        "all_configured": "Tous les serveurs MyHome sont déjà configurés",
-        "unknown": "Une erreur inconnue s'est produite",
-        "cannot_connect": "Connexion au serveur impossible",
-        "already_configured": "Ce serveur est déjà configuré",
-        "already_in_progress": "Le flux de configuration pour le pont est déjà en cours"
+      "password": {
+        "title": "Mot de passe du serveur",
+        "description": "Entrez le mot de passe OpenWebNet pour le serveur {name} {host}",
+        "data": {
+          "password": "Mot de passe"
+        }
       }
+    },
+    "error": {
+      "invalid_port": "Port invalide",
+      "invalid_password": "Mot de passe invalide",
+      "password_error": "Mot de passe invalide"
+    },
+    "abort": {
+      "discover_timeout": "Impossible de découvrir des serveurs MyHome",
+      "no_gateways": "Aucun serveur MyHome découvert",
+      "all_configured": "Tous les serveurs MyHome sont déjà configurés",
+      "unknown": "Une erreur inconnue s'est produite",
+      "cannot_connect": "Connexion au serveur impossible",
+      "already_configured": "Ce serveur est déjà configuré",
+      "already_in_progress": "Le flux de configuration pour le pont est déjà en cours"
     }
   }
+}

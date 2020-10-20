@@ -1,0 +1,42 @@
+{
+  "title": "MyHome {name} gateway",
+  "config": {
+    "flow_title": "MyHome {name} Gateway ({host})",
+    "step": {
+      "user": {
+        "title": "Pick your \"MyHome\" gateway",
+        "data": {
+          "host": "IP address"
+        }
+      },
+      "port": {
+        "title": "Gateway's service port",
+        "description": "Provide the port used for OpenWebNet communication with the {name} gateway {host}",
+        "data": {
+          "port": "Port"
+        }
+      },
+      "password": {
+        "title": "Gateway's password",
+        "description": "Provide the OpenWebNet password for the {name} gateway {host}",
+        "data": {
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_port": "Invalid port",
+      "invalid_password": "Invalid password",
+      "password_error": "Invalid password"
+    },
+    "abort": {
+      "discover_timeout": "Unable to discover MyHome gateways",
+      "no_gateways": "No MyHome gateways discovered",
+      "all_configured": "All MyHome gateways are already configured",
+      "unknown": "An unknown error occured",
+      "cannot_connect": "Cannot connect to the gateway",
+      "already_configured": "This gateway is already configured",
+      "already_in_progress": "The configuration of this gateway is already in progress"
+    }
+  }
+}

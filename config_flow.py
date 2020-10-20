@@ -96,6 +96,11 @@ class MyhomeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     )
                 }
             ),
+            description_placeholders={
+                CONF_HOST: self.context[CONF_HOST],
+                CONF_NAME: self.context[CONF_NAME],
+                CONF_MAC: self.context[CONF_MAC],
+            },
         )
 
     async def async_step_test_connection(self):
@@ -108,6 +113,19 @@ class MyhomeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         gateway = self.gateway
         assert gateway is not None
         errors = {}
+
+        self.context.update(
+            {
+                CONF_HOST: gateway.host,
+                CONF_NAME: gateway.modelName,
+                CONF_MAC: gateway.serial,
+                "title_placeholders": {
+                    CONF_HOST: gateway.host,
+                    CONF_NAME: gateway.modelName,
+                    CONF_MAC: gateway.serial,
+                },
+            }
+        )
 
         test_session = OWNSession(gateway=gateway, logger=LOGGER)
         test_result = await test_session.test_connection()
@@ -136,10 +154,10 @@ class MyhomeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             )
         else:
             if test_result["Message"] == "password_required":
-                return self.async_step_password()
+                return await self.async_step_password()
             elif test_result["Message"] == "password_error":
                 errors["password"] = "password_error"
-                return self.async_show_form(step_id="password", errors=errors)
+                return self.async_step_password(errors=errors)
             else:
                 return self.async_abort(reason=test_result["Message"])
 
@@ -163,17 +181,23 @@ class MyhomeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required("port", description={"suggested_value": 20000}): int,
                 }
             ),
+            description_placeholders={
+                CONF_HOST: self.context[CONF_HOST],
+                CONF_NAME: self.context[CONF_NAME],
+                CONF_MAC: self.context[CONF_MAC],
+            },
             errors=errors
         )
 
-    async def async_step_password(self, user_input=None):
+    async def async_step_password(self, user_input=None, errors={}):
         """ Password is required to connect the gateway.
 
         Asking user to provide the gateway's password.
         """
-        errors = {}
+        #errors = {}
         if user_input is not None:
             # Validate user input
+            print(str(user_input["password"]))
             self.gateway.password = str(user_input["password"])
             return await self.async_step_test_connection()
 
@@ -184,6 +208,11 @@ class MyhomeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required("password", description={"suggested_value": 12345}): str,
                 }
             ),
+            description_placeholders={
+                CONF_HOST: self.context[CONF_HOST],
+                CONF_NAME: self.context[CONF_NAME],
+                CONF_MAC: self.context[CONF_MAC],
+            },
             errors=errors
         )
 
@@ -196,13 +225,16 @@ class MyhomeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if it has not been discovered on its own, and test the connection.
         """
 
+        if "port" not in discovery_info:
+            discovery_info["port"] = None
+        
         gateway = await OWNGateway.build_from_discovery_info(discovery_info)
+        await self.async_set_unique_id(gateway.id)
         LOGGER.info("Found gateway: %s", gateway.address)
         updatable = {CONF_HOST: gateway.address, CONF_NAME: gateway.modelName, CONF_FRIENDLY_NAME: gateway.friendlyName, CONF_ID: gateway.UDN, CONF_FIRMWARE: gateway.firmware}
         if gateway.port is not None:
             updatable[CONF_PORT] = gateway.port
 
-        await self.async_set_unique_id(gateway.id)
         self._abort_if_unique_id_configured(updates=updatable)
 
         self.gateway = gateway
