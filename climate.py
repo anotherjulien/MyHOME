@@ -79,18 +79,21 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     devices = config.get(CONF_DEVICES)
-    gateway = hass.data[DOMAIN][CONF_GATEWAY]
+    try:
+        gateway = hass.data[DOMAIN][CONF_GATEWAY]
 
-    if devices:
-        for _, entity_info in devices.items():
-            zone = entity_info[CONF_ZONE] if CONF_ZONE in entity_info else "#0"
-            name = entity_info[CONF_NAME] if CONF_NAME in entity_info else None
-            heating = entity_info[CONF_HEATING_SUPPORT] if CONF_HEATING_SUPPORT in entity_info else True
-            cooling = entity_info[CONF_COOLING_SUPPORT] if CONF_COOLING_SUPPORT in entity_info else False
-            fan = entity_info[CONF_FAN_SUPPORT] if CONF_FAN_SUPPORT in entity_info else False
-            manufacturer = entity_info[CONF_MANUFACTURER] if CONF_MANUFACTURER in entity_info else None
-            model = entity_info[CONF_DEVICE_MODEL] if CONF_DEVICE_MODEL in entity_info else None
-            gateway.add_climate_zone(zone, {CONF_NAME: name, CONF_HEATING_SUPPORT: heating, CONF_COOLING_SUPPORT: cooling, CONF_FAN_SUPPORT: fan, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model})
+        if devices:
+            for _, entity_info in devices.items():
+                zone = entity_info[CONF_ZONE] if CONF_ZONE in entity_info else "#0"
+                name = entity_info[CONF_NAME] if CONF_NAME in entity_info else None
+                heating = entity_info[CONF_HEATING_SUPPORT] if CONF_HEATING_SUPPORT in entity_info else True
+                cooling = entity_info[CONF_COOLING_SUPPORT] if CONF_COOLING_SUPPORT in entity_info else False
+                fan = entity_info[CONF_FAN_SUPPORT] if CONF_FAN_SUPPORT in entity_info else False
+                manufacturer = entity_info[CONF_MANUFACTURER] if CONF_MANUFACTURER in entity_info else None
+                model = entity_info[CONF_DEVICE_MODEL] if CONF_DEVICE_MODEL in entity_info else None
+                gateway.add_climate_zone(zone, {CONF_NAME: name, CONF_HEATING_SUPPORT: heating, CONF_COOLING_SUPPORT: cooling, CONF_FAN_SUPPORT: fan, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model})
+    except KeyError:
+        _LOGGER.warning("Climate devices configured but no gateway present in configuration.")
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):

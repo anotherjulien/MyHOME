@@ -101,18 +101,21 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     devices = config.get(CONF_DEVICES)
-    gateway = hass.data[DOMAIN][CONF_GATEWAY]
+    try:
+        gateway = hass.data[DOMAIN][CONF_GATEWAY]
 
-    if devices:
-        for _, entity_info in devices.items():
-            name = entity_info[CONF_NAME] if CONF_NAME in entity_info else None
-            where = entity_info[CONF_WHERE]
-            who = entity_info[CONF_WHO] if CONF_WHO in entity_info else "25"
-            inverted = entity_info[CONF_INVERTED] if CONF_INVERTED in entity_info else False
-            device_class = entity_info[CONF_DEVICE_CLASS] if CONF_DEVICE_CLASS in entity_info else None
-            manufacturer = entity_info[CONF_MANUFACTURER] if CONF_MANUFACTURER in entity_info else None
-            model = entity_info[CONF_DEVICE_MODEL] if CONF_DEVICE_MODEL in entity_info else None
-            gateway.add_binary_sensor(where, {CONF_WHO: who, CONF_NAME: name, CONF_INVERTED: inverted, CONF_DEVICE_CLASS: device_class, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model})
+        if devices:
+            for _, entity_info in devices.items():
+                name = entity_info[CONF_NAME] if CONF_NAME in entity_info else None
+                where = entity_info[CONF_WHERE]
+                who = entity_info[CONF_WHO] if CONF_WHO in entity_info else "25"
+                inverted = entity_info[CONF_INVERTED] if CONF_INVERTED in entity_info else False
+                device_class = entity_info[CONF_DEVICE_CLASS] if CONF_DEVICE_CLASS in entity_info else None
+                manufacturer = entity_info[CONF_MANUFACTURER] if CONF_MANUFACTURER in entity_info else None
+                model = entity_info[CONF_DEVICE_MODEL] if CONF_DEVICE_MODEL in entity_info else None
+                gateway.add_binary_sensor(where, {CONF_WHO: who, CONF_NAME: name, CONF_INVERTED: inverted, CONF_DEVICE_CLASS: device_class, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model})
+    except KeyError:
+        _LOGGER.warning("Binary sensor devices configured but no gateway present in configuration.")
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
