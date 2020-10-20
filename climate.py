@@ -3,7 +3,10 @@ import logging
 
 import voluptuous as vol
 
-from homeassistant.components.climate import ClimateEntity
+from homeassistant.components.climate import (
+    ClimateEntity, 
+    PLATFORM_SCHEMA,
+)
 from homeassistant.components.climate.const import (
     DEFAULT_MAX_TEMP,
     DEFAULT_MIN_TEMP,
@@ -68,7 +71,7 @@ MYHOME_SCHEMA = vol.Schema(
     }
 )
 
-PLATFORM_SCHEMA = cv.PLATFORM_SCHEMA.extend(
+PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {vol.Required(CONF_DEVICES): cv.schema_with_slug_keys(MYHOME_SCHEMA)}
 )
 
