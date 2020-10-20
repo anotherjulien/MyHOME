@@ -120,6 +120,31 @@ binary_sensor:
 `where` for these is one of a few special cases, as per specification, they are always "3" followed by the sensor number assigned "[1-201]".  
 `class` allows you to specify any supported Home-Assistant binary sensor `device_class`, this will affect the way the device is presented in the interface.
 
+### Heating
+Climate entities are developed for WHO 4
+
+SUPPORT IS EXPERIMENTAL AND UNTESTED FOR NOW. REQUIRES OWNd v0.7.0+
+
+```yaml
+cliamte:
+  - platform: myhome
+    devices:
+      central_unit:
+        zone: '#0'
+        name: Central unit
+        heating: True
+        manufacturer: BTicino
+        model: 3550
+      zone_1:
+        zone: '1'
+        heating: True
+        manufacturer: BTicino
+        model: F430/4
+```
+`zone` is the zone `where`, for central unit it needs to be `#0` (it is also the default value if it is not specified)  
+`heating` is a boolean defaulting to `True` you can set if your installation supports heating
+`cooling` is a boolean defaulting to `False` you can set if your installation supports cooling
+
 ### Sensors
 At this point, only energy sensors are supported as part of WHO 18:
 
