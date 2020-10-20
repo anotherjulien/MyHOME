@@ -78,6 +78,7 @@ class MyHOMEGateway:
         self._binary_sensors = {}
         self._covers = {}
         self._sensors = {}
+        self._climate_zones = {}
 
     @property
     def mac(self) -> str:
