@@ -22,7 +22,8 @@
       },
       "error": {
         "invalid_port": "Port invalide",
-        "invalid_password": "Mot de passe invalide"
+        "invalid_password": "Mot de passe invalide",
+        "password_error": "Mot de passe invalide"
       },
       "abort": {
         "discover_timeout": "Impossible de découvrir des serveurs MyHome",

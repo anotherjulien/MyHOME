@@ -22,7 +22,8 @@
       },
       "error": {
         "invalid_port": "Invalid port",
-        "invalid_password": "Invalid password"
+        "invalid_password": "Invalid password",
+        "password_error": "Invalid password"
       },
       "abort": {
         "discover_timeout": "Unable to discover MyHome gateways",
