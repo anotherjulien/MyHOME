@@ -141,8 +141,8 @@ cliamte:
         manufacturer: BTicino
         model: F430/4
 ```
-`zone` is the zone `where`, for central unit it needs to be `#0` (it is also the default value if it is not specified)  
-`heating` is a boolean defaulting to `True` you can set if your installation supports heating
+`zone` is the zone (equivalent to `where`), for central unit it needs to be `#0` (it is also the default value if it is not specified here)  
+`heating` is a boolean defaulting to `True` you can set if your installation supports heating  
 `cooling` is a boolean defaulting to `False` you can set if your installation supports cooling
 
 ### Sensors
