@@ -133,6 +133,12 @@ class MyHOMEGateway:
     def get_sensors(self) -> dict:
         return self._sensors
 
+    def add_climate_zone(self, zone: str, parameters: dict) -> None:
+        self._climate_zone[zone] = parameters
+
+    def get_climate_zones(self) -> dict:
+        return self._climate_zone
+
     async def test(self) -> bool:
         result = await self.test_session.test_connection()
         return result["Success"]
@@ -154,7 +160,7 @@ class MyHOMEGateway:
             LOGGER.debug("Received: %s", message)
             if not message:
                 LOGGER.info("Received: %s", message)
-            elif isinstance(message, OWNEnergyEvent) or isinstance(message, OWNLightingEvent) or isinstance(message, OWNAutomationEvent) or isinstance(message, OWNDryContactEvent):
+            elif isinstance(message, OWNEnergyEvent) or isinstance(message, OWNLightingEvent) or isinstance(message, OWNAutomationEvent) or isinstance(message, OWNDryContactEvent) or isinstance(message, OWNHeatingEvent):
                 if not message.is_translation():
                     if message.unique_id in self.hass.data[DOMAIN]:
                         self.hass.data[DOMAIN][message.unique_id].handle_event(message)
