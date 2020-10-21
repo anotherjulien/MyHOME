@@ -117,6 +117,9 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         
     async_add_entities(devices)
 
+    for device in gateway_devices.keys():
+        await gateway.send_status_request(OWNHeatingCommand.status(device))
+
 class MyHOMEClimate(ClimateEntity):
 
     def __init__(self, hass, zone: str, name: str, heating: bool, cooling: bool, fan: bool, manufacturer: str, model: str, gateway: MyHOMEGateway):
@@ -160,6 +163,13 @@ class MyHOMEClimate(ClimateEntity):
         self._fan_mode = None
 
         hass.data[DOMAIN][self._id] = self
+
+    async def async_update(self):
+        """Update the entity.
+
+        Only used by the generic entity update service.
+        """
+        await self._gateway.send_status_request(OWNHeatingCommand.status(self._zone))
 
     @property
     def device_info(self):
