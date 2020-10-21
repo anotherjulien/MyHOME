@@ -260,9 +260,11 @@ class MyHOMEClimate(ClimateEntity):
         elif hvac_mode == HVAC_MODE_AUTO:
             await self._gateway.send(OWNHeatingCommand.set_mode(where=self._zone, mode=CLIMATE_MODE_AUTO))
         elif hvac_mode == HVAC_MODE_HEAT:
-            await self._gateway.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=self._target_temperature, mode=CLIMATE_MODE_HEAT))
+            if self._target_temperature is not None:
+                await self._gateway.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=self._target_temperature, mode=CLIMATE_MODE_HEAT))
         elif hvac_mode == HVAC_MODE_COOL:
-            await self._gateway.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=self._target_temperature, mode=CLIMATE_MODE_COOL))
+            if self._target_temperature is not None:
+                await self._gateway.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=self._target_temperature, mode=CLIMATE_MODE_COOL))
 
     async def async_set_fan_mode(self, fan_mode):
         """Set new target fan mode."""
