@@ -1,5 +1,5 @@
 {
-  "title": "Serveur MyHome {name}",
+  "title": "MyHome",
   "config": {
     "flow_title": "Serveur MyHome {name} ({host})",
     "step": {
