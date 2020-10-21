@@ -132,21 +132,21 @@ climate:
       central_unit:
         zone: '#0'
         name: Central unit
-        heating: True
-        cooling: False
+        heat: True
+        cool: False
         manufacturer: BTicino
         model: 3550
       zone_1:
         zone: '1'
         name: Living room
-        heating: True
-        cooling: False
+        heat: True
+        cool: False
         manufacturer: BTicino
         model: F430/4
 ```
 `zone` is the zone (equivalent to `where`), for central unit it needs to be `#0` (it is also the default value if it is not specified here)  
-`heating` is an optional boolean defaulting to `True` you can set if your installation supports heating  
-`cooling` is an optional boolean defaulting to `False` you can set if your installation supports cooling
+`heat` is an optional boolean defaulting to `True` you can set if your installation supports heating  
+`cool` is an optional boolean defaulting to `False` you can set if your installation supports cooling
 
 ### Sensors
 At this point, only energy sensors are supported as part of WHO 18:
