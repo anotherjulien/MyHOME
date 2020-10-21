@@ -121,9 +121,9 @@ class MyHOMECover(CoverEntity):
         self._advanced = advanced
         self._gateway = gateway
         self._current_cover_position = None
-        self._is_opening = False
-        self._is_closing = False
-        self._is_closed = False
+        self._is_opening = None
+        self._is_closing = None
+        self._is_closed = None
 
         hass.data[DOMAIN][self._id] = self
 
