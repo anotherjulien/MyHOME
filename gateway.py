@@ -135,10 +135,10 @@ class MyHOMEGateway:
         return self._sensors
 
     def add_climate_zone(self, zone: str, parameters: dict) -> None:
-        self._climate_zone[zone] = parameters
+        self._climate_zones[zone] = parameters
 
     def get_climate_zones(self) -> dict:
-        return self._climate_zone
+        return self._climate_zones
 
     async def test(self) -> bool:
         result = await self.test_session.test_connection()

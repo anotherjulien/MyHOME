@@ -84,6 +84,9 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.Conf
         hass.config_entries.async_forward_entry_setup(entry, "cover")
     )
     hass.async_create_task(
+        hass.config_entries.async_forward_entry_setup(entry, "climate")
+    )
+    hass.async_create_task(
         hass.config_entries.async_forward_entry_setup(entry, "binary_sensor")
     )
     hass.async_create_task(
