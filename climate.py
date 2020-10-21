@@ -56,7 +56,15 @@ from OWNd.message import (
     CLIMATE_MODE_OFF,
     CLIMATE_MODE_HEAT,
     CLIMATE_MODE_COOL,
-    CLIMATE_MODE_AUTO,  
+    CLIMATE_MODE_AUTO,
+    MESSAGE_TYPE_MAIN_TEMPERATURE,
+    MESSAGE_TYPE_SECONDARY_TEMPERATURE,
+    MESSAGE_TYPE_TARGET_TEMPERATURE,
+    MESSAGE_TYPE_LOCAL_OFFSET,
+    MESSAGE_TYPE_LOCAL_TARGET_TEMPERATURE,
+    MESSAGE_TYPE_MODE,
+    MESSAGE_TYPE_MODE_TARGET,
+    MESSAGE_TYPE_ACTION,
 )
 
 MYHOME_SCHEMA = vol.Schema(
@@ -282,15 +290,15 @@ class MyHOMEClimate(ClimateEntity):
 
     def handle_event(self, message: OWNHeatingEvent):
         """Handle an event message."""
-        if message.is_main_temperature_measurement:
+        if message.message_type == MESSAGE_TYPE_MAIN_TEMPERATURE:
             self._current_temperature = message.main_temperature
-        elif message.is_set_temperature:
+        elif message.message_type == MESSAGE_TYPE_TARGET_TEMPERATURE:
             self._target_temperature = message.set_temperature
-        elif message.is_local_offset:
+        elif message.message_type == MESSAGE_TYPE_LOCAL_OFFSET:
             self._local_offset = message.local_offset
-        elif message.is_local_set_temperature:
+        elif message.message_type == MESSAGE_TYPE_LOCAL_TARGET_TEMPERATURE:
             self._local_target_temperature = message.local_set_temperature
-        elif message.is_mode:
+        elif message.message_type == MESSAGE_TYPE_MODE:
             if message.mode == CLIMATE_MODE_AUTO:
                 self._hvac_mode = HVAC_MODE_AUTO
             elif message.mode == CLIMATE_MODE_COOL:
@@ -299,7 +307,17 @@ class MyHOMEClimate(ClimateEntity):
                 self._hvac_mode = HVAC_MODE_HEAT
             elif message.mode == CLIMATE_MODE_OFF:
                 self._hvac_mode = HVAC_MODE_OFF
-        elif message.is_activity:
+        elif message.message_type == MESSAGE_TYPE_MODE_TARGET:
+            if message.mode == CLIMATE_MODE_AUTO:
+                self._hvac_mode = HVAC_MODE_AUTO
+            elif message.mode == CLIMATE_MODE_COOL:
+                self._hvac_mode = HVAC_MODE_COOL
+            elif message.mode == CLIMATE_MODE_HEAT:
+                self._hvac_mode = HVAC_MODE_HEAT
+            elif message.mode == CLIMATE_MODE_OFF:
+                self._hvac_mode = HVAC_MODE_OFF
+            self._target_temperature = message.set_temperature
+        elif message.message_type == MESSAGE_TYPE_ACTION:
             if message.is_active:
                 if self._heating and self._cooling:
                     if message.is_heating:
@@ -314,5 +332,5 @@ class MyHOMEClimate(ClimateEntity):
                 self._hvac_action = CURRENT_HVAC_OFF
             else:
                 self._hvac_action = CURRENT_HVAC_IDLE
-        
+                
         self.async_schedule_update_ha_state()
