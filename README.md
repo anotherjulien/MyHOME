@@ -126,7 +126,7 @@ Climate entities are developed for WHO 4
 SUPPORT IS EXPERIMENTAL AND UNTESTED FOR NOW. REQUIRES OWNd v0.7.0+
 
 ```yaml
-cliamte:
+climate:
   - platform: myhome
     devices:
       central_unit:
