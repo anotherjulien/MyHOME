@@ -6,6 +6,8 @@ The integration is able to install the gateway via the Home-Assistant graphical 
 
 Some common gateways should be auto-discovered, but it is still possible to force the inclusion of a gateway not discovered. One limitation however is that the gateway needs to be in the same network as your Home-Assistant instance.
 
+It is possible that upon first install (and updates), the OWNd listener process crashes and you do not get any status feedback on your devices. If such is the case, a restart of Home Assistant should solve the issue.
+
 ## Configuration
 
 Once your gateway is integrated in Home-Assistant, you can start adding your different devices.  
