@@ -6,8 +6,6 @@ The integration is able to install the gateway via the Home-Assistant graphical 
 
 Some common gateways should be auto-discovered, but it is still possible to force the inclusion of a gateway not discovered. One limitation however is that the gateway needs to be in the same network as your Home-Assistant instance.
 
-Please be aware that your Home Assistant instance will need to be in the same network as your MyHome Gateway in order to be discovered and to work.
-
 ## Configuration
 
 Once your gateway is integrated in Home-Assistant, you can start adding your different devices.  
