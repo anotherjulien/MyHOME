@@ -6,7 +6,7 @@ The integration is able to install the gateway via the Home-Assistant graphical 
 
 Some common gateways should be auto-discovered, but it is still possible to force the inclusion of a gateway not discovered. One limitation however is that the gateway needs to be in the same network as your Home-Assistant instance.
 
-At the moment, the underlying library does not support the 'HMAC' password scheme; a workaround is to put the IP of your Home-Assistant instance in the authorized IPs in your gateway configuration.
+Please be aware that your Home Assistant instance will need to be in the same network as your MyHome Gateway in order to be discovered and to work.
 
 ## Configuration
 
@@ -121,9 +121,9 @@ binary_sensor:
 `class` allows you to specify any supported Home-Assistant binary sensor `device_class`, this will affect the way the device is presented in the interface.
 
 ### Heating
-Climate entities are developed for WHO 4
-
-SUPPORT IS EXPERIMENTAL AND UNTESTED FOR NOW. REQUIRES OWNd v0.7.0+
+Climate entities are developed for WHO 4  
+This part might still be a little bit "rough around the edges" as it's only been tested with a couple of users.  
+Feedback is very much welcome!
 
 ```yaml
 climate:
