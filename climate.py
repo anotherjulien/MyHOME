@@ -46,6 +46,7 @@ from .const import (
     CONF_HEATING_SUPPORT,
     CONF_COOLING_SUPPORT,
     CONF_FAN_SUPPORT,
+    CONF_STANDALONE,
     DOMAIN,
     LOGGER,
 )
@@ -73,6 +74,7 @@ MYHOME_SCHEMA = vol.Schema(
         vol.Optional(CONF_NAME): cv.string,
         vol.Optional(CONF_HEATING_SUPPORT): cv.boolean,
         vol.Optional(CONF_COOLING_SUPPORT): cv.boolean,
+        vol.Optional(CONF_STANDALONE): cv.boolean,
         #vol.Optional(CONF_FAN_SUPPORT): cv.boolean,
         vol.Optional(CONF_MANUFACTURER): cv.string,
         vol.Optional(CONF_DEVICE_MODEL): cv.string,
@@ -97,9 +99,10 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
                 heating = entity_info[CONF_HEATING_SUPPORT] if CONF_HEATING_SUPPORT in entity_info else True
                 cooling = entity_info[CONF_COOLING_SUPPORT] if CONF_COOLING_SUPPORT in entity_info else False
                 fan = entity_info[CONF_FAN_SUPPORT] if CONF_FAN_SUPPORT in entity_info else False
+                standalone = entity_info[CONF_STANDALONE] if CONF_STANDALONE in entity_info else False
                 manufacturer = entity_info[CONF_MANUFACTURER] if CONF_MANUFACTURER in entity_info else None
                 model = entity_info[CONF_DEVICE_MODEL] if CONF_DEVICE_MODEL in entity_info else None
-                gateway.add_climate_zone(zone, {CONF_NAME: name, CONF_HEATING_SUPPORT: heating, CONF_COOLING_SUPPORT: cooling, CONF_FAN_SUPPORT: fan, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model})
+                gateway.add_climate_zone(zone, {CONF_NAME: name, CONF_HEATING_SUPPORT: heating, CONF_COOLING_SUPPORT: cooling, CONF_FAN_SUPPORT: fan, CONF_STANDALONE: standalone, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model})
     except KeyError:
         _LOGGER.warning("Climate devices configured but no gateway present in configuration.")
 
@@ -117,6 +120,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             heating=gateway_devices[device][CONF_HEATING_SUPPORT],
             cooling=gateway_devices[device][CONF_COOLING_SUPPORT],
             fan=gateway_devices[device][CONF_FAN_SUPPORT],
+            standalone=gateway_devices[device][CONF_STANDALONE],
             manufacturer=gateway_devices[device][CONF_MANUFACTURER],
             model=gateway_devices[device][CONF_DEVICE_MODEL],
             gateway=gateway
@@ -130,13 +134,14 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 class MyHOMEClimate(ClimateEntity):
 
-    def __init__(self, hass, zone: str, name: str, heating: bool, cooling: bool, fan: bool, manufacturer: str, model: str, gateway: MyHOMEGateway):
+    def __init__(self, hass, zone: str, name: str, heating: bool, cooling: bool, fan: bool, standalone: bool, manufacturer: str, model: str, gateway: MyHOMEGateway):
 
         self._name = name
         self._manufacturer = manufacturer or "BTicino S.p.A."
         self._model = model
         self._who = "4"
         self._zone = zone
+        self._standalone = standalone
         self._id = f"{self._who}-{self._zone}"
         if self._name is None:
             self._name = "Central unit" if self._zone == "#0" else f"Zone {self._zone}"
@@ -264,15 +269,15 @@ class MyHOMEClimate(ClimateEntity):
     async def async_set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
         if hvac_mode == HVAC_MODE_OFF:
-            await self._gateway.send(OWNHeatingCommand.set_mode(where=self._zone, mode=CLIMATE_MODE_OFF))
+            await self._gateway.send(OWNHeatingCommand.set_mode(where=self._zone, mode=CLIMATE_MODE_OFF, standalone=self._standalone))
         elif hvac_mode == HVAC_MODE_AUTO:
-            await self._gateway.send(OWNHeatingCommand.set_mode(where=self._zone, mode=CLIMATE_MODE_AUTO))
+            await self._gateway.send(OWNHeatingCommand.set_mode(where=self._zone, mode=CLIMATE_MODE_AUTO, standalone=self._standalone))
         elif hvac_mode == HVAC_MODE_HEAT:
             if self._target_temperature is not None:
-                await self._gateway.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=self._target_temperature, mode=CLIMATE_MODE_HEAT))
+                await self._gateway.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=self._target_temperature, mode=CLIMATE_MODE_HEAT, standalone=self._standalone))
         elif hvac_mode == HVAC_MODE_COOL:
             if self._target_temperature is not None:
-                await self._gateway.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=self._target_temperature, mode=CLIMATE_MODE_COOL))
+                await self._gateway.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=self._target_temperature, mode=CLIMATE_MODE_COOL, standalone=self._standalone))
 
     async def async_set_fan_mode(self, fan_mode):
         """Set new target fan mode."""
@@ -282,11 +287,11 @@ class MyHOMEClimate(ClimateEntity):
         """Set new target temperature."""
         target_temperature = kwargs.get("temperature", self._local_target_temperature) - self._local_offset
         if self._hvac_mode == HVAC_MODE_HEAT:
-            await self._gateway.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=target_temperature, mode=CLIMATE_MODE_HEAT))
+            await self._gateway.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=target_temperature, mode=CLIMATE_MODE_HEAT, standalone=self._standalone))
         elif self._hvac_mode == HVAC_MODE_COOL:
-            await self._gateway.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=target_temperature, mode=CLIMATE_MODE_COOL))
+            await self._gateway.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=target_temperature, mode=CLIMATE_MODE_COOL, standalone=self._standalone))
         else:
-            await self._gateway.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=target_temperature, mode=CLIMATE_MODE_AUTO))
+            await self._gateway.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=target_temperature, mode=CLIMATE_MODE_AUTO, standalone=self._standalone))
 
     def handle_event(self, message: OWNHeatingEvent):
         """Handle an event message."""

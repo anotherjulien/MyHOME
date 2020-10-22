@@ -134,6 +134,7 @@ climate:
         name: Central unit
         heat: True
         cool: False
+        standalone: False
         manufacturer: BTicino
         model: 3550
       zone_1:
@@ -141,12 +142,14 @@ climate:
         name: Living room
         heat: True
         cool: False
+        standalone: False
         manufacturer: BTicino
         model: F430/4
 ```
 `zone` is the zone (equivalent to `where`), for central unit it needs to be `#0` (it is also the default value if it is not specified here)  
 `heat` is an optional boolean defaulting to `True` you can set if your installation supports heating  
 `cool` is an optional boolean defaulting to `False` you can set if your installation supports cooling
+`standalone` is an optional boolean defaulting to `False` you can use in case a zone is not controled by a central unit; this kind of setup is possible with zone thermostats H4691/LN4691 for instance
 
 ### Sensors
 At this point, only energy sensors are supported as part of WHO 18:
