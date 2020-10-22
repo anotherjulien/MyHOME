@@ -1,0 +1,42 @@
+{
+  "title": "MyHome",
+  "config": {
+    "flow_title": "MyHome {name} Gateway ({host})",
+    "step": {
+      "user": {
+        "title": "Kies uw \"MyHome\" gateway",
+        "data": {
+          "host": "IP adres"
+        }
+      },
+      "port": {
+        "title": "Poortnummer van de gateway.",
+        "description": "Geef het poortnummer op voor de OpenWebNet communicatie met de {name} gateway {host}",
+        "data": {
+          "port": "Poort"
+        }
+      },
+      "password": {
+        "title": "Wachtwoord van de gateway.",
+        "description": "Geeft het OpenWebNet wachtwoord op voor de {name} gateway {host}",
+        "data": {
+          "password": "Wachtwoord"
+        }
+      }
+    },
+    "error": {
+      "invalid_port": "Ongeldig poortnummer",
+      "invalid_password": "Ongeldig wachtwoord",
+      "password_error": "Ongeldig wachtwoord"
+    },
+    "abort": {
+      "discover_timeout": "Geen MyHome gateway gevonden",
+      "no_gateways": "Geen MyHome gateway gevonden",
+      "all_configured": "Alle MyHome gateway’s zijn reeds geconfigureerd",
+      "unknown": "Er is een onbekende fout opgetreden",
+      "cannot_connect": "Kan niet verbinden met de gateway",
+      "already_configured": "Deze gateway is reeds geconfigureerd",
+      "already_in_progress": "De configuratie van deze gateway is reeds begonnen"
+    }
+  }
+}
