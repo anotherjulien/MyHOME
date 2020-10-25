@@ -1,6 +1,13 @@
 sync_time:
   description: Syncronize gateway's time to HA local time.
 
+send_message:
+  description: Send an arbitrary (but valid) OpenWebNet message to the gateway.
+  fields:
+    message:
+      description: Valid OpenWebNet message.
+      example: "*1*0*0##"
+
 start_sending_instant_power:
   description: Get automatic instant power draw updates for a sensor.
   fields:

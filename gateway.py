@@ -161,12 +161,70 @@ class MyHOMEGateway:
             LOGGER.debug("Received: %s", message)
             if not message:
                 LOGGER.info("Received: %s", message)
-            elif isinstance(message, OWNEnergyEvent) or isinstance(message, OWNLightingEvent) or isinstance(message, OWNAutomationEvent) or isinstance(message, OWNDryContactEvent) or isinstance(message, OWNHeatingEvent):
-                if not message.is_translation():
-                    if message.unique_id in self.hass.data[DOMAIN]:
-                        self.hass.data[DOMAIN][message.unique_id].handle_event(message)
-                    else:
-                        LOGGER.warning("Unknown device: WHO=%s WHERE=%s", message.who, message.where)
+            elif isinstance(message, OWNLightingEvent) or isinstance(message, OWNAutomationEvent) or isinstance(message, OWNEnergyEvent) or isinstance(message, OWNDryContactEvent) or isinstance(message, OWNHeatingEvent):
+                if not message.is_translation:
+                    is_event = False
+                    if isinstance(message, OWNLightingEvent):
+                        if message.is_general:
+                            is_event = True
+                            self.hass.bus.async_fire(
+                                "myhome_general_light_event",
+                                {"message": str(message), "event": "on" if message.is_on else "off"},
+                            )
+                        elif message.is_area:
+                            is_event = True
+                            self.hass.bus.async_fire(
+                                "myhome_area_light_event",
+                                {"message": str(message), "area": message.area, "event": "on" if message.is_on else "off"},
+                            )
+                        elif message.is_group:
+                            is_event = True
+                            self.hass.bus.async_fire(
+                                "myhome_group_light_event",
+                                {"message": str(message), "group": message.group, "event": "on" if message.is_on else "off"},
+                            )
+                    elif isinstance(message, OWNAutomationEvent):
+                        if message.is_general:
+                            is_event = True
+                            if message.is_opening and not message.is_closing:
+                                event = "open"
+                            elif message.is_closing and not message.is_opening:
+                                event = "close"
+                            else:
+                                event = "stop"
+                            self.hass.bus.async_fire(
+                                "myhome_general_automation_event",
+                                {"message": str(message), "event": event},
+                            )
+                        elif message.is_area:
+                            is_event = True
+                            if message.is_opening and not message.is_closing:
+                                event = "open"
+                            elif message.is_closing and not message.is_opening:
+                                event = "close"
+                            else:
+                                event = "stop"
+                            self.hass.bus.async_fire(
+                                "myhome_area_automation_event",
+                                {"message": str(message), "area": message.area, "event": event},
+                            )
+                        elif message.is_group:
+                            is_event = True
+                            if message.is_opening and not message.is_closing:
+                                event = "open"
+                            elif message.is_closing and not message.is_opening:
+                                event = "close"
+                            else:
+                                event = "stop"
+                            self.hass.bus.async_fire(
+                                "myhome_group_automation_event",
+                                {"message": str(message), "group": message.group, "event": event},
+                            )
+                    if not is_event:    
+                        if message.unique_id in self.hass.data[DOMAIN]:
+                            self.hass.data[DOMAIN][message.unique_id].handle_event(message)
+                        else:
+                            LOGGER.warning("Unknown device: WHO=%s WHERE=%s", message.who, message.where)
                 else:
                     LOGGER.debug("Ignoring translation message %s", message)
             elif isinstance(message, OWNCENPlusEvent):
@@ -207,12 +265,14 @@ class MyHOMEGateway:
                 LOGGER.info("Unsupported message type: %s", message)
 
 
-    async def close_listener(self, event=None) -> None:
+    async def close_listener(self, event=None) -> bool:
         LOGGER.info("Closing event listener")
         self._terminate_listener = True
         await self.event_session.close()
         self.is_connected = False
         self.listening_task.cancel()
+
+        return True
     
     async def send(self, message: OWNCommand):
         command_session = OWNCommandSession(gateway=self.gateway, logger=LOGGER)

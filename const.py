@@ -4,6 +4,8 @@ import logging
 LOGGER = logging.getLogger(__package__)
 DOMAIN = "myhome"
 
+ATTR_MESSAGE = "message"
+
 CONF_FIRMWARE = "firmware"
 CONF_SSDP_LOCATION = "ssdp_location"
 CONF_SSDP_ST = "ssdp_st"
