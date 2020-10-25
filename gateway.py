@@ -167,21 +167,24 @@ class MyHOMEGateway:
                     if isinstance(message, OWNLightingEvent):
                         if message.is_general:
                             is_event = True
+                            event = "on" if message.is_on else "off"
                             self.hass.bus.async_fire(
                                 "myhome_general_light_event",
-                                {"message": str(message), "event": "on" if message.is_on else "off"},
+                                {"message": str(message), "event": event},
                             )
                         elif message.is_area:
                             is_event = True
+                            event = "on" if message.is_on else "off"
                             self.hass.bus.async_fire(
                                 "myhome_area_light_event",
-                                {"message": str(message), "area": message.area, "event": "on" if message.is_on else "off"},
+                                {"message": str(message), "area": message.area, "event": event},
                             )
                         elif message.is_group:
                             is_event = True
+                            event = "on" if message.is_on else "off"
                             self.hass.bus.async_fire(
                                 "myhome_group_light_event",
-                                {"message": str(message), "group": message.group, "event": "on" if message.is_on else "off"},
+                                {"message": str(message), "group": message.group, "event": event},
                             )
                     elif isinstance(message, OWNAutomationEvent):
                         if message.is_general:
