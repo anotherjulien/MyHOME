@@ -220,7 +220,7 @@ class MyHOMEGateway:
                                 "myhome_group_automation_event",
                                 {"message": str(message), "group": message.group, "event": event},
                             )
-                    if not is_event:    
+                    if not is_event:
                         if message.unique_id in self.hass.data[DOMAIN]:
                             self.hass.data[DOMAIN][message.unique_id].handle_event(message)
                         else:

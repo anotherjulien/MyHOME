@@ -40,7 +40,7 @@ CONFIG_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA
 )
 
-PLATFORMS = ["light", "switch", "cover", "binary_sensor", "sensor"]
+PLATFORMS = ["light", "switch", "cover", "climate", "binary_sensor", "sensor"]
 
 async def async_setup(hass, config):
     """Set up the MyHOME component."""
@@ -116,6 +116,9 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.Conf
 
 async def async_unload_entry(hass, entry):
     """Unload a config entry."""
+
+    LOGGER.info("Unloading MyHome entry.")
+
     await hass.config_entries.async_forward_entry_unload(entry, "light")
     await hass.config_entries.async_forward_entry_unload(entry, "switch")
     await hass.config_entries.async_forward_entry_unload(entry, "cover")
