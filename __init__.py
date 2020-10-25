@@ -105,9 +105,12 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.Conf
 
     async def handle_send_message(call):
         message = call.data.get(ATTR_MESSAGE, None)
+        LOGGER.debug(f"message to be sent: {message}")
         if message is not None:
             OWN_message = OWNMessage.parse(message)
+            LOGGER.debug(f"OWN Message: {OWN_message}")
             if OWN_message.is_valid:
+                LOGGER.debug("message valid")
                 await myhome_gateway.send(OWN_message)
 
     hass.services.async_register(DOMAIN, "send_message", handle_send_message)
@@ -119,12 +122,12 @@ async def async_unload_entry(hass, entry):
 
     LOGGER.info("Unloading MyHome entry.")
 
-    await hass.config_entries.async_forward_entry_unload(entry, "light")
-    await hass.config_entries.async_forward_entry_unload(entry, "switch")
-    await hass.config_entries.async_forward_entry_unload(entry, "cover")
-    await hass.config_entries.async_forward_entry_unload(entry, "climate")
-    await hass.config_entries.async_forward_entry_unload(entry, "binary_sensor")
-    await hass.config_entries.async_forward_entry_unload(entry, "sensor")
+    #await hass.config_entries.async_forward_entry_unload(entry, "light")
+    #await hass.config_entries.async_forward_entry_unload(entry, "switch")
+    #await hass.config_entries.async_forward_entry_unload(entry, "cover")
+    #await hass.config_entries.async_forward_entry_unload(entry, "climate")
+    #await hass.config_entries.async_forward_entry_unload(entry, "binary_sensor")
+    #await hass.config_entries.async_forward_entry_unload(entry, "sensor")
 
     hass.services.async_remove(DOMAIN, "sync_time")
     hass.services.async_remove(DOMAIN, "send_message")
