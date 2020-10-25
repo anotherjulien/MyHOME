@@ -179,7 +179,7 @@ class MyHOMEPowerSensor(Entity):
 
         Only used by the generic entity update service.
         """
-        #await self._gateway.send_status_request(OWNDryContactCommand.status(self._where))
+        #await self.start_sending_instant_power(255)
 
     @property
     def device_info(self):
