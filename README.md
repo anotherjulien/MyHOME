@@ -261,6 +261,7 @@ data: {}
 ```
 This will write the current system time of your Home-Assistant instance to your gateway.
 
+#### Message sending
 Another more general service is used to send an arbitrary message on the bus.  
 It can for example be used to send general commands:  
 ```yaml
