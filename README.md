@@ -209,6 +209,35 @@ Supported `events` varies between CEN and CEN+:
 
 This is a really useful feature, it allows you to have wall switches turn WLED strips ON and OFF; Play/Pause Skip track on your SONOS... The only limit is your imagination!
 
+### Other events
+When  group, area or general commands are detected, they generate events in Home Assistant.  
+These events can be used as triggers, so you can for instance trigger an automation when you generate a 'general off'  
+Example events use would be:
+```yaml
+platform: event
+event_type: myhome_area_light_event
+event_data:
+  area: 3
+  event: 'on'
+```
+#### Light events
+3 types of light events exist:
+* `myhome_general_light_event`
+* `myhome_area_light_event`
+* `myhome_group_light_event`
+
+All events have an attribute `message` containing the raw OpenWebNet message and an attribute `event` that can be either `on` or `off`.  
+Area events also have an attribute `area` containing the area ID (the 'A' of the 'APL'); and Group events have an attribute `group` containing the group ID (without the leading `#`).
+
+#### Automation (cover) events
+3 types of cover events exist:
+* `myhome_general_automation_event`
+* `myhome_area_automation_event`
+* `myhome_group_automation_event`
+
+All events have an attribute `message` containing the raw OpenWebNet message and an attribute `event` that can be either `open`, `close` or `stop`.  
+Area events also have an attribute `area` containing the area ID (the 'A' of the 'APL'); and Group events have an attribute `group` containing the group ID (without the leading `#`).
+
 ### Services
 #### Power sensor services
 WHO 18 power meters are working in a way that is not always obvious. They will report the "instantaneous power consumption"; but only if requested and only for a given amount of time.  
@@ -231,3 +260,11 @@ service: myhome.sync_time
 data: {}
 ```
 This will write the current system time of your Home-Assistant instance to your gateway.
+
+Another more general service is used to send an arbitrary message on the bus.  
+It can for example be used to send general commands:  
+```yaml
+service: myhome.send_message
+data:
+  message: '*1*0*0##'
+```
