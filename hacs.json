@@ -1,0 +1,10 @@
+{
+  "name": "MyHome",
+  "zip_release": true,
+  "filename": "myhome.zip",
+  "render_readme": true,
+  "country": ["EN", "FR", "NL", "IT"],
+  "domains": ["light", "switch", "cover", "climate", "binary_sensor", "sensor"],
+  "homeassistant": "0.115",
+  "iot_class": ["Local Push"]
+}
