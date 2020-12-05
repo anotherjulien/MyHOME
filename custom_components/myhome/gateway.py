@@ -172,6 +172,8 @@ class MyHOMEGateway:
                                 "myhome_general_light_event",
                                 {"message": str(message), "event": event},
                             )
+                            await asyncio.sleep(0.1)
+                            await self.send_status_request(OWNLightingCommand.status("0"))
                         elif message.is_area:
                             is_event = True
                             event = "on" if message.is_on else "off"
@@ -179,6 +181,8 @@ class MyHOMEGateway:
                                 "myhome_area_light_event",
                                 {"message": str(message), "area": message.area, "event": event},
                             )
+                            await asyncio.sleep(0.1)
+                            await self.send_status_request(OWNLightingCommand.status(message.area))
                         elif message.is_group:
                             is_event = True
                             event = "on" if message.is_on else "off"
