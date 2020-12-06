@@ -150,7 +150,8 @@ class MyHOMEClimate(ClimateEntity):
         self._cooling = cooling
         if heating or cooling:
             self._supported_features |= SUPPORT_TARGET_TEMPERATURE
-            self._hvac_modes.append(HVAC_MODE_AUTO)
+            if self._zone != "#0":
+                self._hvac_modes.append(HVAC_MODE_AUTO)
             if heating:
                 self._hvac_modes.append(HVAC_MODE_HEAT)
             if cooling:
@@ -253,7 +254,10 @@ class MyHOMEClimate(ClimateEntity):
 
     @property
     def target_temperature(self) -> float:
-        return self._local_target_temperature
+        if self._local_target_temperature is not None:
+            return self._local_target_temperature
+        else:
+            return self._target_temperature
 
     @property
     def hvac_mode(self) -> str:
