@@ -234,6 +234,9 @@ class MyHOMEGateway:
                             LOGGER.warning("Unknown device: WHO=%s WHERE=%s", message.who, message.where)
                 else:
                     LOGGER.debug("Ignoring translation message %s", message)
+            elif (isinstance(message, OWNHeatingCommand) and message._dimension is not None and message._dimension == 14):
+                where = int(message._where[1:]) if self.message.startswith('#') else int(message._where)
+                await self.send_status_request(OWNHeatingCommand.status(where))
             elif isinstance(message, OWNCENPlusEvent):
                 event = None
                 if message.is_short_pressed:
