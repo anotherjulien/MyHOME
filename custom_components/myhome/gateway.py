@@ -235,7 +235,8 @@ class MyHOMEGateway:
                 else:
                     LOGGER.debug("Ignoring translation message %s", message)
             elif (isinstance(message, OWNHeatingCommand) and message._dimension is not None and message._dimension == 14):
-                where = int(message._where[1:]) if self.message.startswith('#') else int(message._where)
+                where = message._where[1:] if self.message.startswith('#') else message._where
+                LOGGER.debug("Received heating command, sending query to zone %s", where)
                 await self.send_status_request(OWNHeatingCommand.status(where))
             elif isinstance(message, OWNCENPlusEvent):
                 event = None
