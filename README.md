@@ -254,7 +254,7 @@ data:
 
 #### Gateway services
 There are very few settings that can be written to the gateway through OpenWebNet, but one of them is the current time.  
-You can ensure a for of time synchronization with your gateway by calling the following service on a regular basis:
+You can ensure a form of time synchronization with your gateway by calling the following service on a regular basis:
 ```yaml
 service: myhome.sync_time
 data: {}
