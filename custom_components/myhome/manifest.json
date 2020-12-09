@@ -7,6 +7,10 @@
   "ssdp": [
     {
       "manufacturer": "BTicino S.p.A.",
+      "modelName": "AM4890"
+    },
+    {
+      "manufacturer": "BTicino S.p.A.",
       "modelName": "MyHomeServer1"
     },
     {
