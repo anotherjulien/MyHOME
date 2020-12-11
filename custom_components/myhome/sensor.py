@@ -45,8 +45,12 @@ from OWNd.message import (
     MESSAGE_TYPE_MONTHLY_CONSUMPTION,
     MESSAGE_TYPE_CURRENT_DAY_CONSUMPTION,
     MESSAGE_TYPE_CURRENT_MONTH_CONSUMPTION,
+    MESSAGE_TYPE_MAIN_TEMPERATURE,
+    MESSAGE_TYPE_SECONDARY_TEMPERATURE,
     OWNEnergyEvent,
     OWNEnergyCommand,
+    OWNHeatingEvent,
+    OWNHeatingCommand,
 )
 
 MYHOME_SCHEMA = vol.Schema(
@@ -114,6 +118,20 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         if gateway_devices[device][CONF_DEVICE_CLASS] == DEVICE_CLASS_POWER:
             energy_devices_configured = True
             device = MyHOMEPowerSensor(
+                hass=hass,
+                who=gateway_devices[device][CONF_WHO],
+                where=device,
+                name=gateway_devices[device][CONF_NAME],
+                device_class=gateway_devices[device][CONF_DEVICE_CLASS],
+                manufacturer=gateway_devices[device][CONF_MANUFACTURER],
+                model=gateway_devices[device][CONF_DEVICE_MODEL],
+                gateway=gateway
+            )
+
+            devices.append(device)
+        elif gateway_devices[device][CONF_DEVICE_CLASS] == DEVICE_CLASS_TEMPERATURE:
+            energy_devices_configured = True
+            device = MyHOMETemperatureSensor(
                 hass=hass,
                 who=gateway_devices[device][CONF_WHO],
                 where=device,
@@ -240,3 +258,84 @@ class MyHOMEPowerSensor(Entity):
     async def get_hourly_consumption(self, date):
         """Request hourly power consumption for specific day."""
         await self._gateway.send(OWNEnergyCommand.get_hourly_consumption(self._where, date))
+
+class MyHOMETemperatureSensor(Entity):
+
+    def __init__(self, hass, name: str, who: str, where: str, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGateway):
+
+        self._name = name
+        self._manufacturer = manufacturer or "BTicino S.p.A."
+        self._model = model
+        self._who = who or 4
+        self._where = where
+        self._id = f"{self._who}-{self._where}"
+        if self._name is None:
+            self._name = f"Sensor {self._where[1:]}"
+        self._device_class = device_class
+        self._gateway = gateway
+        self._value = 0
+        self._unit = TEMP_CELSIUS
+
+        hass.data[DOMAIN][self._id] = self
+
+    async def async_added_to_hass(self):
+        """When entity is added to hass."""
+        await self.async_update()
+
+    async def async_update(self):
+        """Update the entity.
+
+        Only used by the generic entity update service.
+        """
+        await self._gateway.send_status_request(OWNHeatingCommand.status(self._where))
+
+    @property
+    def device_info(self):
+        return {
+            "identifiers": {
+                (DOMAIN, self.unique_id)
+            },
+            "name": self.name,
+            "manufacturer": self._manufacturer,
+            "model": self._model,
+            "via_device": (DOMAIN, self._gateway.id),
+        }
+    
+    @property
+    def device_class(self):
+        """Return the device class if any."""
+        return self._device_class
+
+    @property
+    def should_poll(self):
+        """No polling needed for a MyHome device."""
+        return False
+
+    @property
+    def name(self):
+        """Return the name of the device if any."""
+        return self._name
+
+    @property
+    def unique_id(self):
+        """Return the unique ID of the device."""
+        return self._id
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        return self._value
+
+    @property
+    def unit_of_measurement(self):
+        """Return the unit the value is expressed in."""
+        return self._unit
+
+    def handle_event(self, message: OWNHeatingEvent):
+        """Handle an event message."""
+        if message.message_type == MESSAGE_TYPE_MAIN_TEMPERATURE:
+            self._value = message.main_temperature
+            self.async_schedule_update_ha_state()
+        elif message.message_type == MESSAGE_TYPE_SECONDARY_TEMPERATURE:
+            self._value = message.secondary_temperature
+            self.async_schedule_update_ha_state()
