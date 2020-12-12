@@ -337,5 +337,5 @@ class MyHOMETemperatureSensor(Entity):
             self._value = message.main_temperature
             self.async_schedule_update_ha_state()
         elif message.message_type == MESSAGE_TYPE_SECONDARY_TEMPERATURE:
-            self._value = message.secondary_temperature
+            self._value = message.secondary_temperature[1]
             self.async_schedule_update_ha_state()
