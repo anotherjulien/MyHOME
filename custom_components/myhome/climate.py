@@ -304,8 +304,10 @@ class MyHOMEClimate(ClimateEntity):
             self._current_temperature = message.main_temperature
         elif message.message_type == MESSAGE_TYPE_TARGET_TEMPERATURE:
             self._target_temperature = message.set_temperature
+            self._local_target_temperature = self._target_temperature + self._local_offset
         elif message.message_type == MESSAGE_TYPE_LOCAL_OFFSET:
             self._local_offset = message.local_offset
+            self._local_target_temperature = self._target_temperature + self._local_offset
         elif message.message_type == MESSAGE_TYPE_LOCAL_TARGET_TEMPERATURE:
             self._local_target_temperature = message.local_set_temperature
         elif message.message_type == MESSAGE_TYPE_MODE:
@@ -327,6 +329,7 @@ class MyHOMEClimate(ClimateEntity):
             elif message.mode == CLIMATE_MODE_OFF:
                 self._hvac_mode = HVAC_MODE_OFF
             self._target_temperature = message.set_temperature
+            self._local_target_temperature = self._target_temperature + self._local_offset
         elif message.message_type == MESSAGE_TYPE_ACTION:
             if message.is_active:
                 if self._heating and self._cooling:
