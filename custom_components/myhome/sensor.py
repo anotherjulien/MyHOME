@@ -2,6 +2,8 @@ import logging
 
 import voluptuous as vol
 
+from datetime import timedelta
+
 from homeassistant.helpers.entity import Entity
 
 from homeassistant.components.sensor import (
@@ -52,6 +54,8 @@ from OWNd.message import (
     OWNHeatingEvent,
     OWNHeatingCommand,
 )
+
+SCAN_INTERVAL = timedelta(seconds=60)
 
 MYHOME_SCHEMA = vol.Schema(
     {
@@ -309,7 +313,7 @@ class MyHOMETemperatureSensor(Entity):
     @property
     def should_poll(self):
         """No polling needed for a MyHome device."""
-        return False
+        return True
 
     @property
     def name(self):
