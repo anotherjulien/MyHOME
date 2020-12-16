@@ -319,6 +319,7 @@ class MyHOMEClimate(ClimateEntity):
                 self._hvac_mode = HVAC_MODE_HEAT
             elif message.mode == CLIMATE_MODE_OFF:
                 self._hvac_mode = HVAC_MODE_OFF
+                self._hvac_action = CURRENT_HVAC_OFF
         elif message.message_type == MESSAGE_TYPE_MODE_TARGET:
             if message.mode == CLIMATE_MODE_AUTO:
                 self._hvac_mode = HVAC_MODE_AUTO
@@ -328,14 +329,15 @@ class MyHOMEClimate(ClimateEntity):
                 self._hvac_mode = HVAC_MODE_HEAT
             elif message.mode == CLIMATE_MODE_OFF:
                 self._hvac_mode = HVAC_MODE_OFF
+                self._hvac_action = CURRENT_HVAC_OFF
             self._target_temperature = message.set_temperature
             self._local_target_temperature = self._target_temperature + self._local_offset
         elif message.message_type == MESSAGE_TYPE_ACTION:
-            if message.is_active:
+            if message.is_active():
                 if self._heating and self._cooling:
-                    if message.is_heating:
+                    if message.is_heating():
                         self._hvac_action = CURRENT_HVAC_HEAT
-                    elif message.is_cooling:
+                    elif message.is_cooling():
                         self._hvac_action = CURRENT_HVAC_COOL
                 elif self._heating:
                     self._hvac_action = CURRENT_HVAC_HEAT
