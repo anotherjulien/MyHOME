@@ -291,7 +291,7 @@ class MyHOMETemperatureSensor(Entity):
 
         Only used by the generic entity update service.
         """
-        await self._gateway.send(OWNHeatingCommand.status(self._where))
+        await self._gateway.send_status_request(OWNHeatingCommand.get_temperature(self._where))
 
     @property
     def device_info(self):
