@@ -1,5 +1,6 @@
 # Visual studio code settings
 .vscode
+.VSCodeCounter/
 
 # macOS
 .DS_Store
