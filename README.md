@@ -149,10 +149,10 @@ climate:
 `zone` is the zone (equivalent to `where`), for central unit it needs to be `#0` (it is also the default value if it is not specified here)  
 `heat` is an optional boolean defaulting to `True` you can set if your installation supports heating  
 `cool` is an optional boolean defaulting to `False` you can set if your installation supports cooling
-`standalone` is an optional boolean defaulting to `False` you can use in case a zone is not controled by a central unit; this kind of setup is possible with zone thermostats H4691/LN4691 for instance
+`standalone` is an optional boolean defaulting to `False` you can use in case a zone is not controlled by a central unit; this kind of setup is possible with zone thermostats H4691/LN4691 for instance
 
 ### Sensors
-At this point, only energy sensors are supported as part of WHO 18:
+At this point, only energy and temperature sensors are supported as part of WHO 18 and WHO 4:
 
 ```yaml
 sensor:
@@ -170,9 +170,24 @@ sensor:
         class: power
         manufacturer: BTicino
         model: F520
+      bedroom_temperature:
+        where: '1'
+        name: Bedroom temperature
+        class: temperature
+        manufacturer: BTicino
+        model: L4692
+      temperature_sensor:
+        where: '105'
+        name: Secondary sensor
+        class: temperature
+        manufacturer: BTicino
+        model: L4692
 ```
 `where` is also a special case for those as well since power meters are always "5" followed by the sensor number assigned "[1-255]".  
-`class` is a required element as it will be used to tell apart other types of sensors once implemented, for now `power` is the only admissible value.
+`class` is a required element as it will be used to tell apart other types of sensors once implemented, for now `power` and `temperature` are the only admissible values.  
+
+Note that you can add secondary temperature sensors (with 3 digits as per OpenWebNet documentation, ie `105` is the 1st 'secondary sensor' of the 5th zone) or main temperature sensor (with 1 or 2 digit being the Zone number).  
+However, if you add a main zone temperature sensor, you will not be able to configure a climate entity for that zone at the same time! You can chose one or the other, if you need both, you should configure the climate entity and then a "template sensor" with the temperature value of the climate entity.
 
 ### CEN/CEN+ events
 A powerful feature is to be able to assign CEN or CEN+ commands to your wall switches and use the events it generates in Home-Assistant to trigger automations.  
