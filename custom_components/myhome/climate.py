@@ -310,23 +310,36 @@ class MyHOMEClimate(ClimateEntity):
             self._local_target_temperature = self._target_temperature + self._local_offset
         elif message.message_type == MESSAGE_TYPE_LOCAL_TARGET_TEMPERATURE:
             self._local_target_temperature = message.local_set_temperature
+            self._target_temperature = self._local_target_temperature - self._local_offset
         elif message.message_type == MESSAGE_TYPE_MODE:
             if message.mode == CLIMATE_MODE_AUTO:
                 self._hvac_mode = HVAC_MODE_AUTO
+                if self._hvac_action == CURRENT_HVAC_OFF:
+                    self._hvac_action = CURRENT_HVAC_IDLE
             elif message.mode == CLIMATE_MODE_COOL:
                 self._hvac_mode = HVAC_MODE_COOL
+                if self._hvac_action == CURRENT_HVAC_OFF:
+                    self._hvac_action = CURRENT_HVAC_IDLE
             elif message.mode == CLIMATE_MODE_HEAT:
                 self._hvac_mode = HVAC_MODE_HEAT
+                if self._hvac_action == CURRENT_HVAC_OFF:
+                    self._hvac_action = CURRENT_HVAC_IDLE
             elif message.mode == CLIMATE_MODE_OFF:
                 self._hvac_mode = HVAC_MODE_OFF
                 self._hvac_action = CURRENT_HVAC_OFF
         elif message.message_type == MESSAGE_TYPE_MODE_TARGET:
             if message.mode == CLIMATE_MODE_AUTO:
                 self._hvac_mode = HVAC_MODE_AUTO
+                if self._hvac_action == CURRENT_HVAC_OFF:
+                    self._hvac_action = CURRENT_HVAC_IDLE
             elif message.mode == CLIMATE_MODE_COOL:
                 self._hvac_mode = HVAC_MODE_COOL
+                if self._hvac_action == CURRENT_HVAC_OFF:
+                    self._hvac_action = CURRENT_HVAC_IDLE
             elif message.mode == CLIMATE_MODE_HEAT:
                 self._hvac_mode = HVAC_MODE_HEAT
+                if self._hvac_action == CURRENT_HVAC_OFF:
+                    self._hvac_action = CURRENT_HVAC_IDLE
             elif message.mode == CLIMATE_MODE_OFF:
                 self._hvac_mode = HVAC_MODE_OFF
                 self._hvac_action = CURRENT_HVAC_OFF
