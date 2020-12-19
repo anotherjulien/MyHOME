@@ -187,7 +187,7 @@ sensor:
 `class` is a required element as it will be used to tell apart other types of sensors once implemented, for now `power` and `temperature` are the only admissible values.  
 
 Note that you can add secondary temperature sensors (with 3 digits as per OpenWebNet documentation, ie `105` is the 1st 'secondary sensor' of the 5th zone) or main temperature sensor (with 1 or 2 digit being the Zone number).  
-However, if you add a main zone temperature sensor, you will not be able to configure a climate entity for that zone at the same time! You can chose one or the other, if you need both, you should configure the climate entity and then a "template sensor" with the temperature value of the climate entity.
+*However*, if you add a main zone temperature sensor, *you will not be able to configure a climate entity for that zone* at the same time! You can chose one or the other, if you need both, you should configure the climate entity and then a "template sensor" with the temperature value of the climate entity.
 
 ### CEN/CEN+ events
 A powerful feature is to be able to assign CEN or CEN+ commands to your wall switches and use the events it generates in Home-Assistant to trigger automations.  
