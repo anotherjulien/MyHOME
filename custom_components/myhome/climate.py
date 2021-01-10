@@ -47,6 +47,7 @@ from .const import (
     CONF_COOLING_SUPPORT,
     CONF_FAN_SUPPORT,
     CONF_STANDALONE,
+    CONF_CENTRAL,
     DOMAIN,
     LOGGER,
 )
@@ -75,6 +76,7 @@ MYHOME_SCHEMA = vol.Schema(
         vol.Optional(CONF_HEATING_SUPPORT): cv.boolean,
         vol.Optional(CONF_COOLING_SUPPORT): cv.boolean,
         vol.Optional(CONF_STANDALONE): cv.boolean,
+        vol.Optional(CONF_CENTRAL): cv.boolean,
         #vol.Optional(CONF_FAN_SUPPORT): cv.boolean,
         vol.Optional(CONF_MANUFACTURER): cv.string,
         vol.Optional(CONF_DEVICE_MODEL): cv.string,
@@ -100,9 +102,10 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
                 cooling = entity_info[CONF_COOLING_SUPPORT] if CONF_COOLING_SUPPORT in entity_info else False
                 fan = entity_info[CONF_FAN_SUPPORT] if CONF_FAN_SUPPORT in entity_info else False
                 standalone = entity_info[CONF_STANDALONE] if CONF_STANDALONE in entity_info else False
+                central = entity_info[CONF_CENTRAL] if CONF_CENTRAL in entity_info else False
                 manufacturer = entity_info[CONF_MANUFACTURER] if CONF_MANUFACTURER in entity_info else None
                 model = entity_info[CONF_DEVICE_MODEL] if CONF_DEVICE_MODEL in entity_info else None
-                gateway.add_climate_zone(zone, {CONF_NAME: name, CONF_HEATING_SUPPORT: heating, CONF_COOLING_SUPPORT: cooling, CONF_FAN_SUPPORT: fan, CONF_STANDALONE: standalone, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model})
+                gateway.add_climate_zone(zone, {CONF_NAME: name, CONF_HEATING_SUPPORT: heating, CONF_COOLING_SUPPORT: cooling, CONF_FAN_SUPPORT: fan, CONF_STANDALONE: standalone, CONF_CENTRAL: central, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model})
     except KeyError:
         _LOGGER.warning("Climate devices configured but no gateway present in configuration.")
 
@@ -121,6 +124,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             cooling=gateway_devices[device][CONF_COOLING_SUPPORT],
             fan=gateway_devices[device][CONF_FAN_SUPPORT],
             standalone=gateway_devices[device][CONF_STANDALONE],
+            central=gateway_devices[device][CONF_CENTRAL],
             manufacturer=gateway_devices[device][CONF_MANUFACTURER],
             model=gateway_devices[device][CONF_DEVICE_MODEL],
             gateway=gateway
@@ -131,15 +135,16 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 class MyHOMEClimate(ClimateEntity):
 
-    def __init__(self, hass, zone: str, name: str, heating: bool, cooling: bool, fan: bool, standalone: bool, manufacturer: str, model: str, gateway: MyHOMEGateway):
+    def __init__(self, hass, zone: str, name: str, heating: bool, cooling: bool, fan: bool, standalone: bool, central: bool, manufacturer: str, model: str, gateway: MyHOMEGateway):
 
         self._name = name
         self._manufacturer = manufacturer or "BTicino S.p.A."
         self._model = model
         self._who = "4"
-        self._zone = zone
+        self._zone = f"#0#{zone}" if central and zone != "#0" else zone
         self._standalone = standalone
-        self._id = f"{self._who}-{self._zone}"
+        self._central = True if self._zone == "#0" else central
+        self._id = f"{self._who}-{zone}"
         if self._name is None:
             self._name = "Central unit" if self._zone == "#0" else f"Zone {self._zone}"
         self._gateway = gateway
@@ -150,7 +155,7 @@ class MyHOMEClimate(ClimateEntity):
         self._cooling = cooling
         if heating or cooling:
             self._supported_features |= SUPPORT_TARGET_TEMPERATURE
-            if self._zone != "#0":
+            if not self._central:
                 self._hvac_modes.append(HVAC_MODE_AUTO)
             if heating:
                 self._hvac_modes.append(HVAC_MODE_HEAT)
@@ -339,7 +344,7 @@ class MyHOMEClimate(ClimateEntity):
             elif message.mode == CLIMATE_MODE_HEAT:
                 self._hvac_mode = HVAC_MODE_HEAT
                 if self._hvac_action == CURRENT_HVAC_OFF:
-                    self._hvac_action = CURRENT_HVAC_IDLE
+                    self._hvac_action = CURRENT_HVAC_IDLE 
             elif message.mode == CLIMATE_MODE_OFF:
                 self._hvac_mode = HVAC_MODE_OFF
                 self._hvac_action = CURRENT_HVAC_OFF

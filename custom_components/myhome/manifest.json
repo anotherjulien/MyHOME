@@ -3,7 +3,7 @@
   "name": "MyHOME",
   "config_flow": true,
   "documentation": "",
-  "requirements": ["OWNd==0.7.16"],
+  "requirements": ["OWNd==0.7.17"],
   "ssdp": [
     {
       "manufacturer": "BTicino S.p.A.",
