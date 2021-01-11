@@ -98,7 +98,6 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.Conf
 
     async def handle_sync_time(call):
         timezone = hass.config.as_dict()['time_zone']
-        message = OWNGatewayCommand.set_datetime_to_now(timezone)
         await myhome_gateway.send(OWNGatewayCommand.set_datetime_to_now(timezone))
     
     hass.services.async_register(DOMAIN, "sync_time", handle_sync_time)
@@ -108,10 +107,13 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.Conf
         LOGGER.debug(f"message to be sent: {message}")
         if message is not None:
             OWN_message = OWNMessage.parse(message)
-            LOGGER.debug(f"OWN Message: {OWN_message}")
-            if OWN_message.is_valid:
-                LOGGER.debug("message valid")
-                await myhome_gateway.send(OWN_message)
+            if OWN_message is not None:
+                LOGGER.debug(f"OWN Message: {OWN_message}")
+                if OWN_message.is_valid:
+                    LOGGER.debug("message valid")
+                    await myhome_gateway.send(OWN_message)
+            else:
+                LOGGER.error(f"Could not parse message {message}, not sending it.")
 
     hass.services.async_register(DOMAIN, "send_message", handle_send_message)
 
