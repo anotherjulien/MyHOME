@@ -106,7 +106,7 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.Conf
         message = call.data.get(ATTR_MESSAGE, None)
         LOGGER.debug(f"message to be sent: {message}")
         if message is not None:
-            OWN_message = OWNMessage.parse(message)
+            OWN_message = OWNCommand.parse(message)
             if OWN_message is not None:
                 LOGGER.debug(f"OWN Message: {OWN_message}")
                 if OWN_message.is_valid:
