@@ -1,6 +1,7 @@
 {
   "domain": "myhome",
   "name": "MyHOME",
+  "version": "0.7.3",
   "config_flow": true,
   "documentation": "",
   "requirements": ["OWNd==0.7.22"],
