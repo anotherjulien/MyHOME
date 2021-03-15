@@ -5,7 +5,7 @@
   "config_flow": true,
   "documentation": "https://github.com/anotherjulien/MyHOME",
   "issue_tracker": "https://github.com/anotherjulien/MyHOME/issues",
-  "requirements": ["OWNd==0.7.22"],
+  "requirements": ["OWNd==0.7.23"],
   "ssdp": [
     {
       "manufacturer": "BTicino S.p.A.",
