@@ -8,46 +8,57 @@
   "requirements": ["OWNd==0.7.23"],
   "ssdp": [
     {
+      "st": "upnp:rootdevice",
       "manufacturer": "BTicino S.p.A.",
       "modelName": "HL4684"
     },
     {
+      "st": "upnp:rootdevice",
       "manufacturer": "BTicino S.p.A.",
       "modelName": "AM4890"
     },
     {
+      "st": "upnp:rootdevice",
       "manufacturer": "BTicino S.p.A.",
       "modelName": "MyHomeServer1"
     },
     {
+      "st": "upnp:rootdevice",
       "manufacturer": "BTicino S.p.A.",
       "modelName": "F455"
     },
     {
+      "st": "upnp:rootdevice",
       "manufacturer": "BTicino S.p.A.",
       "modelName": "F454"
     },
     {
+      "st": "upnp:rootdevice",
       "manufacturer": "BTicino S.p.A.",
       "modelName": "F453AV"
     },
     {
+      "st": "upnp:rootdevice",
       "manufacturer": "BTicino S.p.A.",
       "modelName": "F452"
     },
     {
+      "st": "upnp:rootdevice",
       "manufacturer": "BTicino S.p.A.",
       "modelName": "MH200N"
     },
     {
+      "st": "upnp:rootdevice",
       "manufacturer": "BTicino S.p.A.",
       "modelName": "MH200"
     },
     {
+      "st": "upnp:rootdevice",
       "manufacturer": "BTicino S.p.A.",
       "modelName": "MH202"
     },
     {
+      "st": "upnp:rootdevice",
       "manufacturer": "BTicino S.p.A.",
       "modelName": "MH201"
     }
