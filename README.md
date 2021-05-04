@@ -121,9 +121,13 @@ binary_sensor:
 `class` allows you to specify any supported Home-Assistant binary sensor `device_class`, this will affect the way the device is presented in the interface.
 
 ### Heating
-Climate entities are developed for WHO 4  
-This part might still be a little bit "rough around the edges" as it's only been tested with a couple of users.  
-Feedback is very much welcome!
+Climate entities are developed for WHO 4
+
+There are 3 distinct ways to configure this part depending on your setup:
+
+#### 99 zones central unit
+
+In a 99 zones setup, the central unit needs to have the address `#0`, and all subordinate zones have their own number with and are NOT `standalone`.
 
 ```yaml
 climate:
@@ -146,10 +150,72 @@ climate:
         manufacturer: BTicino
         model: F430/4
 ```
-`zone` is the zone (equivalent to `where`), for central unit it needs to be `#0` (it is also the default value if it is not specified here)  
+`zone` is the zone (equivalent to `where`)  
 `heat` is an optional boolean defaulting to `True` you can set if your installation supports heating  
-`cool` is an optional boolean defaulting to `False` you can set if your installation supports cooling
-`standalone` is an optional boolean defaulting to `False` you can use in case a zone is not controlled by a central unit; this kind of setup is possible with zone thermostats H4691/LN4691 for instance
+`cool` is an optional boolean defaulting to `False` you can set if your installation supports cooling  
+`standalone` is an optional boolean defaulting to `False`, you can either ignore it or set it manually to `False` when you have a 99 zones setup
+
+#### 4 zones central unit
+
+When you use a 4 zones central unit, the central unit itself acts as a separate zone, so it has a zone number configured; all subordinate zones are `standalone`.
+
+```yaml
+climate:
+  - platform: myhome
+    devices:
+      central_unit:
+        zone: '1'
+        name: Central unit Living room
+        heat: True
+        cool: False
+        central: True
+        standalone: False
+        manufacturer: BTicino
+        model: HC4695
+      zone_2:
+        zone: '2'
+        name: Bedroom
+        heat: True
+        cool: False
+        standalone: True
+        manufacturer: BTicino
+        model: F430/4
+```
+`zone` is the zone (equivalent to `where`)  
+`heat` is an optional boolean defaulting to `True` you can set if your installation supports heating  
+`cool` is an optional boolean defaulting to `False` you can set if your installation supports cooling  
+`central`is an optional boolean defaulting to`False` that you need to set to `True` only for the zone that acts as the central unit in your 4 zones setup    
+`standalone` is an optional boolean defaulting to `False` that you need to set to `True` for all subordinate zones in a 4 zones setup
+
+#### No central unit
+
+With no central unit, all zones are set as `standalone`.
+
+```yaml
+climate:
+  - platform: myhome
+    devices:
+      zone_1:
+        zone: '1'
+        name: Living room
+        heat: True
+        cool: False
+        standalone: True
+        manufacturer: BTicino
+        model: H4691
+      zone_2:
+        zone: '2'
+        name: Bedroom
+        heat: True
+        cool: False
+        standalone: True
+        manufacturer: BTicino
+        model: H4691
+```
+`zone` is the zone (equivalent to `where`)  
+`heat` is an optional boolean defaulting to `True` you can set if your installation supports heating  
+`cool` is an optional boolean defaulting to `False` you can set if your installation supports cooling  
+`standalone` is an optional boolean defaulting to `False` that you need to set to `True` for all zones when you don't have any central unit
 
 ### Sensors
 At this point, only energy and temperature sensors are supported as part of WHO 18 and WHO 4:
@@ -170,6 +236,12 @@ sensor:
         class: power
         manufacturer: BTicino
         model: F520
+      washing_machine:
+        where: '71'
+        name: Washing machine
+        class: power
+        manufacturer: BTicino
+        model: F522
       bedroom_temperature:
         where: '1'
         name: Bedroom temperature
@@ -183,7 +255,7 @@ sensor:
         manufacturer: BTicino
         model: L4692
 ```
-`where` is also a special case for those as well since power meters are always "5" followed by the sensor number assigned "[1-255]".  
+`where` is also a special case for those as well since power meters are always "5" followed by the sensor number assigned "[1-255]" for F520, the address shoud always be "7" followed by the sensor number assigned "[1-255]" for F522.  
 `class` is a required element as it will be used to tell apart other types of sensors once implemented, for now `power` and `temperature` are the only admissible values.  
 
 Note that you can add secondary temperature sensors (with 3 digits as per OpenWebNet documentation, ie `105` is the 1st 'secondary sensor' of the 5th zone) or main temperature sensor (with 1 or 2 digit being the Zone number).  
