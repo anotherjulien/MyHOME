@@ -120,6 +120,25 @@ binary_sensor:
 `where` for these is one of a few special cases, as per specification, they are always "3" followed by the sensor number assigned "[1-201]".  
 `class` allows you to specify any supported Home-Assistant binary sensor `device_class`, this will affect the way the device is presented in the interface.
 
+#### Auxiliary sensors
+Auxiliary sensors from the alarm system can also be added, you just need to specify the `who`:  
+
+```yaml
+binary_sensor:
+  - platform: myhome
+    devices:
+      motion_sensor:
+        where: '1'
+        who: '9'
+        name: Motion living room
+        class: motion
+        manufacturer: BTicino
+        model: L4610
+```
+`where` is the auxiliary sensor number "[0-9]".  
+`who` must be "9" in the case of Auxiliary sensors.  
+`class` allows you to specify any supported Home-Assistant binary sensor `device_class`, this will affect the way the device is presented in the interface.
+
 ### Heating
 Climate entities are developed for WHO 4
 
