@@ -161,7 +161,7 @@ class MyHOMEGateway:
             LOGGER.debug("Received: %s", message)
             if not message:
                 LOGGER.info("Received: %s", message)
-            elif isinstance(message, OWNLightingEvent) or isinstance(message, OWNAutomationEvent) or isinstance(message, OWNEnergyEvent) or isinstance(message, OWNDryContactEvent) or isinstance(message, OWNHeatingEvent):
+            elif isinstance(message, OWNLightingEvent) or isinstance(message, OWNAutomationEvent) or isinstance(message, OWNEnergyEvent) or isinstance(message, OWNDryContactEvent) or isinstance(message, OWNAuxEvent) or isinstance(message, OWNHeatingEvent):
                 if not message.is_translation:
                     is_event = False
                     if isinstance(message, OWNLightingEvent):
