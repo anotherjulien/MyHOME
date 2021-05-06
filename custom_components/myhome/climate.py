@@ -60,6 +60,7 @@ from OWNd.message import (
     CLIMATE_MODE_COOL,
     CLIMATE_MODE_AUTO,
     MESSAGE_TYPE_MAIN_TEMPERATURE,
+    MESSAGE_TYPE_MAIN_HUMIDITY,
     MESSAGE_TYPE_SECONDARY_TEMPERATURE,
     MESSAGE_TYPE_TARGET_TEMPERATURE,
     MESSAGE_TYPE_LOCAL_OFFSET,
@@ -169,6 +170,7 @@ class MyHOMEClimate(ClimateEntity):
             self._fan_modes = [FAN_AUTO, FAN_LOW, FAN_MEDIUM, FAN_HIGH, FAN_OFF]
 
         self._current_temperature = None
+        self._current_humidity = None
         self._target_temperature = None
         self._local_offset = 0
         self._local_target_temperature = None
@@ -258,6 +260,10 @@ class MyHOMEClimate(ClimateEntity):
         return self._current_temperature
 
     @property
+    def current_humidity(self) -> float:
+        return self._current_humidity
+    
+    @property
     def target_temperature(self) -> float:
         if self._local_target_temperature is not None:
             return self._local_target_temperature
@@ -307,6 +313,8 @@ class MyHOMEClimate(ClimateEntity):
         """Handle an event message."""
         if message.message_type == MESSAGE_TYPE_MAIN_TEMPERATURE:
             self._current_temperature = message.main_temperature
+        elif message.message_type == MESSAGE_TYPE_MAIN_HUMIDITY:
+            self._current_humidity = message.main_humidity
         elif message.message_type == MESSAGE_TYPE_TARGET_TEMPERATURE:
             self._target_temperature = message.set_temperature
             self._local_target_temperature = self._target_temperature + self._local_offset
