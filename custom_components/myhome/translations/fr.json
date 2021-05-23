@@ -32,6 +32,7 @@
           "serialNumber": "Adresse MAC",
           "modelName": "Type de serveur"
         }
+      }
     },
     "error": {
       "invalid_port": "Port invalide",
