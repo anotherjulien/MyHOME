@@ -22,10 +22,21 @@
         "data": {
           "password": "Mot de passe"
         }
-      }
+      },
+      "custom": {
+        "title": "Ajout manuel d'un serveur",
+        "description": "Remplissez les informations de votre serveur",
+        "data": {
+          "address": "Adresse IP",
+          "port": "Port",
+          "serialNumber": "Adresse MAC",
+          "modelName": "Type de serveur"
+        }
     },
     "error": {
       "invalid_port": "Port invalide",
+      "invalid_ip": "Adresse IP invalide",
+      "invalid_mac": "Adresse MAC invalide",
       "invalid_password": "Mot de passe invalide",
       "password_error": "Mot de passe invalide"
     },
