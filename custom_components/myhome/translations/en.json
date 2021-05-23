@@ -22,10 +22,22 @@
         "data": {
           "password": "Password"
         }
+      },
+      "custom": {
+        "title": "Manual gateway entry",
+        "description": "Fill out the information for your gateway",
+        "data": {
+          "address": "IP address",
+          "port": "Port",
+          "serialNumber": "MAC address",
+          "modelName": "Device type"
+        }
       }
     },
     "error": {
       "invalid_port": "Invalid port",
+      "invalid_ip": "Invalid IP address",
+      "invalid_mac": "Invalid MAC address",
       "invalid_password": "Invalid password",
       "password_error": "Invalid password"
     },
