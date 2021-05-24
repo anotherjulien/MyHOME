@@ -39,6 +39,7 @@
       "invalid_ip": "Adresse IP invalide",
       "invalid_mac": "Adresse MAC invalide",
       "invalid_password": "Mot de passe invalide",
+      "password_retry": "Le serveur refuse la négociation, attendez 60s avant de réessayer.",
       "password_error": "Mot de passe invalide"
     },
     "abort": {

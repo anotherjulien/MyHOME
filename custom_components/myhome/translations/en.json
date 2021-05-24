@@ -39,6 +39,7 @@
       "invalid_ip": "Invalid IP address",
       "invalid_mac": "Invalid MAC address",
       "invalid_password": "Invalid password",
+      "password_retry": "Gateway refusing password negotiation, wait 60s before retrying.",
       "password_error": "Invalid password"
     },
     "abort": {

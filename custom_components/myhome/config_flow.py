@@ -221,8 +221,8 @@ class MyhomeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         else:
             if test_result["Message"] == "password_required":
                 return await self.async_step_password()
-            elif test_result["Message"] == "password_error":
-                errors["password"] = "password_error"
+            elif test_result["Message"] == "password_error" or test_result["Message"] == "password_retry":
+                errors["password"] = test_result["Message"]
                 return await self.async_step_password(errors=errors)
             else:
                 return self.async_abort(reason=test_result["Message"])
