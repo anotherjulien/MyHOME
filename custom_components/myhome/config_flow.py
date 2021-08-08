@@ -93,8 +93,8 @@ class MyhomeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         except asyncio.TimeoutError:
             return self.async_abort(reason="discovery_timeout")
 
-        if not local_gateways:
-            return self.async_abort(reason="no_gateways")
+        #if not local_gateways:
+        #    return self.async_abort(reason="no_gateways")
 
         # Find already configured hosts
         already_configured = self._async_current_ids(False)
