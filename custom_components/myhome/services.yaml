@@ -17,20 +17,3 @@ start_sending_instant_power:
     duration:
       description: For how long the instant power information will be sent.
       example: "60"
-
-get_partial_daily_consumption:
-  description: Get today's power consumption up to now for a sensor.
-  fields:
-    entity_id:
-      description: Name(s) of entities that will send power consumption information.
-      example: "sensor.general_power"
-
-get_hourly_consumption:
-  description: Get hourly power consumption for a specific date for a sensor.
-  fields:
-    entity_id:
-      description: Name(s) of entities that will send power consumption information.
-      example: "sensor.general_power"
-    date:
-      description: Date of the hourly power consumption information sent.
-      example: "2019-12-30"

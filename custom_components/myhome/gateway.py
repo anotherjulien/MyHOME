@@ -14,7 +14,7 @@ import voluptuous as vol
 from homeassistant import core
 from homeassistant.core import EVENT_HOMEASSISTANT_STOP
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers import aiohttp_client, config_validation as cv
+from homeassistant.helpers import aiohttp_client, config_validation as cv, entity_registry as er
 
 from homeassistant.const import (
     CONF_HOST,
@@ -161,7 +161,18 @@ class MyHOMEGateway:
             LOGGER.debug("Received: %s", message)
             if not message:
                 LOGGER.info("Received: %s", message)
-            elif isinstance(message, OWNLightingEvent) or isinstance(message, OWNAutomationEvent) or isinstance(message, OWNEnergyEvent) or isinstance(message, OWNDryContactEvent) or isinstance(message, OWNAuxEvent) or isinstance(message, OWNHeatingEvent):
+            elif isinstance(message, OWNEnergyEvent):
+                if message.message_type == MESSAGE_TYPE_ACTIVE_POWER and f"{message.unique_id}-power" in self.hass.data[DOMAIN]:
+                    self.hass.data[DOMAIN][f"{message.unique_id}-power"].handle_event(message)
+                elif message.message_type == MESSAGE_TYPE_ENERGY_TOTALIZER and f"{message.unique_id}-total-energy" in self.hass.data[DOMAIN]:
+                    self.hass.data[DOMAIN][f"{message.unique_id}-total-energy"].handle_event(message)
+                elif message.message_type == MESSAGE_TYPE_CURRENT_MONTH_CONSUMPTION and f"{message.unique_id}-monthly-energy" in self.hass.data[DOMAIN]:
+                    self.hass.data[DOMAIN][f"{message.unique_id}-monthly-energy"].handle_event(message)
+                elif message.message_type == MESSAGE_TYPE_CURRENT_DAY_CONSUMPTION and f"{message.unique_id}-daily-energy" in self.hass.data[DOMAIN]:
+                    self.hass.data[DOMAIN][f"{message.unique_id}-daily-energy"].handle_event(message)
+                else:
+                    continue
+            elif isinstance(message, OWNLightingEvent) or isinstance(message, OWNAutomationEvent) or isinstance(message, OWNDryContactEvent) or isinstance(message, OWNAuxEvent) or isinstance(message, OWNHeatingEvent):
                 if not message.is_translation:
                     is_event = False
                     if isinstance(message, OWNLightingEvent):

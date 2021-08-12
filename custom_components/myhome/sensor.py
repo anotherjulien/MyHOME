@@ -8,24 +8,24 @@ from homeassistant.helpers.entity import Entity
 
 from homeassistant.components.sensor import (
     PLATFORM_SCHEMA,
+    STATE_CLASS_MEASUREMENT,
+    SensorEntity,
 )
 from homeassistant.const import (
     CONF_NAME, 
     ATTR_ENTITY_ID,
     ATTR_STATE,
     CONF_DEVICES,
-    DEVICE_CLASS_BATTERY,
-    DEVICE_CLASS_HUMIDITY,
-    DEVICE_CLASS_ILLUMINANCE,
-    DEVICE_CLASS_SIGNAL_STRENGTH,
     DEVICE_CLASS_TEMPERATURE,
-    DEVICE_CLASS_TIMESTAMP,
-    DEVICE_CLASS_PRESSURE,
     DEVICE_CLASS_POWER,
+    DEVICE_CLASS_ENERGY,
     POWER_WATT,
+    ENERGY_WATT_HOUR,
     TEMP_CELSIUS,
 )
 from homeassistant.helpers import config_validation as cv, entity_platform, service
+
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_GATEWAY,
@@ -42,6 +42,7 @@ from .gateway import MyHOMEGateway
 
 from OWNd.message import (
     MESSAGE_TYPE_ACTIVE_POWER,
+    MESSAGE_TYPE_ENERGY_TOTALIZER,
     MESSAGE_TYPE_HOURLY_CONSUMPTION,
     MESSAGE_TYPE_DAILY_CONSUMPTION,
     MESSAGE_TYPE_MONTHLY_CONSUMPTION,
@@ -64,14 +65,9 @@ MYHOME_SCHEMA = vol.Schema(
         vol.Optional(CONF_NAME): cv.string,
         vol.Optional(CONF_INVERTED): cv.boolean,
         vol.Required(CONF_DEVICE_CLASS): vol.In([
-            DEVICE_CLASS_BATTERY, 
-            DEVICE_CLASS_HUMIDITY, 
-            DEVICE_CLASS_ILLUMINANCE,
-            DEVICE_CLASS_SIGNAL_STRENGTH,
             DEVICE_CLASS_TEMPERATURE,
-            DEVICE_CLASS_TIMESTAMP,
-            DEVICE_CLASS_PRESSURE,
             DEVICE_CLASS_POWER,
+            DEVICE_CLASS_ENERGY,
             ]),
         vol.Optional(CONF_MANUFACTURER): cv.string,
         vol.Optional(CONF_DEVICE_MODEL): cv.string,
@@ -85,8 +81,6 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 _LOGGER = logging.getLogger(__name__)
 
 SERVICE_SEND_INSTANT_POWER = "start_sending_instant_power"
-SERVICE_PARTIAL_DAILY_CONSUMPTION = "get_partial_daily_consumption"
-SERVICE_HOURLY_CONSUMPTION = "get_hourly_consumption"
 
 ATTR_DURATION = "duration"
 ATTR_DATE = "date"
@@ -115,13 +109,15 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     devices = []
     gateway = hass.data[DOMAIN][CONF_GATEWAY]
 
-    energy_devices_configured = False
+    power_devices_configured = False
 
     gateway_devices = gateway.get_sensors()
+
     for device in gateway_devices.keys():
         if gateway_devices[device][CONF_DEVICE_CLASS] == DEVICE_CLASS_POWER:
-            energy_devices_configured = True
-            device = MyHOMEPowerSensor(
+            power_devices_configured = True
+            
+            devices.append(MyHOMEPowerSensor(
                 hass=hass,
                 who=gateway_devices[device][CONF_WHO],
                 where=device,
@@ -130,11 +126,42 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                 manufacturer=gateway_devices[device][CONF_MANUFACTURER],
                 model=gateway_devices[device][CONF_DEVICE_MODEL],
                 gateway=gateway
-            )
+            ))
 
-            devices.append(device)
+            devices.append(MyHOMEEnergySensor(
+                hass=hass,
+                who=gateway_devices[device][CONF_WHO],
+                where=device,
+                name=gateway_devices[device][CONF_NAME],
+                period="daily",
+                manufacturer=gateway_devices[device][CONF_MANUFACTURER],
+                model=gateway_devices[device][CONF_DEVICE_MODEL],
+                gateway=gateway
+            ))
+
+            devices.append(MyHOMEEnergySensor(
+                hass=hass,
+                who=gateway_devices[device][CONF_WHO],
+                where=device,
+                name=gateway_devices[device][CONF_NAME],
+                period="monthly",
+                manufacturer=gateway_devices[device][CONF_MANUFACTURER],
+                model=gateway_devices[device][CONF_DEVICE_MODEL],
+                gateway=gateway
+            ))
+
+            devices.append(MyHOMEEnergySensor(
+                hass=hass,
+                who=gateway_devices[device][CONF_WHO],
+                where=device,
+                name=gateway_devices[device][CONF_NAME],
+                period=None,
+                manufacturer=gateway_devices[device][CONF_MANUFACTURER],
+                model=gateway_devices[device][CONF_DEVICE_MODEL],
+                gateway=gateway
+            ))
+
         elif gateway_devices[device][CONF_DEVICE_CLASS] == DEVICE_CLASS_TEMPERATURE:
-            energy_devices_configured = True
             device = MyHOMETemperatureSensor(
                 hass=hass,
                 who=gateway_devices[device][CONF_WHO],
@@ -148,7 +175,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
             devices.append(device)
     
-    if energy_devices_configured:
+    if power_devices_configured:
         platform = entity_platform.current_platform.get()
 
         platform.async_register_entity_service(
@@ -161,40 +188,50 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             "start_sending_instant_power",
         )
 
-        platform.async_register_entity_service(SERVICE_PARTIAL_DAILY_CONSUMPTION, {}, "get_partial_daily_consumption")
-
-        platform.async_register_entity_service(
-            SERVICE_HOURLY_CONSUMPTION,
-            {
-                vol.Required(ATTR_DATE): cv.date
-            },
-            "get_hourly_consumption",
-        )
-
     async_add_entities(devices)
 
-class MyHOMEPowerSensor(Entity):
+class MyHOMEPowerSensor(SensorEntity):
 
     def __init__(self, hass, name: str, who: str, where: str, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGateway):
 
-        self._name = name
+        self._hass = hass
         self._manufacturer = manufacturer or "BTicino S.p.A."
         self._model = model
         self._who = who or 18
         self._where = where
-        self._id = f"{self._who}-{self._where}"
-        if self._name is None:
-            self._name = f"Sensor {self._where[1:]}"
-        self._device_class = device_class
+        self._device_name = name or f"Sensor {self._where[1:]}"
+        self._device_id = f"{self._who}-{self._where}"
         self._gateway = gateway
-        self._value = 0
-        self._unit = POWER_WATT
+        self._type_id = "power"
+        self._type_name = "Power"
 
-        hass.data[DOMAIN][self._id] = self
+        self._attr_device_info = {
+            "identifiers": {
+                (DOMAIN, self._device_id)
+            },
+            "name": self._device_name,
+            "manufacturer": self._manufacturer,
+            "model": self._model,
+            "via_device": (DOMAIN, self._gateway.id),
+        }
+
+        self._attr_name = f"{self._device_name} {self._type_name}"
+        self._attr_unique_id = f"{self._device_id}-{self._type_id}"
+        self._attr_entity_registry_enabled_default = True
+        self._attr_device_class = DEVICE_CLASS_POWER
+        self._attr_unit_of_measurement = POWER_WATT
+        self._attr_state_class = STATE_CLASS_MEASUREMENT
+        self._attr_should_poll = False
+        self._attr_state = 0
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""
+        self._hass.data[DOMAIN][self._attr_unique_id] = self
         await self.async_update()
+
+    async def async_will_remove_from_hass(self):
+        """When entity is removed from hass."""
+        del self._hass.data[DOMAIN][self._attr_unique_id]
 
     async def async_update(self):
         """Update the entity.
@@ -203,88 +240,134 @@ class MyHOMEPowerSensor(Entity):
         """
         #await self.start_sending_instant_power(255)
 
-    @property
-    def device_info(self):
-        return {
-            "identifiers": {
-                (DOMAIN, self.unique_id)
-            },
-            "name": self.name,
-            "manufacturer": self._manufacturer,
-            "model": self._model,
-            "via_device": (DOMAIN, self._gateway.id),
-        }
-    
-    @property
-    def device_class(self):
-        """Return the device class if any."""
-        return self._device_class
-
-    @property
-    def should_poll(self):
-        """No polling needed for a MyHome device."""
-        return False
-
-    @property
-    def name(self):
-        """Return the name of the device if any."""
-        return self._name
-
-    @property
-    def unique_id(self):
-        """Return the unique ID of the device."""
-        return self._id
-
-    @property
-    def state(self):
-        """Return the state of the sensor."""
-        return self._value
-
-    @property
-    def unit_of_measurement(self):
-        """Return the unit the value is expressed in."""
-        return self._unit
-
     def handle_event(self, message: OWNEnergyEvent):
         """Handle an event message."""
         if message.message_type == MESSAGE_TYPE_ACTIVE_POWER:
-            self._value = message.active_power
+            self._attr_state = message.active_power
             self.async_schedule_update_ha_state()
     
     async def start_sending_instant_power(self, duration):
         """Request automatic instant power."""
         await self._gateway.send(OWNEnergyCommand.start_sending_instant_power(self._where, duration))
 
-    async def get_partial_daily_consumption(self):
-        """Request today's power consumption so far."""
-        await self._gateway.send(OWNEnergyCommand.get_partial_daily_consumption(self._where))
+class MyHOMEEnergySensor(SensorEntity):
 
-    async def get_hourly_consumption(self, date):
-        """Request hourly power consumption for specific day."""
-        await self._gateway.send(OWNEnergyCommand.get_hourly_consumption(self._where, date))
+    def __init__(self, hass, name: str, who: str, where: str, period: str, manufacturer: str, model: str, gateway: MyHOMEGateway):
+
+        self._hass = hass
+        self._manufacturer = manufacturer or "BTicino S.p.A."
+        self._model = model
+        self._who = who or 18
+        self._where = where
+        self._device_name = name or f"Sensor {self._where[1:]}"
+        self._device_id = f"{self._who}-{self._where}"
+        self._gateway = gateway
+
+        if period == "daily":
+            self._type_id = "daily-energy"
+            self._type_name = "Energy (today)"
+            self._attr_entity_registry_enabled_default = False
+            self._attr_last_reset = dt_util.start_of_local_day()
+        elif period == "monthly":
+            self._type_id = "monthly-energy"
+            self._type_name = "Energy (current month)"
+            self._attr_entity_registry_enabled_default = False
+            self._attr_last_reset = dt_util.start_of_local_day().replace(day=1)
+        else:
+            self._type_id = "total-energy"
+            self._type_name = "Energy"
+            self._attr_entity_registry_enabled_default = True
+            self._attr_last_reset = dt_util.utc_from_timestamp(0)
+
+        self._attr_device_info = {
+            "identifiers": {
+                (DOMAIN, self._device_id)
+            },
+            "name": self._device_name,
+            "manufacturer": self._manufacturer,
+            "model": self._model,
+            "via_device": (DOMAIN, self._gateway.id),
+        }
+
+        self._attr_name = f"{self._device_name} {self._type_name}"
+        self._attr_unique_id = f"{self._device_id}-{self._type_id}"
+        self._attr_device_class = DEVICE_CLASS_ENERGY
+        self._attr_unit_of_measurement = ENERGY_WATT_HOUR
+        self._attr_state_class = STATE_CLASS_MEASUREMENT
+        self._attr_should_poll = True
+        self._attr_state = None
+
+    async def async_added_to_hass(self):
+        """When entity is added to hass."""
+        self._hass.data[DOMAIN][self._attr_unique_id] = self
+        await self.async_update()
+
+    async def async_will_remove_from_hass(self):
+        """When entity is removed from hass."""
+        del self._hass.data[DOMAIN][self._attr_unique_id]
+
+    async def async_update(self):
+        """Update the entity.
+
+        Only used by the generic entity update service.
+        """
+        if self._type_id == "total-energy":
+            await self._gateway.send_status_request(OWNEnergyCommand.get_total_consumption(self._where))
+        elif self._type_id == "monthly-energy":
+            await self._gateway.send_status_request(OWNEnergyCommand.get_partial_monthly_consumption(self._where))
+        elif self._type_id == "daily-energy":
+            await self._gateway.send_status_request(OWNEnergyCommand.get_partial_daily_consumption(self._where))
+
+    def handle_event(self, message: OWNEnergyEvent):
+        """Handle an event message."""
+        if self._type_id == "total-energy" and message.message_type == MESSAGE_TYPE_ENERGY_TOTALIZER:
+            self._attr_state = message.total_consumption
+        elif self._type_id == "monthly-energy" and message.message_type == MESSAGE_TYPE_CURRENT_MONTH_CONSUMPTION:
+            self._attr_state = message.current_month_partial_consumption
+            self._attr_last_reset = dt_util.start_of_local_day().replace(day=1)
+        elif self._type_id == "daily-energy" and message.message_type == MESSAGE_TYPE_CURRENT_DAY_CONSUMPTION:
+            self._attr_state = message.current_day_partial_consumption
+            self._attr_last_reset = dt_util.start_of_local_day()
+        self.async_schedule_update_ha_state()
 
 class MyHOMETemperatureSensor(Entity):
 
     def __init__(self, hass, name: str, who: str, where: str, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGateway):
 
-        self._name = name
+        self._hass = hass
         self._manufacturer = manufacturer or "BTicino S.p.A."
         self._model = model
         self._who = who or 4
         self._where = where
-        self._id = f"{self._who}-{self._where}"
-        if self._name is None:
-            self._name = f"Sensor {self._where[1:]}"
-        self._device_class = device_class
+        self._attr_name = name or f"Sensor {self._where[1:]}"
+        self._attr_unique_id = f"{self._who}-{self._where}"
         self._gateway = gateway
-        self._value = 0
-        self._unit = TEMP_CELSIUS
 
-        hass.data[DOMAIN][self._id] = self
+        self._attr_device_info = {
+            "identifiers": {
+                (DOMAIN, self._attr_unique_id)
+            },
+            "name": self._attr_name,
+            "manufacturer": self._manufacturer,
+            "model": self._model,
+            "via_device": (DOMAIN, self._gateway.id),
+        }
+
+        self._attr_entity_registry_enabled_default = True
+        self._attr_device_class = DEVICE_CLASS_TEMPERATURE
+        self._attr_unit_of_measurement = TEMP_CELSIUS
+        self._attr_state_class = STATE_CLASS_MEASUREMENT
+        self._attr_should_poll = True
+        self._attr_state = None
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""
+        self._hass.data[DOMAIN][self._attr_unique_id] = self
         await self.async_update()
+
+    async def async_will_remove_from_hass(self):
+        """When entity is removed from hass."""
+        del self._hass.data[DOMAIN][self._attr_unique_id]
 
     async def async_update(self):
         """Update the entity.
@@ -293,53 +376,11 @@ class MyHOMETemperatureSensor(Entity):
         """
         await self._gateway.send_status_request(OWNHeatingCommand.get_temperature(self._where))
 
-    @property
-    def device_info(self):
-        return {
-            "identifiers": {
-                (DOMAIN, self.unique_id)
-            },
-            "name": self.name,
-            "manufacturer": self._manufacturer,
-            "model": self._model,
-            "via_device": (DOMAIN, self._gateway.id),
-        }
-    
-    @property
-    def device_class(self):
-        """Return the device class if any."""
-        return self._device_class
-
-    @property
-    def should_poll(self):
-        """No polling needed for a MyHome device."""
-        return True
-
-    @property
-    def name(self):
-        """Return the name of the device if any."""
-        return self._name
-
-    @property
-    def unique_id(self):
-        """Return the unique ID of the device."""
-        return self._id
-
-    @property
-    def state(self):
-        """Return the state of the sensor."""
-        return self._value
-
-    @property
-    def unit_of_measurement(self):
-        """Return the unit the value is expressed in."""
-        return self._unit
-
     def handle_event(self, message: OWNHeatingEvent):
         """Handle an event message."""
         if message.message_type == MESSAGE_TYPE_MAIN_TEMPERATURE:
-            self._value = message.main_temperature
+            self._attr_state = message.main_temperature
             self.async_schedule_update_ha_state()
         elif message.message_type == MESSAGE_TYPE_SECONDARY_TEMPERATURE:
-            self._value = message.secondary_temperature[1]
+            self._attr_state = message.secondary_temperature[1]
             self.async_schedule_update_ha_state()
