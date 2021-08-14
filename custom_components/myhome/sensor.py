@@ -23,7 +23,7 @@ from homeassistant.const import (
     ENERGY_WATT_HOUR,
     TEMP_CELSIUS,
 )
-from homeassistant.helpers import config_validation as cv, entity_platform, service
+from homeassistant.helpers import config_validation as cv, entity_platform, service, entity_registry
 
 from homeassistant.util import dt as dt_util
 
@@ -116,6 +116,12 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     for device in gateway_devices.keys():
         if gateway_devices[device][CONF_DEVICE_CLASS] == DEVICE_CLASS_POWER:
             power_devices_configured = True
+
+            ent_reg = entity_registry.async_get(hass)
+            existing_entity_id = ent_reg.async_get_entity_id("sensor", DOMAIN, f"18-{device}")
+            if existing_entity_id is not None:
+                LOGGER.warning(f"Sensor 18-{device}: {existing_entity_id} will be migrated to 18-{device}-power")
+                ent_reg.async_update_entity(entity_id=existing_entity_id, new_unique_id=f"18-{device}-power")
             
             devices.append(MyHOMEPowerSensor(
                 hass=hass,
@@ -189,6 +195,21 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         )
 
     async_add_entities(devices)
+
+async def async_unload_entry(hass, config_entry):
+
+    gateway = hass.data[DOMAIN][CONF_GATEWAY]
+
+    gateway_devices = gateway.get_sensors()
+
+    for device in gateway_devices.keys():
+        if gateway_devices[device][CONF_DEVICE_CLASS] == DEVICE_CLASS_POWER:
+            del hass.data[DOMAIN][f"18-{device}-power"]
+            del hass.data[DOMAIN][f"18-{device}-total-energy"]
+            del hass.data[DOMAIN][f"18-{device}-monthly-energy"]
+            del hass.data[DOMAIN][f"18-{device}-daily-energy"]
+        elif gateway_devices[device][CONF_DEVICE_CLASS] == DEVICE_CLASS_TEMPERATURE:
+            del hass.data[DOMAIN][f"4-{device}"]
 
 class MyHOMEPowerSensor(SensorEntity):
 
@@ -330,7 +351,7 @@ class MyHOMEEnergySensor(SensorEntity):
             self._attr_last_reset = dt_util.start_of_local_day()
         self.async_schedule_update_ha_state()
 
-class MyHOMETemperatureSensor(Entity):
+class MyHOMETemperatureSensor(SensorEntity):
 
     def __init__(self, hass, name: str, who: str, where: str, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGateway):
 

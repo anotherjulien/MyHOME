@@ -139,29 +139,53 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         
     async_add_entities(devices)
 
+async def async_unload_entry(hass, config_entry):
+
+    gateway = hass.data[DOMAIN][CONF_GATEWAY]
+    gateway_devices = gateway.get_binary_sensors()
+
+    for device in gateway_devices.keys():
+        del hass.data[DOMAIN][f"25-{device}"]
+
 class MyHOMEBinarySensor(BinarySensorEntity):
 
     def __init__(self, hass, name: str, who: str, where: str, inverted: bool, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGateway):
 
-        self._name = name
-        self._manufacturer = manufacturer or "BTicino S.p.A."
-        self._model = model
-        self._who = who
+        self._hass = hass
         self._where = where
-        self._inverted = inverted
-        self._id = f"{self._who}-{self._where}"
-        if self._name is None:
-            self._name = f"Sensor {self._where[1:]}"
-        self._device_class = device_class
+        self._manufacturer = manufacturer or "BTicino S.p.A."
+        self._who = who
+        self._model = model
         self._gateway = gateway
-        self._is_on = False
+        self._inverted = inverted
 
-        hass.data[DOMAIN][self._id] = self
+        self._attr_name = name or f"Sensor {self._where[1:]}"
+        self._attr_unique_id = f"{self._who}-{self._where}"
+
+        self._attr_device_info = {
+            "identifiers": {
+                (DOMAIN, self._attr_unique_id)
+            },
+            "name": self._attr_name,
+            "manufacturer": self._manufacturer,
+            "model": self._model,
+            "via_device": (DOMAIN, self._gateway.id),
+        }
+
+        self._attr_device_class = device_class
+        self._attr_entity_registry_enabled_default = True
+        self._attr_should_poll = False
+        self._attr_is_on = False
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""
+        self._hass.data[DOMAIN][self._attr_unique_id] = self
         await self.async_update()
 
+    async def async_will_remove_from_hass(self):
+        """When entity is removed from hass."""
+        del self._hass.data[DOMAIN][self._attr_unique_id]
+        
     async def async_update(self):
         """Update the entity.
 
@@ -169,44 +193,7 @@ class MyHOMEBinarySensor(BinarySensorEntity):
         """
         await self._gateway.send_status_request(OWNDryContactCommand.status(self._where))
 
-    @property
-    def device_info(self):
-        return {
-            "identifiers": {
-                (DOMAIN, self.unique_id)
-            },
-            "name": self.name,
-            "manufacturer": self._manufacturer,
-            "model": self._model,
-            "via_device": (DOMAIN, self._gateway.id),
-        }
-    
-    @property
-    def device_class(self):
-        """Return the device class if any."""
-        return self._device_class
-
-    @property
-    def should_poll(self):
-        """No polling needed for a MyHome device."""
-        return False
-
-    @property
-    def name(self):
-        """Return the name of the device if any."""
-        return self._name
-
-    @property
-    def unique_id(self):
-        """Return the unique ID of the device."""
-        return self._id
-
-    @property
-    def is_on(self):
-        """Return true if sensor is on."""
-        return self._is_on if not self._inverted else not self._is_on
-
     def handle_event(self, message: OWNDryContactEvent):
         """Handle an event message."""
-        self._is_on = message.is_on
+        self._attr_is_on = message.is_on != self._inverted
         self.async_schedule_update_ha_state()

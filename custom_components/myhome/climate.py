@@ -134,57 +134,90 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         
     async_add_entities(devices)
 
+async def async_unload_entry(hass, config_entry):
+
+    gateway = hass.data[DOMAIN][CONF_GATEWAY]
+    gateway_devices = gateway.get_climate_zones()
+
+    for device in gateway_devices.keys():
+        del hass.data[DOMAIN][f"4-{device}"]
+
 class MyHOMEClimate(ClimateEntity):
 
     def __init__(self, hass, zone: str, name: str, heating: bool, cooling: bool, fan: bool, standalone: bool, central: bool, manufacturer: str, model: str, gateway: MyHOMEGateway):
 
-        self._name = name
+        self._hass = hass
         self._manufacturer = manufacturer or "BTicino S.p.A."
         self._model = model
         self._who = "4"
         self._zone = f"#0#{zone}" if central and zone != "#0" else zone
         self._standalone = standalone
         self._central = True if self._zone == "#0" else central
-        self._id = f"{self._who}-{zone}"
-        if self._name is None:
-            self._name = "Central unit" if self._zone == "#0" else f"Zone {self._zone}"
+
+        self._attr_unique_id = f"{self._who}-{zone}"
+        if name is None:
+            self._attr_name = "Central unit" if self._zone == "#0" else f"Zone {self._zone}"
+        else:
+            self._attr_name = name
         self._gateway = gateway
 
-        self._supported_features = 0
-        self._hvac_modes = [HVAC_MODE_OFF]
+        self._attr_device_info = {
+            "identifiers": {
+                (DOMAIN, self._attr_unique_id)
+            },
+            "name": self._attr_name,
+            "manufacturer": self._manufacturer,
+            "model": self._model,
+            "via_device": (DOMAIN, self._gateway.id),
+        }
+        
+        self._attr_entity_registry_enabled_default = True
+        self._attr_should_poll = False
+
+        self._attr_temperature_unit = TEMP_CELSIUS
+        self._attr_precision = 0.1
+        self._attr_target_temperature_step = 0.5
+        self._attr_min_temp = 5
+        self._attr_max_temp = 40
+
+        self._attr_supported_features = 0
+        self._attr_hvac_modes = [HVAC_MODE_OFF]
         self._heating = heating
         self._cooling = cooling
         if heating or cooling:
-            self._supported_features |= SUPPORT_TARGET_TEMPERATURE
+            self._attr_supported_features |= SUPPORT_TARGET_TEMPERATURE
             if not self._central:
-                self._hvac_modes.append(HVAC_MODE_AUTO)
+                self._attr_hvac_modes.append(HVAC_MODE_AUTO)
             if heating:
-                self._hvac_modes.append(HVAC_MODE_HEAT)
+                self._attr_hvac_modes.append(HVAC_MODE_HEAT)
             if cooling:
-                self._hvac_modes.append(HVAC_MODE_COOL)
+                self._attr_hvac_modes.append(HVAC_MODE_COOL)
 
-        self._fan_modes = []
+        self._attr_fan_modes = []
         self._fan = fan
         if fan:
-            self._supported_features |= SUPPORT_FAN_MODE
-            self._fan_modes = [FAN_AUTO, FAN_LOW, FAN_MEDIUM, FAN_HIGH, FAN_OFF]
+            self._attr_supported_features |= SUPPORT_FAN_MODE
+            self._attr_fan_modes = [FAN_AUTO, FAN_LOW, FAN_MEDIUM, FAN_HIGH, FAN_OFF]
 
-        self._current_temperature = None
-        self._current_humidity = None
+        self._attr_current_temperature = None
+        self._attr_current_humidity = None
         self._target_temperature = None
         self._local_offset = 0
         self._local_target_temperature = None
 
-        self._hvac_mode = None
-        self._hvac_action = None
+        self._attr_hvac_mode = None
+        self._attr_hvac_action = None
 
-        self._fan_mode = None
-
-        hass.data[DOMAIN][self._id] = self
+        self._attr_fan_mode = None
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""
+        self._hass.data[DOMAIN][self._attr_unique_id] = self
         await self.async_update()
+
+    async def async_will_remove_from_hass(self):
+        """When entity is removed from hass."""
+        del self._hass.data[DOMAIN][self._attr_unique_id]
 
     async def async_update(self):
         """Update the entity.
@@ -192,76 +225,6 @@ class MyHOMEClimate(ClimateEntity):
         Only used by the generic entity update service.
         """
         await self._gateway.send_status_request(OWNHeatingCommand.status(self._zone))
-
-    @property
-    def device_info(self):
-        return {
-            "identifiers": {
-                (DOMAIN, self.unique_id)
-            },
-            "name": self.name,
-            "manufacturer": self._manufacturer,
-            "model": self._model,
-            "via_device": (DOMAIN, self._gateway.id),
-        }
-
-    @property
-    def should_poll(self):
-        """No polling needed for a MyHome device."""
-        return False
-
-    @property
-    def name(self):
-        """Return the name of the device if any."""
-        return self._name
-
-    @property
-    def unique_id(self):
-        """Return the unique ID of the device."""
-        return self._id
-
-    @property
-    def supported_features(self):
-        """Flag supported features."""
-        return self._supported_features
-
-    @property
-    def hvac_modes(self):
-        """Return the list of available hvac operation modes."""
-        return self._hvac_modes
-
-    @property
-    def fan_modes(self):
-        """Return the list of available fan operation modes."""
-        return self._fan_modes
-
-    @property
-    def temperature_unit(self) -> str:
-        return TEMP_CELSIUS
-
-    @property
-    def precision(self) -> float:
-        return 0.1
-
-    @property
-    def target_temperature_step(self) -> float:
-        return 0.5
-
-    @property
-    def min_temp(self) -> int:
-        return 5
-    
-    @property
-    def max_temp(self) -> int:
-        return 40
-
-    @property
-    def current_temperature(self) -> float:
-        return self._current_temperature
-
-    @property
-    def current_humidity(self) -> float:
-        return self._current_humidity
     
     @property
     def target_temperature(self) -> float:
@@ -269,18 +232,6 @@ class MyHOMEClimate(ClimateEntity):
             return self._local_target_temperature
         else:
             return self._target_temperature
-
-    @property
-    def hvac_mode(self) -> str:
-        return self._hvac_mode
-
-    @property
-    def hvac_action(self) -> str:
-        return self._hvac_action
-
-    @property
-    def fan_mode(self) -> str:
-        return self._fan_mode
 
     async def async_set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
@@ -302,9 +253,9 @@ class MyHOMEClimate(ClimateEntity):
     async def async_set_temperature(self, **kwargs):
         """Set new target temperature."""
         target_temperature = kwargs.get("temperature", self._local_target_temperature) - self._local_offset
-        if self._hvac_mode == HVAC_MODE_HEAT:
+        if self._attr_hvac_mode == HVAC_MODE_HEAT:
             await self._gateway.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=target_temperature, mode=CLIMATE_MODE_HEAT, standalone=self._standalone))
-        elif self._hvac_mode == HVAC_MODE_COOL:
+        elif self._attr_hvac_mode == HVAC_MODE_COOL:
             await self._gateway.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=target_temperature, mode=CLIMATE_MODE_COOL, standalone=self._standalone))
         else:
             await self._gateway.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=target_temperature, mode=CLIMATE_MODE_AUTO, standalone=self._standalone))
@@ -312,9 +263,9 @@ class MyHOMEClimate(ClimateEntity):
     def handle_event(self, message: OWNHeatingEvent):
         """Handle an event message."""
         if message.message_type == MESSAGE_TYPE_MAIN_TEMPERATURE:
-            self._current_temperature = message.main_temperature
+            self._attr_current_temperature = message.main_temperature
         elif message.message_type == MESSAGE_TYPE_MAIN_HUMIDITY:
-            self._current_humidity = message.main_humidity
+            self._attr_current_humidity = message.main_humidity
         elif message.message_type == MESSAGE_TYPE_TARGET_TEMPERATURE:
             self._target_temperature = message.set_temperature
             self._local_target_temperature = self._target_temperature + self._local_offset
@@ -326,52 +277,52 @@ class MyHOMEClimate(ClimateEntity):
             self._target_temperature = self._local_target_temperature - self._local_offset
         elif message.message_type == MESSAGE_TYPE_MODE:
             if message.mode == CLIMATE_MODE_AUTO:
-                self._hvac_mode = HVAC_MODE_AUTO
-                if self._hvac_action == CURRENT_HVAC_OFF:
-                    self._hvac_action = CURRENT_HVAC_IDLE
+                self._attr_hvac_mode = HVAC_MODE_AUTO
+                if self._attr_hvac_action == CURRENT_HVAC_OFF:
+                    self._attr_hvac_action = CURRENT_HVAC_IDLE
             elif message.mode == CLIMATE_MODE_COOL:
-                self._hvac_mode = HVAC_MODE_COOL
-                if self._hvac_action == CURRENT_HVAC_OFF:
-                    self._hvac_action = CURRENT_HVAC_IDLE
+                self._attr_hvac_mode = HVAC_MODE_COOL
+                if self._attr_hvac_action == CURRENT_HVAC_OFF:
+                    self._attr_hvac_action = CURRENT_HVAC_IDLE
             elif message.mode == CLIMATE_MODE_HEAT:
-                self._hvac_mode = HVAC_MODE_HEAT
-                if self._hvac_action == CURRENT_HVAC_OFF:
-                    self._hvac_action = CURRENT_HVAC_IDLE
+                self._attr_hvac_mode = HVAC_MODE_HEAT
+                if self._attr_hvac_action == CURRENT_HVAC_OFF:
+                    self._attr_hvac_action = CURRENT_HVAC_IDLE
             elif message.mode == CLIMATE_MODE_OFF:
-                self._hvac_mode = HVAC_MODE_OFF
-                self._hvac_action = CURRENT_HVAC_OFF
+                self._attr_hvac_mode = HVAC_MODE_OFF
+                self._attr_hvac_action = CURRENT_HVAC_OFF
         elif message.message_type == MESSAGE_TYPE_MODE_TARGET:
             if message.mode == CLIMATE_MODE_AUTO:
-                self._hvac_mode = HVAC_MODE_AUTO
-                if self._hvac_action == CURRENT_HVAC_OFF:
-                    self._hvac_action = CURRENT_HVAC_IDLE
+                self._attr_hvac_mode = HVAC_MODE_AUTO
+                if self._attr_hvac_action == CURRENT_HVAC_OFF:
+                    self._attr_hvac_action = CURRENT_HVAC_IDLE
             elif message.mode == CLIMATE_MODE_COOL:
-                self._hvac_mode = HVAC_MODE_COOL
-                if self._hvac_action == CURRENT_HVAC_OFF:
-                    self._hvac_action = CURRENT_HVAC_IDLE
+                self._attr_hvac_mode = HVAC_MODE_COOL
+                if self._attr_hvac_action == CURRENT_HVAC_OFF:
+                    self._attr_hvac_action = CURRENT_HVAC_IDLE
             elif message.mode == CLIMATE_MODE_HEAT:
-                self._hvac_mode = HVAC_MODE_HEAT
-                if self._hvac_action == CURRENT_HVAC_OFF:
-                    self._hvac_action = CURRENT_HVAC_IDLE 
+                self._attr_hvac_mode = HVAC_MODE_HEAT
+                if self._attr_hvac_action == CURRENT_HVAC_OFF:
+                    self._attr_hvac_action = CURRENT_HVAC_IDLE 
             elif message.mode == CLIMATE_MODE_OFF:
-                self._hvac_mode = HVAC_MODE_OFF
-                self._hvac_action = CURRENT_HVAC_OFF
+                self._attr_hvac_mode = HVAC_MODE_OFF
+                self._attr_hvac_action = CURRENT_HVAC_OFF
             self._target_temperature = message.set_temperature
             self._local_target_temperature = self._target_temperature + self._local_offset
         elif message.message_type == MESSAGE_TYPE_ACTION:
             if message.is_active():
                 if self._heating and self._cooling:
                     if message.is_heating():
-                        self._hvac_action = CURRENT_HVAC_HEAT
+                        self._attr_hvac_action = CURRENT_HVAC_HEAT
                     elif message.is_cooling():
-                        self._hvac_action = CURRENT_HVAC_COOL
+                        self._attr_hvac_action = CURRENT_HVAC_COOL
                 elif self._heating:
-                    self._hvac_action = CURRENT_HVAC_HEAT
+                    self._attr_hvac_action = CURRENT_HVAC_HEAT
                 elif self._cooling:
-                    self._hvac_action = CURRENT_HVAC_COOL
-            elif self._hvac_mode == HVAC_MODE_OFF:
-                self._hvac_action = CURRENT_HVAC_OFF
+                    self._attr_hvac_action = CURRENT_HVAC_COOL
+            elif self._attr_hvac_mode == HVAC_MODE_OFF:
+                self._attr_hvac_action = CURRENT_HVAC_OFF
             else:
-                self._hvac_action = CURRENT_HVAC_IDLE
+                self._attr_hvac_action = CURRENT_HVAC_IDLE
                 
         self.async_schedule_update_ha_state()

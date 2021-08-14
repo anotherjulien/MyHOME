@@ -55,12 +55,14 @@ async def async_setup(hass, config):
 
 async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.ConfigEntry):
 
-    myhome_gateway = MyHOMEGateway(hass, entry)
+    if CONF_GATEWAY in hass.data[DOMAIN] and isinstance(hass.data[DOMAIN][CONF_GATEWAY], MyHOMEGateway):
+        myhome_gateway = hass.data[DOMAIN][CONF_GATEWAY]
+    else:
+        myhome_gateway = MyHOMEGateway(hass, entry)
+        hass.data[DOMAIN][CONF_GATEWAY] = myhome_gateway
 
     if not await myhome_gateway.test():
         return False
-
-    hass.data[DOMAIN][CONF_GATEWAY] = myhome_gateway
 
     device_registry = await dr.async_get_registry(hass)
     device_registry.async_get_or_create(
@@ -75,24 +77,10 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.Conf
 
     await myhome_gateway.connect()
 
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(entry, "light")
-    )
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(entry, "switch")
-    )
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(entry, "cover")
-    )
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(entry, "climate")
-    )
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(entry, "binary_sensor")
-    )
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(entry, "sensor")
-    )
+    for platform in PLATFORMS:
+        hass.async_create_task(
+            hass.config_entries.async_forward_entry_setup(entry, platform)
+        )
 
     myhome_gateway.listening_task = hass.loop.create_task(myhome_gateway.listening_loop())
 
@@ -124,12 +112,8 @@ async def async_unload_entry(hass, entry):
 
     LOGGER.info("Unloading MyHome entry.")
 
-    #await hass.config_entries.async_forward_entry_unload(entry, "light")
-    #await hass.config_entries.async_forward_entry_unload(entry, "switch")
-    #await hass.config_entries.async_forward_entry_unload(entry, "cover")
-    #await hass.config_entries.async_forward_entry_unload(entry, "climate")
-    #await hass.config_entries.async_forward_entry_unload(entry, "binary_sensor")
-    #await hass.config_entries.async_forward_entry_unload(entry, "sensor")
+    for platform in PLATFORMS:
+        await hass.config_entries.async_forward_entry_unload(entry, platform)
 
     hass.services.async_remove(DOMAIN, "sync_time")
     hass.services.async_remove(DOMAIN, "send_message")

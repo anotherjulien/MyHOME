@@ -86,25 +86,53 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         
     async_add_entities(devices)
 
-    await gateway.send_status_request(OWNLightingCommand.status("0"))
+    # await gateway.send_status_request(OWNLightingCommand.status("0"))
+
+async def async_unload_entry(hass, config_entry):
+
+    gateway = hass.data[DOMAIN][CONF_GATEWAY]
+    gateway_devices = gateway.get_switches()
+
+    for device in gateway_devices.keys():
+        del hass.data[DOMAIN][f"1-{device}"]
 
 class MyHOMESwitch(SwitchEntity):
 
     def __init__(self, hass, name: str, where: str, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGateway):
 
-        self._name = name
-        self._manufacturer = manufacturer or "BTicino S.p.A."
-        self._model = model
-        self._who = "1"
+        self._hass = hass
         self._where = where
-        self._id = f"{self._who}-{self._where}"
-        if self._name is None:
-            self._name = f"A{self._where[:len(self._where)//2]}PL{self._where[len(self._where)//2:]}"
-        self._device_class = DEVICE_CLASS_OUTLET if device_class.lower() == "outlet" else DEVICE_CLASS_SWITCH
+        self._manufacturer = manufacturer or "BTicino S.p.A."
+        self._who = "1"
+        self._model = model
         self._gateway = gateway
-        self._is_on = False
 
-        hass.data[DOMAIN][self._id] = self
+        self._attr_name = name or f"A{self._where[:len(self._where)//2]}PL{self._where[len(self._where)//2:]}"
+        self._attr_unique_id = f"{self._who}-{self._where}"
+
+        self._attr_device_info = {
+            "identifiers": {
+                (DOMAIN, self._attr_unique_id)
+            },
+            "name": self._attr_name,
+            "manufacturer": self._manufacturer,
+            "model": self._model,
+            "via_device": (DOMAIN, self._gateway.id),
+        }
+
+        self._attr_device_class = DEVICE_CLASS_OUTLET if device_class.lower() == "outlet" else DEVICE_CLASS_SWITCH
+        self._attr_entity_registry_enabled_default = True
+        self._attr_should_poll = False
+        self._attr_is_on = False
+
+    async def async_added_to_hass(self):
+        """When entity is added to hass."""
+        self._hass.data[DOMAIN][self._attr_unique_id] = self
+        await self.async_update()
+
+    async def async_will_remove_from_hass(self):
+        """When entity is removed from hass."""
+        del self._hass.data[DOMAIN][self._attr_unique_id]
 
     async def async_update(self):
         """Update the entity.
@@ -112,43 +140,6 @@ class MyHOMESwitch(SwitchEntity):
         Only used by the generic entity update service.
         """
         await self._gateway.send_status_request(OWNLightingCommand.status(self._where))
-
-    @property
-    def device_info(self):
-        return {
-            "identifiers": {
-                (DOMAIN, self.unique_id)
-            },
-            "name": self.name,
-            "manufacturer": self._manufacturer,
-            "model": self._model,
-            "via_device": (DOMAIN, self._gateway.id),
-        }
-    
-    @property
-    def device_class(self):
-        """Return the device class if any."""
-        return self._device_class
-
-    @property
-    def should_poll(self):
-        """No polling needed for a MyHome device."""
-        return False
-
-    @property
-    def name(self):
-        """Return the name of the device if any."""
-        return self._name
-
-    @property
-    def unique_id(self):
-        """Return the unique ID of the device."""
-        return self._id
-
-    @property
-    def is_on(self):
-        """Return true if light is on."""
-        return self._is_on
 
     async def async_turn_on(self, **kwargs):
         """Turn the device on."""
@@ -160,5 +151,5 @@ class MyHOMESwitch(SwitchEntity):
 
     def handle_event(self, message: OWNLightingEvent):
         """Handle an event message."""
-        self._is_on = message.is_on
+        self._attr_is_on = message.is_on
         self.async_schedule_update_ha_state()

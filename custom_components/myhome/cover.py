@@ -101,7 +101,15 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         
     async_add_entities(devices)
 
-    await gateway.send_status_request(OWNAutomationCommand.status("0"))
+    # await gateway.send_status_request(OWNAutomationCommand.status("0"))
+
+async def async_unload_entry(hass, config_entry):
+
+    gateway = hass.data[DOMAIN][CONF_GATEWAY]
+    gateway_devices = gateway.get_covers()
+
+    for device in gateway_devices.keys():
+        del hass.data[DOMAIN][f"2-{device}"]
 
 class MyHOMECover(CoverEntity):
 
@@ -109,24 +117,44 @@ class MyHOMECover(CoverEntity):
 
     def __init__(self, hass, name: str, where: str, advanced: bool, manufacturer: str, model: str, gateway):
 
-        self._name = name
+        self._hass = hass
         self._where = where
         self._manufacturer = manufacturer or "BTicino S.p.A."
         self._who = "2"
         self._model = model
-        self._id = f"{self._who}-{self._where}"
-        if self._name is None:
-            self._name = f"A{self._where[:len(self._where)//2]}PL{self._where[len(self._where)//2:]}"
-        self._supported_features = 0
-        self._advanced = advanced
+        self._attr_supported_features = (SUPPORT_OPEN | SUPPORT_CLOSE | SUPPORT_STOP)
+        if advanced:
+            self._attr_supported_features |= SUPPORT_SET_POSITION
         self._gateway = gateway
-        self._current_cover_position = None
-        self._is_opening = None
-        self._is_closing = None
-        self._is_closed = None
 
-        hass.data[DOMAIN][self._id] = self
+        self._attr_name = name or f"A{self._where[:len(self._where)//2]}PL{self._where[len(self._where)//2:]}"
+        self._attr_unique_id = f"{self._who}-{self._where}"
 
+        self._attr_device_info = {
+            "identifiers": {
+                (DOMAIN, self._attr_unique_id)
+            },
+            "name": self._attr_name,
+            "manufacturer": self._manufacturer,
+            "model": self._model,
+            "via_device": (DOMAIN, self._gateway.id),
+        }
+
+        self._attr_entity_registry_enabled_default = True
+        self._attr_should_poll = False
+        self._attr_current_cover_position = None
+        self._attr_is_opening = None
+        self._attr_is_closing = None
+        self._attr_is_closed = None
+
+    async def async_added_to_hass(self):
+        """When entity is added to hass."""
+        self._hass.data[DOMAIN][self._attr_unique_id] = self
+        await self.async_update()
+
+    async def async_will_remove_from_hass(self):
+        """When entity is removed from hass."""
+        del self._hass.data[DOMAIN][self._attr_unique_id]
     
     async def async_update(self):
         """Update the entity.
@@ -134,63 +162,6 @@ class MyHOMECover(CoverEntity):
         Only used by the generic entity update service.
         """
         await self._gateway.send_status_request(OWNAutomationCommand.status(self._where))
-
-    @property
-    def device_info(self):
-        return {
-            "identifiers": {
-                (DOMAIN, self.unique_id)
-            },
-            "name": self.name,
-            "manufacturer": self._manufacturer,
-            "model": self._model,
-            "via_device": (DOMAIN, self._gateway.id),
-        }
-    
-    @property
-    def should_poll(self):
-        """No polling needed for a SCSGate light."""
-        return False
-
-    @property
-    def name(self):
-        """Return the name of the device if any."""
-        return self._name
-
-    @property
-    def unique_id(self):
-        """Return the unique ID of the device."""
-        return self._id
-
-    @property
-    def is_opening(self):
-        """Return true if the cover is opening."""
-        return self._is_opening
-
-    @property
-    def is_closing(self):
-        """Return true if the cover is closing."""
-        return self._is_closing
-
-    @property
-    def is_closed(self):
-        """Return true if the cover is closed."""
-        return self._is_closed
-
-    @property
-    def current_cover_position(self):
-        """Return the current_cover_position of this cover between 0..100."""
-        return self._current_cover_position
-
-    @property
-    def supported_features(self):
-        """Flag supported features."""
-        supported_features = (
-            SUPPORT_OPEN | SUPPORT_CLOSE | SUPPORT_STOP
-        )
-        if self._advanced:
-            supported_features |= SUPPORT_SET_POSITION
-        return supported_features
 
     async def async_open_cover(self, **kwargs):
         """Open the cover."""
@@ -212,12 +183,12 @@ class MyHOMECover(CoverEntity):
 
     def handle_event(self, message: OWNAutomationEvent):
         """Handle an event message."""
-        self._is_opening = message.is_opening
-        self._is_closing = message.is_closing
+        self._attr_is_opening = message.is_opening
+        self._attr_is_closing = message.is_closing
         if message.is_closed is not None:
-            self._is_closed = message.is_closed
+            self._attr_is_closed = message.is_closed
         if message.currentPosition is not None:
-            self._current_cover_position = message.currentPosition
+            self._attr_current_cover_position = message.currentPosition
 
         self.async_schedule_update_ha_state()
 
