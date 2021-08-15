@@ -5,11 +5,14 @@ import voluptuous as vol
 
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
+    ATTR_BRIGHTNESS_PCT,
     ATTR_FLASH,
     FLASH_LONG,
     FLASH_SHORT,
+    ATTR_TRANSITION,
     SUPPORT_BRIGHTNESS,
     SUPPORT_FLASH,
+    SUPPORT_TRANSITION,
     PLATFORM_SCHEMA,
     LightEntity,
     Light,
@@ -120,6 +123,9 @@ class MyHOMELight(LightEntity):
         self._attr_supported_features = 0
         if dimmable:
             self._attr_supported_features |= SUPPORT_BRIGHTNESS
+            self._attr_supported_features |= SUPPORT_TRANSITION
+        else:
+            self._attr_supported_features |= SUPPORT_FLASH
         self._gateway = gateway
 
         self._attr_name = name or f"A{self._where[:len(self._where)//2]}PL{self._where[len(self._where)//2:]}"
@@ -139,6 +145,7 @@ class MyHOMELight(LightEntity):
         self._attr_should_poll = False
         self._attr_is_on = False
         self._attr_brightness = 0
+        self._attr_brightness_pct = 0
     
     async def async_added_to_hass(self):
         """When entity is added to hass."""
@@ -154,28 +161,59 @@ class MyHOMELight(LightEntity):
 
         Only used by the generic entity update service.
         """
-        await self._gateway.send_status_request(OWNLightingCommand.status(self._where))
+        if self._attr_supported_features & SUPPORT_BRIGHTNESS:
+            await self._gateway.send_status_request(OWNLightingCommand.get_brightness(self._where))
+        else:
+            await self._gateway.send_status_request(OWNLightingCommand.status(self._where))
 
     async def async_turn_on(self, **kwargs):
         """Turn the device on."""
 
-        if ATTR_BRIGHTNESS in kwargs:
-            percent_brightness = eight_bits_to_percent(kwargs[ATTR_BRIGHTNESS])
-            if percent_brightness > 0:
-                await self._gateway.send(OWNLightingCommand.set_brightness(self._where, percent_brightness))
+        if ATTR_FLASH in kwargs and self._attr_supported_features & SUPPORT_FLASH:
+            if kwargs[ATTR_FLASH] == FLASH_SHORT:
+                return await self._gateway.send(OWNLightingCommand.flash(self._where, 0.5))
+            elif kwargs[ATTR_FLASH] == FLASH_LONG:
+                return await self._gateway.send(OWNLightingCommand.flash(self._where, 1.5))
+
+        
+        if ((ATTR_BRIGHTNESS in kwargs or ATTR_BRIGHTNESS_PCT in kwargs) and self._attr_supported_features & SUPPORT_BRIGHTNESS) or (ATTR_TRANSITION in kwargs and self._attr_supported_features & SUPPORT_TRANSITION):
+            if ATTR_BRIGHTNESS in kwargs or ATTR_BRIGHTNESS_PCT in kwargs:
+                _percent_brightness = eight_bits_to_percent(kwargs[ATTR_BRIGHTNESS]) if ATTR_BRIGHTNESS in kwargs else None
+                _percent_brightness = kwargs[ATTR_BRIGHTNESS_PCT] if ATTR_BRIGHTNESS_PCT in kwargs else _percent_brightness
+
+                if _percent_brightness == 0:
+                    return await self.async_turn_off(kwargs)
+                else:
+                    return await self._gateway.send(OWNLightingCommand.set_brightness(self._where, _percent_brightness, int(kwargs[ATTR_TRANSITION]))) if ATTR_TRANSITION in kwargs else await self._gateway.send(OWNLightingCommand.set_brightness(self._where, _percent_brightness))
             else:
-                await self.async_turn_off
+                return await self._gateway.send(OWNLightingCommand.switch_on(self._where, int(kwargs[ATTR_TRANSITION])))
         else:    
             await self._gateway.send(OWNLightingCommand.switch_on(self._where))
+            if self._attr_supported_features & SUPPORT_BRIGHTNESS:
+                await self.async_update()
 
     async def async_turn_off(self, **kwargs):
         """Turn the device off."""
-        await self._gateway.send(OWNLightingCommand.switch_off(self._where))
+
+        if ATTR_TRANSITION in kwargs and self._attr_supported_features & SUPPORT_TRANSITION:
+            return await self._gateway.send(OWNLightingCommand.switch_off(self._where, int(kwargs[ATTR_TRANSITION])))
+
+        if ATTR_FLASH in kwargs and self._attr_supported_features & SUPPORT_FLASH:
+            if kwargs[ATTR_FLASH] == FLASH_SHORT:
+                return await self._gateway.send(OWNLightingCommand.flash(self._where, 0.5))
+            elif kwargs[ATTR_FLASH] == FLASH_LONG:
+                return await self._gateway.send(OWNLightingCommand.flash(self._where, 1.5))
+
+        return await self._gateway.send(OWNLightingCommand.switch_off(self._where))
+        
+        
 
     def handle_event(self, message: OWNLightingEvent):
         """Handle an event message."""
+        _LOGGER.info(message.human_readable_log)
         self._attr_is_on = message.is_on
         if self._attr_supported_features & SUPPORT_BRIGHTNESS and message.brightness is not None:
+            self._attr_brightness_pct = message.brightness
             self._attr_brightness = percent_to_eight_bits(message.brightness)
         self.async_schedule_update_ha_state()
 
