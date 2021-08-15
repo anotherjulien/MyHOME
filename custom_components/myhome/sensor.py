@@ -120,7 +120,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             ent_reg = entity_registry.async_get(hass)
             existing_entity_id = ent_reg.async_get_entity_id("sensor", DOMAIN, f"18-{device}")
             if existing_entity_id is not None:
-                LOGGER.warning(f"Sensor 18-{device}: {existing_entity_id} will be migrated to 18-{device}-power")
+                _LOGGER.warning(f"Sensor 18-{device}: {existing_entity_id} will be migrated to 18-{device}-power")
                 ent_reg.async_update_entity(entity_id=existing_entity_id, new_unique_id=f"18-{device}-power")
             
             devices.append(MyHOMEPowerSensor(
@@ -264,6 +264,7 @@ class MyHOMEPowerSensor(SensorEntity):
     def handle_event(self, message: OWNEnergyEvent):
         """Handle an event message."""
         if message.message_type == MESSAGE_TYPE_ACTIVE_POWER:
+            _LOGGER.info(message.human_readable_log)
             self._attr_state = message.active_power
             self.async_schedule_update_ha_state()
     
@@ -342,11 +343,14 @@ class MyHOMEEnergySensor(SensorEntity):
     def handle_event(self, message: OWNEnergyEvent):
         """Handle an event message."""
         if self._type_id == "total-energy" and message.message_type == MESSAGE_TYPE_ENERGY_TOTALIZER:
+            _LOGGER.info(message.human_readable_log)
             self._attr_state = message.total_consumption
         elif self._type_id == "monthly-energy" and message.message_type == MESSAGE_TYPE_CURRENT_MONTH_CONSUMPTION:
+            _LOGGER.info(message.human_readable_log)
             self._attr_state = message.current_month_partial_consumption
             self._attr_last_reset = dt_util.start_of_local_day().replace(day=1)
         elif self._type_id == "daily-energy" and message.message_type == MESSAGE_TYPE_CURRENT_DAY_CONSUMPTION:
+            _LOGGER.info(message.human_readable_log)
             self._attr_state = message.current_day_partial_consumption
             self._attr_last_reset = dt_util.start_of_local_day()
         self.async_schedule_update_ha_state()
@@ -400,8 +404,10 @@ class MyHOMETemperatureSensor(SensorEntity):
     def handle_event(self, message: OWNHeatingEvent):
         """Handle an event message."""
         if message.message_type == MESSAGE_TYPE_MAIN_TEMPERATURE:
+            _LOGGER.info(message.human_readable_log)
             self._attr_state = message.main_temperature
             self.async_schedule_update_ha_state()
         elif message.message_type == MESSAGE_TYPE_SECONDARY_TEMPERATURE:
+            _LOGGER.info(message.human_readable_log)
             self._attr_state = message.secondary_temperature[1]
             self.async_schedule_update_ha_state()

@@ -183,6 +183,7 @@ class MyHOMECover(CoverEntity):
 
     def handle_event(self, message: OWNAutomationEvent):
         """Handle an event message."""
+        _LOGGER.info(message.human_readable_log)
         self._attr_is_opening = message.is_opening
         self._attr_is_closing = message.is_closing
         if message.is_closed is not None:

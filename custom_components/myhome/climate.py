@@ -263,53 +263,67 @@ class MyHOMEClimate(ClimateEntity):
     def handle_event(self, message: OWNHeatingEvent):
         """Handle an event message."""
         if message.message_type == MESSAGE_TYPE_MAIN_TEMPERATURE:
+            _LOGGER.info(message.human_readable_log)
             self._attr_current_temperature = message.main_temperature
         elif message.message_type == MESSAGE_TYPE_MAIN_HUMIDITY:
+            _LOGGER.info(message.human_readable_log)
             self._attr_current_humidity = message.main_humidity
         elif message.message_type == MESSAGE_TYPE_TARGET_TEMPERATURE:
+            _LOGGER.info(message.human_readable_log)
             self._target_temperature = message.set_temperature
             self._local_target_temperature = self._target_temperature + self._local_offset
         elif message.message_type == MESSAGE_TYPE_LOCAL_OFFSET:
+            _LOGGER.info(message.human_readable_log)
             self._local_offset = message.local_offset
             self._local_target_temperature = self._target_temperature + self._local_offset
         elif message.message_type == MESSAGE_TYPE_LOCAL_TARGET_TEMPERATURE:
+            _LOGGER.info(message.human_readable_log)
             self._local_target_temperature = message.local_set_temperature
             self._target_temperature = self._local_target_temperature - self._local_offset
         elif message.message_type == MESSAGE_TYPE_MODE:
             if message.mode == CLIMATE_MODE_AUTO:
+                _LOGGER.info(message.human_readable_log)
                 self._attr_hvac_mode = HVAC_MODE_AUTO
                 if self._attr_hvac_action == CURRENT_HVAC_OFF:
                     self._attr_hvac_action = CURRENT_HVAC_IDLE
             elif message.mode == CLIMATE_MODE_COOL:
+                _LOGGER.info(message.human_readable_log)
                 self._attr_hvac_mode = HVAC_MODE_COOL
                 if self._attr_hvac_action == CURRENT_HVAC_OFF:
                     self._attr_hvac_action = CURRENT_HVAC_IDLE
             elif message.mode == CLIMATE_MODE_HEAT:
+                _LOGGER.info(message.human_readable_log)
                 self._attr_hvac_mode = HVAC_MODE_HEAT
                 if self._attr_hvac_action == CURRENT_HVAC_OFF:
                     self._attr_hvac_action = CURRENT_HVAC_IDLE
             elif message.mode == CLIMATE_MODE_OFF:
+                _LOGGER.info(message.human_readable_log)
                 self._attr_hvac_mode = HVAC_MODE_OFF
                 self._attr_hvac_action = CURRENT_HVAC_OFF
         elif message.message_type == MESSAGE_TYPE_MODE_TARGET:
             if message.mode == CLIMATE_MODE_AUTO:
+                _LOGGER.info(message.human_readable_log)
                 self._attr_hvac_mode = HVAC_MODE_AUTO
                 if self._attr_hvac_action == CURRENT_HVAC_OFF:
                     self._attr_hvac_action = CURRENT_HVAC_IDLE
             elif message.mode == CLIMATE_MODE_COOL:
+                _LOGGER.info(message.human_readable_log)
                 self._attr_hvac_mode = HVAC_MODE_COOL
                 if self._attr_hvac_action == CURRENT_HVAC_OFF:
                     self._attr_hvac_action = CURRENT_HVAC_IDLE
             elif message.mode == CLIMATE_MODE_HEAT:
+                _LOGGER.info(message.human_readable_log)
                 self._attr_hvac_mode = HVAC_MODE_HEAT
                 if self._attr_hvac_action == CURRENT_HVAC_OFF:
                     self._attr_hvac_action = CURRENT_HVAC_IDLE 
             elif message.mode == CLIMATE_MODE_OFF:
+                _LOGGER.info(message.human_readable_log)
                 self._attr_hvac_mode = HVAC_MODE_OFF
                 self._attr_hvac_action = CURRENT_HVAC_OFF
             self._target_temperature = message.set_temperature
             self._local_target_temperature = self._target_temperature + self._local_offset
         elif message.message_type == MESSAGE_TYPE_ACTION:
+            _LOGGER.info(message.human_readable_log)
             if message.is_active():
                 if self._heating and self._cooling:
                     if message.is_heating():

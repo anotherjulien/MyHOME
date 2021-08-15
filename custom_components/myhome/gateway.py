@@ -160,7 +160,7 @@ class MyHOMEGateway:
             message = await self.event_session.get_next()
             LOGGER.debug("Received: %s", message)
             if not message:
-                LOGGER.info("Received: %s", message)
+                LOGGER.warning("Data received is not a message: %s", message)
             elif isinstance(message, OWNEnergyEvent):
                 if message.message_type == MESSAGE_TYPE_ACTIVE_POWER and f"{message.unique_id}-power" in self.hass.data[DOMAIN]:
                     self.hass.data[DOMAIN][f"{message.unique_id}-power"].handle_event(message)
