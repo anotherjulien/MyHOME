@@ -243,7 +243,10 @@ class MyHOMEGateway:
                             )
                     if not is_event:
                         if message.unique_id in self.hass.data[DOMAIN]:
-                            self.hass.data[DOMAIN][message.unique_id].handle_event(message)
+                            if isinstance(message, OWNLightingEvent) and message.brightness_preset is not None:
+                                await self.hass.data[DOMAIN][message.unique_id].async_update()
+                            else:
+                                self.hass.data[DOMAIN][message.unique_id].handle_event(message)
                         else:
                             LOGGER.warning("Unknown device: WHO=%s WHERE=%s", message.who, message.where)
                 else:
