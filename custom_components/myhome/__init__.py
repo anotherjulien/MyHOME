@@ -75,14 +75,14 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.Conf
         sw_version=myhome_gateway.firmware,
     )
 
-    await myhome_gateway.connect()
-
     for platform in PLATFORMS:
         hass.async_create_task(
             hass.config_entries.async_forward_entry_setup(entry, platform)
         )
 
-    myhome_gateway.listening_task = hass.loop.create_task(myhome_gateway.listening_loop())
+    myhome_gateway.listening_worker = hass.loop.create_task(myhome_gateway.listening_loop())
+    for i in range(5):
+        myhome_gateway.sending_workers.append(hass.loop.create_task(myhome_gateway.sending_loop(i)))
 
     async def handle_sync_time(call):
         timezone = hass.config.as_dict()['time_zone']

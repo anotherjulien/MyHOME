@@ -69,10 +69,11 @@ class MyHOMEGateway:
         self.config_entry =  config_entry
         self.gateway = OWNGateway(build_info)
         self.test_session = OWNSession(gateway=self.gateway, logger=LOGGER)
-        self.event_session = OWNEventSession(gateway=self.gateway, logger=LOGGER)
         self._terminate_listener = False
         self.is_connected = False
-        self.listening_task: asyncio.tasks.Task
+        self.listening_worker: asyncio.tasks.Task = None
+        self.sending_workers: list[asyncio.tasks.Task] = []
+        self.send_buffer = asyncio.Queue()
         self._lights = {}
         self._switches = {}
         self._binary_sensors = {}
@@ -148,16 +149,18 @@ class MyHOMEGateway:
         await self.connect()
         await self.send(OWNCommand(""))
 
-    async def connect(self) -> None:
-        await self.event_session.connect()
-        #self.hass.bus.listen_once(EVENT_HOMEASSISTANT_STOP, self.close_listener)
-        self.is_connected = True
-
     async def listening_loop(self):
 
         self._terminate_listener = False
+
+        LOGGER.debug("Creating listening worker.")
+
+        _event_session = OWNEventSession(gateway=self.gateway, logger=LOGGER)
+        await _event_session.connect()
+        self.is_connected = True
+
         while not self._terminate_listener:
-            message = await self.event_session.get_next()
+            message = await _event_session.get_next()
             LOGGER.debug("Received: %s", message)
             if not message:
                 LOGGER.warning("Data received is not a message: %s", message)
@@ -286,20 +289,44 @@ class MyHOMEGateway:
             else:
                 LOGGER.info("Unsupported message type: %s", message)
 
+        await _event_session.close()
+        self.is_connected = False
+
+        LOGGER.debug("Destroying listening worker.")
+        self.listening_worker.cancel()
+
+    async def sending_loop(self, worker_id: int):
+
+        self._terminate_sender = False
+
+        LOGGER.debug("Creating sending worker %s", worker_id)
+
+        _command_session = OWNCommandSession(gateway=self.gateway, logger=LOGGER)
+        await _command_session.connect()
+
+        while not self._terminate_sender:
+            task = await self.send_buffer.get()
+            LOGGER.debug("Message %s was successfully unqueued by worker %s.", task['message'], worker_id)
+            await _command_session.send(message=task['message'], is_status_request=task['is_status_request'])
+            self.send_buffer.task_done()
+
+        await _command_session.close()
+
+        LOGGER.debug("Destroying sending worker %s", worker_id)
+        self.sending_workers[worker_id].cancel()
+        
 
     async def close_listener(self, event=None) -> bool:
         LOGGER.info("Closing event listener")
+        self._terminate_sender = True
         self._terminate_listener = True
-        await self.event_session.close()
-        self.is_connected = False
-        self.listening_task.cancel()
 
         return True
     
     async def send(self, message: OWNCommand):
-        command_session = OWNCommandSession(gateway=self.gateway, logger=LOGGER)
-        await command_session.send(message=message)
+        await self.send_buffer.put({'message': message, 'is_status_request': False})
+        LOGGER.debug("Message %s was successfully queued.", message)
     
     async def send_status_request(self, message: OWNCommand):
-        command_session = OWNCommandSession(gateway=self.gateway, logger=LOGGER)
-        await command_session.send(message=message, is_status_request=True)
+        await self.send_buffer.put({'message': message, 'is_status_request': True})
+        LOGGER.debug("Message %s was successfully queued.", message)
