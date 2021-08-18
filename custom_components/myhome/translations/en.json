@@ -51,5 +51,16 @@
       "already_configured": "This gateway is already configured",
       "already_in_progress": "The configuration of this gateway is already in progress"
     }
+  },
+  "options": {
+    "step": {
+        "user": {
+          "title": "MyHome options",
+          "description": "Advanced system settings",
+            "data": {
+                "command_worker_count": "Number of concurrent command sessions"
+            }
+        }
+    }
   }
 }

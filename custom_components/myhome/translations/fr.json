@@ -51,5 +51,16 @@
       "already_configured": "Ce serveur est déjà configuré",
       "already_in_progress": "Le flux de configuration pour le pont est déjà en cours"
     }
+  },
+  "options": {
+    "step": {
+        "user": {
+          "title": "Options MyHome",
+          "description": "Parametres système avancés",
+            "data": {
+                "command_worker_count": "Nombre de session de commande simultanées"
+            }
+        }
+    }
   }
 }

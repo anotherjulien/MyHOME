@@ -22,6 +22,16 @@
         "data": {
           "password": "Password"
         }
+      },
+      "custom": {
+        "title": "Manual gateway entry",
+        "description": "Fill out the information for your gateway",
+        "data": {
+          "address": "IP address",
+          "port": "Port",
+          "serialNumber": "MAC address",
+          "modelName": "Device type"
+        }
       }
     },
     "error": {
@@ -37,6 +47,17 @@
       "cannot_connect": "Impossibile connettersi al gateway",
       "already_configured": "Questo gateway è già configurato",
       "already_in_progress": "La configurazione di questo gateway è già in corso"
+    }
+  },
+  "options": {
+    "step": {
+        "user": {
+          "title": "MyHome options",
+          "description": "Advanced system settings",
+            "data": {
+                "command_worker_count": "Number of concurrent command sessions"
+            }
+        }
     }
   }
 }

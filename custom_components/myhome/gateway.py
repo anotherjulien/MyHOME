@@ -243,7 +243,7 @@ class MyHOMEGateway:
                             )
                     if not is_event:
                         if message.unique_id in self.hass.data[DOMAIN]:
-                            if isinstance(message, OWNLightingEvent) and message.brightness_preset is not None:
+                            if isinstance(message, OWNLightingEvent) and message.brightness_preset:
                                 await self.hass.data[DOMAIN][message.unique_id].async_update()
                             else:
                                 self.hass.data[DOMAIN][message.unique_id].handle_event(message)

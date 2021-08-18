@@ -11,8 +11,8 @@ from OWNd.message import OWNEvent, OWNLightingEvent
 import async_timeout
 import voluptuous as vol
 
-from homeassistant import config_entries, core
-from homeassistant.components import ssdp
+from homeassistant import config_entries
+from homeassistant.core import callback
 from homeassistant.const import (
     CONF_HOST, 
     CONF_PORT, 
@@ -21,8 +21,6 @@ from homeassistant.const import (
     CONF_MAC, 
     CONF_ID, 
     CONF_FRIENDLY_NAME,
-    CONF_LIGHTS,
-    CONF_COVERS,
 )
 from homeassistant.helpers import aiohttp_client
 
@@ -34,6 +32,7 @@ from .const import (
     CONF_MANUFACTURER,
     CONF_MANUFACTURER_URL,
     CONF_UDN,
+    CONF_WORKER_COUNT,
     CONF_WHO,
     CONF_WHERE,
     CONF_PARENT_ID,
@@ -64,6 +63,13 @@ class MyhomeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_PUSH
 
     # pylint: disable=no-member # https://github.com/PyCQA/pylint/issues/3167
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        """Get the options flow for this handler."""
+        return MyhomeOptionsFlowHandler(config_entry)
+
 
     def __init__(self):
         """Initialize the MyHome flow."""
@@ -214,8 +220,9 @@ class MyhomeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_FIRMWARE: gateway.modelNumber,
                     CONF_MAC: gateway.serial,
                     CONF_UDN: gateway.UDN,
-                    CONF_LIGHTS: {},
-                    CONF_COVERS: {},
+                },
+                options={
+                    CONF_WORKER_COUNT: 1,
                 },
             )
         else:
@@ -305,3 +312,32 @@ class MyhomeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if self.gateway.port is None:
             return await self.async_step_port()
         return await self.async_step_test_connection()
+
+class MyhomeOptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle MyHome options."""
+
+    def __init__(self, config_entry):
+        """Initialize MyHome options flow."""
+        self.config_entry = config_entry
+        self.options = dict(config_entry.options)
+        self.data = dict(config_entry.data)
+        self.default_worker_count = int(self.options[CONF_WORKER_COUNT]) if CONF_WORKER_COUNT in self.options else 1
+
+    async def async_step_init(self, user_input=None):
+        """Manage the MyHome options."""
+        return await self.async_step_user()
+
+    async def async_step_user(self, user_input=None):
+        """Manage the MyHome devices options."""
+        if user_input is not None:
+            self.options.update(user_input)
+            return self.async_create_entry(title="", data=self.options)
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_WORKER_COUNT, description={"suggested_value": self.default_worker_count}): int,
+                }
+            ),
+        )

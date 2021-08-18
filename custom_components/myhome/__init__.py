@@ -12,7 +12,8 @@ from homeassistant.const import (
     CONF_PORT, 
     CONF_PASSWORD,
 )
-from homeassistant import config_entries, core
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import Config, HomeAssistant
 from homeassistant.core import EVENT_HOMEASSISTANT_STOP
 from homeassistant.helpers import config_validation as cv, device_registry as dr
 
@@ -20,6 +21,7 @@ from .const import (
     CONF_FIRMWARE,
     CONF_GATEWAY,
     ATTR_MESSAGE,
+    CONF_WORKER_COUNT,
     DOMAIN,
     LOGGER,
 )
@@ -53,7 +55,7 @@ async def async_setup(hass, config):
 
     return False
 
-async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.ConfigEntry):
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     if CONF_GATEWAY in hass.data[DOMAIN] and isinstance(hass.data[DOMAIN][CONF_GATEWAY], MyHOMEGateway):
         myhome_gateway = hass.data[DOMAIN][CONF_GATEWAY]
@@ -63,6 +65,8 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.Conf
 
     if not await myhome_gateway.test():
         return False
+
+    _command_worker_count = int(entry.options[CONF_WORKER_COUNT]) if CONF_WORKER_COUNT in entry.options else 1
 
     device_registry = await dr.async_get_registry(hass)
     device_registry.async_get_or_create(
@@ -81,7 +85,7 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.Conf
         )
 
     myhome_gateway.listening_worker = hass.loop.create_task(myhome_gateway.listening_loop())
-    for i in range(5):
+    for i in range(_command_worker_count):
         myhome_gateway.sending_workers.append(hass.loop.create_task(myhome_gateway.sending_loop(i)))
 
     async def handle_sync_time(call):
@@ -105,6 +109,7 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: config_entries.Conf
 
     hass.services.async_register(DOMAIN, "send_message", handle_send_message)
 
+    entry.add_update_listener(async_reload_entry)
     return True
 
 async def async_unload_entry(hass, entry):
@@ -120,3 +125,8 @@ async def async_unload_entry(hass, entry):
 
     myhome_gateway = hass.data[DOMAIN][CONF_GATEWAY]
     return await myhome_gateway.close_listener()
+
+async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload config entry."""
+    await async_unload_entry(hass, entry)
+    await async_setup_entry(hass, entry)
