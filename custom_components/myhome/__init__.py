@@ -1,46 +1,21 @@
 """ MyHOME integration. """
-import logging
-import asyncio
-from threading import Lock
-
-from OWNd.connection import OWNSession
-from OWNd.message import *
-import voluptuous as vol
-
-from homeassistant.const import (
-    CONF_IP_ADDRESS, 
-    CONF_PORT, 
-    CONF_PASSWORD,
-)
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import Config, HomeAssistant
-from homeassistant.core import EVENT_HOMEASSISTANT_STOP
+from homeassistant.config_entries import ConfigEntry, SOURCE_REAUTH
+from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv, device_registry as dr
 
+from OWNd.message import OWNGatewayCommand, OWNCommand
+
 from .const import (
-    CONF_FIRMWARE,
+    CONF,
+    CONF_ENTITIES,
     CONF_GATEWAY,
     ATTR_MESSAGE,
     CONF_WORKER_COUNT,
     DOMAIN,
     LOGGER,
 )
-from .gateway import MyHOMEGateway
-
-_LOGGER = logging.getLogger(__name__)
-
-CONFIG_SCHEMA = vol.Schema(
-    {
-        DOMAIN: vol.Schema(
-            {
-                vol.Required(CONF_IP_ADDRESS): cv.string,
-                vol.Optional(CONF_PORT): cv.positive_int,
-                vol.Optional(CONF_PASSWORD): cv.string,
-            }
-        )
-    },
-    extra=vol.ALLOW_EXTRA
-)
+from .gateway import MyHOMEGatewayHandler
 
 PLATFORMS = ["light", "switch", "cover", "climate", "binary_sensor", "sensor"]
 
@@ -57,13 +32,32 @@ async def async_setup(hass, config):
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
-    if CONF_GATEWAY in hass.data[DOMAIN] and isinstance(hass.data[DOMAIN][CONF_GATEWAY], MyHOMEGateway):
-        myhome_gateway = hass.data[DOMAIN][CONF_GATEWAY]
-    else:
-        myhome_gateway = MyHOMEGateway(hass, entry)
-        hass.data[DOMAIN][CONF_GATEWAY] = myhome_gateway
+    if CONF not in hass.data[DOMAIN] : hass.data[DOMAIN][CONF] = {}
+    if CONF_ENTITIES not in hass.data[DOMAIN] : hass.data[DOMAIN][CONF_ENTITIES] = {}
 
-    if not await myhome_gateway.test():
+    # Migrating the config entry's unique_id if it was not formated to the recommended hass standard
+    if entry.unique_id != dr.format_mac(entry.unique_id):
+        hass.config_entries.async_update_entry(entry, unique_id=dr.format_mac(entry.unique_id))
+        LOGGER.warning("Migrating config entry unique_id to %s", entry.unique_id)
+
+    hass.data[DOMAIN][CONF_GATEWAY] = MyHOMEGatewayHandler(hass=hass, config_entry=entry)
+
+    try:
+        tests_results = await hass.data[DOMAIN][CONF_GATEWAY].test()
+    except OSError as ose:
+        _gateway_handler = hass.data[DOMAIN].pop(CONF_GATEWAY)
+        raise ConfigEntryNotReady(f"Gateway cannot be reached at {_gateway_handler.gateway.host}, make sure its address is correct.") from ose
+
+    if not tests_results["Success"]:
+        if tests_results["Message"] == "password_error" or tests_results["Message"] == "password_required":
+            hass.async_create_task(
+                hass.config_entries.flow.async_init(
+                    DOMAIN,
+                    context={"source": SOURCE_REAUTH},
+                    data=entry.data,
+                )
+            )
+        del hass.data[DOMAIN][CONF_GATEWAY]
         return False
 
     _command_worker_count = int(entry.options[CONF_WORKER_COUNT]) if CONF_WORKER_COUNT in entry.options else 1
@@ -71,12 +65,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     device_registry = await dr.async_get_registry(hass)
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
-        connections={(dr.CONNECTION_NETWORK_MAC, myhome_gateway.mac)},
-        identifiers={(DOMAIN, myhome_gateway.id)},
-        manufacturer=myhome_gateway.manufacturer,
-        name=myhome_gateway.name,
-        model=myhome_gateway.model,
-        sw_version=myhome_gateway.firmware,
+        connections={(dr.CONNECTION_NETWORK_MAC, hass.data[DOMAIN][CONF_GATEWAY].mac)},
+        identifiers={(DOMAIN, hass.data[DOMAIN][CONF_GATEWAY].id)},
+        manufacturer=hass.data[DOMAIN][CONF_GATEWAY].manufacturer,
+        name=hass.data[DOMAIN][CONF_GATEWAY].name,
+        model=hass.data[DOMAIN][CONF_GATEWAY].model,
+        sw_version=hass.data[DOMAIN][CONF_GATEWAY].firmware,
     )
 
     for platform in PLATFORMS:
@@ -84,14 +78,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             hass.config_entries.async_forward_entry_setup(entry, platform)
         )
 
-    myhome_gateway.listening_worker = hass.loop.create_task(myhome_gateway.listening_loop())
+    hass.data[DOMAIN][CONF_GATEWAY].listening_worker = hass.loop.create_task(
+        hass.data[DOMAIN][CONF_GATEWAY].listening_loop())
     for i in range(_command_worker_count):
-        myhome_gateway.sending_workers.append(hass.loop.create_task(myhome_gateway.sending_loop(i)))
+        hass.data[DOMAIN][CONF_GATEWAY].sending_workers.append(
+            hass.loop.create_task(hass.data[DOMAIN][CONF_GATEWAY].sending_loop(i)))
 
     async def handle_sync_time(call):
         timezone = hass.config.as_dict()['time_zone']
-        await myhome_gateway.send(OWNGatewayCommand.set_datetime_to_now(timezone))
-    
+        await hass.data[DOMAIN][CONF_GATEWAY].send(OWNGatewayCommand.set_datetime_to_now(timezone))
+
     hass.services.async_register(DOMAIN, "sync_time", handle_sync_time)
 
     async def handle_send_message(call):
@@ -103,13 +99,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
                 LOGGER.debug(f"OWN Message: {OWN_message}")
                 if OWN_message.is_valid:
                     LOGGER.debug("message valid")
-                    await myhome_gateway.send(OWN_message)
+                    await hass.data[DOMAIN][CONF_GATEWAY].send(OWN_message)
             else:
-                LOGGER.error(f"Could not parse message {message}, not sending it.")
+                LOGGER.error(
+                    f"Could not parse message {message}, not sending it.")
 
     hass.services.async_register(DOMAIN, "send_message", handle_send_message)
 
-    entry.add_update_listener(async_reload_entry)
     return True
 
 async def async_unload_entry(hass, entry):
@@ -123,10 +119,5 @@ async def async_unload_entry(hass, entry):
     hass.services.async_remove(DOMAIN, "sync_time")
     hass.services.async_remove(DOMAIN, "send_message")
 
-    myhome_gateway = hass.data[DOMAIN][CONF_GATEWAY]
-    return await myhome_gateway.close_listener()
-
-async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload config entry."""
-    await async_unload_entry(hass, entry)
-    await async_setup_entry(hass, entry)
+    gateway_handler = hass.data[DOMAIN].pop(CONF_GATEWAY)
+    return await gateway_handler.close_listener()

@@ -49,7 +49,8 @@
       "unknown": "Une erreur inconnue s'est produite",
       "cannot_connect": "Connexion au serveur impossible",
       "already_configured": "Ce serveur est déjà configuré",
-      "already_in_progress": "Le flux de configuration pour le pont est déjà en cours"
+      "already_in_progress": "Le flux de configuration pour le pont est déjà en cours",
+      "reauth_successful": "Changement de mot de passe réussi"
     }
   },
   "options": {
@@ -58,9 +59,17 @@
           "title": "Options MyHome",
           "description": "Parametres système avancés",
             "data": {
+                "address": "Adresse IP",
+                "password": "Mot de passe",
                 "command_worker_count": "Nombre de session de commande simultanées"
             }
         }
+    },
+    "error": {
+      "invalid_ip": "Adresse IP invalide",
+      "invalid_worker_count": "Workers must be between 1 and 10",
+      "invalid_password": "Mot de passe invalide",
+      "password_error": "Mot de passe invalide"
     }
   }
 }

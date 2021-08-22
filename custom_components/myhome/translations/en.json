@@ -49,7 +49,8 @@
       "unknown": "An unknown error occured",
       "cannot_connect": "Cannot connect to the gateway",
       "already_configured": "This gateway is already configured",
-      "already_in_progress": "The configuration of this gateway is already in progress"
+      "already_in_progress": "The configuration of this gateway is already in progress",
+      "reauth_successful": "Password change successful"
     }
   },
   "options": {
@@ -58,9 +59,17 @@
           "title": "MyHome options",
           "description": "Advanced system settings",
             "data": {
+                "address": "IP address",
+                "password": "Password",
                 "command_worker_count": "Number of concurrent command sessions"
             }
         }
+    },
+    "error": {
+      "invalid_ip": "Invalid IP address",
+      "invalid_worker_count": "Workers must be between 1 and 10",
+      "invalid_password": "Invalid password",
+      "password_error": "Invalid password"
     }
   }
 }

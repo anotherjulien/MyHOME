@@ -1,31 +1,19 @@
 """Code to handle a MyHome Gateway."""
 import asyncio
-from functools import partial
-import logging
-
-from OWNd.connection import OWNSession, OWNEventSession, OWNCommandSession, OWNGateway
-from OWNd.message import *
-
-from aiohttp import client_exceptions
-import async_timeout
-import slugify as unicode_slug
-import voluptuous as vol
-
-from homeassistant import core
-from homeassistant.core import EVENT_HOMEASSISTANT_STOP
-from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers import aiohttp_client, config_validation as cv, entity_registry as er
+from typing import Dict
 
 from homeassistant.const import (
+    CONF_ENTITIES,
     CONF_HOST,
     CONF_PORT, 
     CONF_PASSWORD, 
     CONF_NAME, 
     CONF_MAC, 
-    CONF_ID, 
     CONF_FRIENDLY_NAME,
 )
-from homeassistant.helpers import aiohttp_client
+
+from OWNd.connection import OWNSession, OWNEventSession, OWNCommandSession, OWNGateway
+from OWNd.message import *
 
 from .const import (
     CONF_FIRMWARE,
@@ -35,7 +23,6 @@ from .const import (
     CONF_MANUFACTURER,
     CONF_MANUFACTURER_URL,
     CONF_UDN,
-    CONF_PARENT_ID,
     CONF_SHORT_PRESS,
     CONF_SHORT_RELEASE,
     CONF_LONG_PRESS,
@@ -44,9 +31,7 @@ from .const import (
     LOGGER,
 )
 
-_LOGGER = logging.getLogger(__name__)
-
-class MyHOMEGateway:
+class MyHOMEGatewayHandler:
     """Manages a single MyHOME Gateway."""
 
     def __init__(self, hass, config_entry):
@@ -68,18 +53,11 @@ class MyHOMEGateway:
         self.hass = hass
         self.config_entry =  config_entry
         self.gateway = OWNGateway(build_info)
-        self.test_session = OWNSession(gateway=self.gateway, logger=LOGGER)
         self._terminate_listener = False
         self.is_connected = False
         self.listening_worker: asyncio.tasks.Task = None
         self.sending_workers: list[asyncio.tasks.Task] = []
         self.send_buffer = asyncio.Queue()
-        self._lights = {}
-        self._switches = {}
-        self._binary_sensors = {}
-        self._covers = {}
-        self._sensors = {}
-        self._climate_zones = {}
 
     @property
     def mac(self) -> str:
@@ -105,49 +83,8 @@ class MyHOMEGateway:
     def firmware(self) -> str:
         return self.gateway.firmware
 
-    def add_light(self, where: str, parameters: dict) -> None:
-        self._lights[where] = parameters
-
-    def get_lights(self) -> dict:
-        return self._lights
-    
-    def add_switch(self, where: str, parameters: dict) -> None:
-        self._switches[where] = parameters
-
-    def get_switches(self) -> dict:
-        return self._switches
-    
-    def add_binary_sensor(self, where: str, parameters: dict) -> None:
-        self._binary_sensors[where] = parameters
-
-    def get_binary_sensors(self) -> dict:
-        return self._binary_sensors
-    
-    def add_cover(self, where: str, parameters: dict) -> None:
-        self._covers[where] = parameters
-
-    def get_covers(self) -> dict:
-        return self._covers
-    
-    def add_sensor(self, where: str, parameters: dict) -> None:
-        self._sensors[where] = parameters
-
-    def get_sensors(self) -> dict:
-        return self._sensors
-
-    def add_climate_zone(self, zone: str, parameters: dict) -> None:
-        self._climate_zones[zone] = parameters
-
-    def get_climate_zones(self) -> dict:
-        return self._climate_zones
-
-    async def test(self) -> bool:
-        result = await self.test_session.test_connection()
-        return result["Success"]
-
-    async def build_lights_list(self) -> list:
-        await self.connect()
-        await self.send(OWNCommand(""))
+    async def test(self) -> Dict:
+        return await OWNSession(gateway=self.gateway, logger=LOGGER).test_connection()
 
     async def listening_loop(self):
 
@@ -165,14 +102,14 @@ class MyHOMEGateway:
             if not message:
                 LOGGER.warning("Data received is not a message: %s", message)
             elif isinstance(message, OWNEnergyEvent):
-                if message.message_type == MESSAGE_TYPE_ACTIVE_POWER and f"{message.unique_id}-power" in self.hass.data[DOMAIN]:
-                    self.hass.data[DOMAIN][f"{message.unique_id}-power"].handle_event(message)
-                elif message.message_type == MESSAGE_TYPE_ENERGY_TOTALIZER and f"{message.unique_id}-total-energy" in self.hass.data[DOMAIN]:
-                    self.hass.data[DOMAIN][f"{message.unique_id}-total-energy"].handle_event(message)
-                elif message.message_type == MESSAGE_TYPE_CURRENT_MONTH_CONSUMPTION and f"{message.unique_id}-monthly-energy" in self.hass.data[DOMAIN]:
-                    self.hass.data[DOMAIN][f"{message.unique_id}-monthly-energy"].handle_event(message)
-                elif message.message_type == MESSAGE_TYPE_CURRENT_DAY_CONSUMPTION and f"{message.unique_id}-daily-energy" in self.hass.data[DOMAIN]:
-                    self.hass.data[DOMAIN][f"{message.unique_id}-daily-energy"].handle_event(message)
+                if message.message_type == MESSAGE_TYPE_ACTIVE_POWER and f"{message.unique_id}-power" in self.hass.data[DOMAIN][CONF_ENTITIES]:
+                    self.hass.data[DOMAIN][CONF_ENTITIES][f"{message.unique_id}-power"].handle_event(message)
+                elif message.message_type == MESSAGE_TYPE_ENERGY_TOTALIZER and f"{message.unique_id}-total-energy" in self.hass.data[DOMAIN][CONF_ENTITIES]:
+                    self.hass.data[DOMAIN][CONF_ENTITIES][f"{message.unique_id}-total-energy"].handle_event(message)
+                elif message.message_type == MESSAGE_TYPE_CURRENT_MONTH_CONSUMPTION and f"{message.unique_id}-monthly-energy" in self.hass.data[DOMAIN][CONF_ENTITIES]:
+                    self.hass.data[DOMAIN][CONF_ENTITIES][f"{message.unique_id}-monthly-energy"].handle_event(message)
+                elif message.message_type == MESSAGE_TYPE_CURRENT_DAY_CONSUMPTION and f"{message.unique_id}-daily-energy" in self.hass.data[DOMAIN][CONF_ENTITIES]:
+                    self.hass.data[DOMAIN][CONF_ENTITIES][f"{message.unique_id}-daily-energy"].handle_event(message)
                 else:
                     continue
             elif isinstance(message, OWNLightingEvent) or isinstance(message, OWNAutomationEvent) or isinstance(message, OWNDryContactEvent) or isinstance(message, OWNAuxEvent) or isinstance(message, OWNHeatingEvent):
@@ -242,11 +179,11 @@ class MyHOMEGateway:
                                 {"message": str(message), "group": message.group, "event": event},
                             )
                     if not is_event:
-                        if message.unique_id in self.hass.data[DOMAIN]:
+                        if message.unique_id in self.hass.data[DOMAIN][CONF_ENTITIES]:
                             if isinstance(message, OWNLightingEvent) and message.brightness_preset:
-                                await self.hass.data[DOMAIN][message.unique_id].async_update()
+                                await self.hass.data[DOMAIN][CONF_ENTITIES][message.unique_id].async_update()
                             else:
-                                self.hass.data[DOMAIN][message.unique_id].handle_event(message)
+                                self.hass.data[DOMAIN][CONF_ENTITIES][message.unique_id].handle_event(message)
                         else:
                             LOGGER.warning("Unknown device: WHO=%s WHERE=%s", message.who, message.where)
                 else:

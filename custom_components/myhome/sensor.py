@@ -1,21 +1,18 @@
-import logging
-
-import voluptuous as vol
-
 from datetime import timedelta
+import voluptuous as vol
 
 from homeassistant.helpers.entity import Entity
 
 from homeassistant.components.sensor import (
     PLATFORM_SCHEMA,
+    DOMAIN as PLATFORM,
     STATE_CLASS_MEASUREMENT,
     SensorEntity,
 )
 from homeassistant.const import (
-    CONF_NAME, 
-    ATTR_ENTITY_ID,
-    ATTR_STATE,
+    CONF_NAME,
     CONF_DEVICES,
+    CONF_ENTITIES,
     DEVICE_CLASS_TEMPERATURE,
     DEVICE_CLASS_POWER,
     DEVICE_CLASS_ENERGY,
@@ -24,10 +21,23 @@ from homeassistant.const import (
     TEMP_CELSIUS,
 )
 from homeassistant.helpers import config_validation as cv, entity_platform, service, entity_registry
-
 from homeassistant.util import dt as dt_util
 
+from OWNd.message import (
+    MESSAGE_TYPE_ACTIVE_POWER,
+    MESSAGE_TYPE_ENERGY_TOTALIZER,
+    MESSAGE_TYPE_CURRENT_DAY_CONSUMPTION,
+    MESSAGE_TYPE_CURRENT_MONTH_CONSUMPTION,
+    MESSAGE_TYPE_MAIN_TEMPERATURE,
+    MESSAGE_TYPE_SECONDARY_TEMPERATURE,
+    OWNEnergyEvent,
+    OWNEnergyCommand,
+    OWNHeatingEvent,
+    OWNHeatingCommand,
+)
+
 from .const import (
+    CONF,
     CONF_GATEWAY,
     CONF_WHO,
     CONF_WHERE,
@@ -38,23 +48,7 @@ from .const import (
     DOMAIN,
     LOGGER,
 )
-from .gateway import MyHOMEGateway
-
-from OWNd.message import (
-    MESSAGE_TYPE_ACTIVE_POWER,
-    MESSAGE_TYPE_ENERGY_TOTALIZER,
-    MESSAGE_TYPE_HOURLY_CONSUMPTION,
-    MESSAGE_TYPE_DAILY_CONSUMPTION,
-    MESSAGE_TYPE_MONTHLY_CONSUMPTION,
-    MESSAGE_TYPE_CURRENT_DAY_CONSUMPTION,
-    MESSAGE_TYPE_CURRENT_MONTH_CONSUMPTION,
-    MESSAGE_TYPE_MAIN_TEMPERATURE,
-    MESSAGE_TYPE_SECONDARY_TEMPERATURE,
-    OWNEnergyEvent,
-    OWNEnergyCommand,
-    OWNHeatingEvent,
-    OWNHeatingCommand,
-)
+from .gateway import MyHOMEGatewayHandler
 
 SCAN_INTERVAL = timedelta(seconds=60)
 
@@ -78,8 +72,6 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {vol.Required(CONF_DEVICES): cv.schema_with_slug_keys(MYHOME_SCHEMA)}
 )
 
-_LOGGER = logging.getLogger(__name__)
-
 SERVICE_SEND_INSTANT_POWER = "start_sending_instant_power"
 
 ATTR_DURATION = "duration"
@@ -88,100 +80,93 @@ ATTR_MONTH = "month"
 ATTR_DAY = "day"
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    devices = config.get(CONF_DEVICES)
-    try:
-        gateway = hass.data[DOMAIN][CONF_GATEWAY]
+    hass.data[DOMAIN][CONF][PLATFORM] = {}
+    _configured_sensors = config.get(CONF_DEVICES)
 
-        if devices:
-            for _, entity_info in devices.items():
-                name = entity_info[CONF_NAME] if CONF_NAME in entity_info else None
-                where = entity_info[CONF_WHERE]
-                who = entity_info[CONF_WHO] if CONF_WHO in entity_info else None
-                device_class = entity_info[CONF_DEVICE_CLASS] if CONF_DEVICE_CLASS in entity_info else None
-                manufacturer = entity_info[CONF_MANUFACTURER] if CONF_MANUFACTURER in entity_info else None
-                model = entity_info[CONF_DEVICE_MODEL] if CONF_DEVICE_MODEL in entity_info else None
-                gateway.add_sensor(where, {CONF_WHO: who, CONF_NAME: name, CONF_DEVICE_CLASS: device_class, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model})
-    except KeyError:
-        _LOGGER.warning("Sensor devices configured but no gateway present in configuration.")
-
+    if _configured_sensors:
+        for _, entity_info in _configured_sensors.items():
+            name = entity_info[CONF_NAME] if CONF_NAME in entity_info else None
+            where = entity_info[CONF_WHERE]
+            who = entity_info[CONF_WHO] if CONF_WHO in entity_info else None
+            device_class = entity_info[CONF_DEVICE_CLASS] if CONF_DEVICE_CLASS in entity_info else None
+            manufacturer = entity_info[CONF_MANUFACTURER] if CONF_MANUFACTURER in entity_info else None
+            model = entity_info[CONF_DEVICE_MODEL] if CONF_DEVICE_MODEL in entity_info else None
+            hass.data[DOMAIN][CONF][PLATFORM][where] = {CONF_WHO: who, CONF_NAME: name, CONF_DEVICE_CLASS: device_class, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model}
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
-    devices = []
-    gateway = hass.data[DOMAIN][CONF_GATEWAY]
+    _sensors = []
+    _configured_sensors = hass.data[DOMAIN][CONF][PLATFORM]
+    _power_devices_configured = False
 
-    power_devices_configured = False
-
-    gateway_devices = gateway.get_sensors()
-
-    for device in gateway_devices.keys():
-        if gateway_devices[device][CONF_DEVICE_CLASS] == DEVICE_CLASS_POWER:
-            power_devices_configured = True
+    for _sensor in _configured_sensors.keys():
+        if _configured_sensors[_sensor][CONF_DEVICE_CLASS] == DEVICE_CLASS_POWER:
+            _power_devices_configured = True
 
             ent_reg = entity_registry.async_get(hass)
-            existing_entity_id = ent_reg.async_get_entity_id("sensor", DOMAIN, f"18-{device}")
+            existing_entity_id = ent_reg.async_get_entity_id("sensor", DOMAIN, f"18-{_sensor}")
             if existing_entity_id is not None:
-                _LOGGER.warning(f"Sensor 18-{device}: {existing_entity_id} will be migrated to 18-{device}-power")
-                ent_reg.async_update_entity(entity_id=existing_entity_id, new_unique_id=f"18-{device}-power")
+                LOGGER.warning(f"Sensor 18-{_sensor}: {existing_entity_id} will be migrated to 18-{_sensor}-power")
+                ent_reg.async_update_entity(entity_id=existing_entity_id, new_unique_id=f"18-{_sensor}-power")
             
-            devices.append(MyHOMEPowerSensor(
+            _sensors.append(MyHOMEPowerSensor(
                 hass=hass,
-                who=gateway_devices[device][CONF_WHO],
-                where=device,
-                name=gateway_devices[device][CONF_NAME],
-                device_class=gateway_devices[device][CONF_DEVICE_CLASS],
-                manufacturer=gateway_devices[device][CONF_MANUFACTURER],
-                model=gateway_devices[device][CONF_DEVICE_MODEL],
-                gateway=gateway
+                who=_configured_sensors[_sensor][CONF_WHO],
+                where=_sensor,
+                name=_configured_sensors[_sensor][CONF_NAME],
+                device_class=_configured_sensors[_sensor][CONF_DEVICE_CLASS],
+                manufacturer=_configured_sensors[_sensor][CONF_MANUFACTURER],
+                model=_configured_sensors[_sensor][CONF_DEVICE_MODEL],
+                gateway=hass.data[DOMAIN][CONF_GATEWAY]
             ))
 
-            devices.append(MyHOMEEnergySensor(
+            _sensors.append(MyHOMEEnergySensor(
                 hass=hass,
-                who=gateway_devices[device][CONF_WHO],
-                where=device,
-                name=gateway_devices[device][CONF_NAME],
+                who=_configured_sensors[_sensor][CONF_WHO],
+                where=_sensor,
+                name=_configured_sensors[_sensor][CONF_NAME],
                 period="daily",
-                manufacturer=gateway_devices[device][CONF_MANUFACTURER],
-                model=gateway_devices[device][CONF_DEVICE_MODEL],
-                gateway=gateway
+                manufacturer=_configured_sensors[_sensor][CONF_MANUFACTURER],
+                model=_configured_sensors[_sensor][CONF_DEVICE_MODEL],
+                gateway=hass.data[DOMAIN][CONF_GATEWAY]
             ))
 
-            devices.append(MyHOMEEnergySensor(
+            _sensors.append(MyHOMEEnergySensor(
                 hass=hass,
-                who=gateway_devices[device][CONF_WHO],
-                where=device,
-                name=gateway_devices[device][CONF_NAME],
+                who=_configured_sensors[_sensor][CONF_WHO],
+                where=_sensor,
+                name=_configured_sensors[_sensor][CONF_NAME],
                 period="monthly",
-                manufacturer=gateway_devices[device][CONF_MANUFACTURER],
-                model=gateway_devices[device][CONF_DEVICE_MODEL],
-                gateway=gateway
+                manufacturer=_configured_sensors[_sensor][CONF_MANUFACTURER],
+                model=_configured_sensors[_sensor][CONF_DEVICE_MODEL],
+                gateway=hass.data[DOMAIN][CONF_GATEWAY]
             ))
 
-            devices.append(MyHOMEEnergySensor(
+            _sensors.append(MyHOMEEnergySensor(
                 hass=hass,
-                who=gateway_devices[device][CONF_WHO],
-                where=device,
-                name=gateway_devices[device][CONF_NAME],
+                who=_configured_sensors[_sensor][CONF_WHO],
+                where=_sensor,
+                name=_configured_sensors[_sensor][CONF_NAME],
                 period=None,
-                manufacturer=gateway_devices[device][CONF_MANUFACTURER],
-                model=gateway_devices[device][CONF_DEVICE_MODEL],
-                gateway=gateway
+                manufacturer=_configured_sensors[_sensor][CONF_MANUFACTURER],
+                model=_configured_sensors[_sensor][CONF_DEVICE_MODEL],
+                gateway=hass.data[DOMAIN][CONF_GATEWAY]
             ))
 
-        elif gateway_devices[device][CONF_DEVICE_CLASS] == DEVICE_CLASS_TEMPERATURE:
-            device = MyHOMETemperatureSensor(
+        elif _configured_sensors[_sensor][CONF_DEVICE_CLASS] == DEVICE_CLASS_TEMPERATURE:
+            _sensor = MyHOMETemperatureSensor(
                 hass=hass,
-                who=gateway_devices[device][CONF_WHO],
-                where=device,
-                name=gateway_devices[device][CONF_NAME],
-                device_class=gateway_devices[device][CONF_DEVICE_CLASS],
-                manufacturer=gateway_devices[device][CONF_MANUFACTURER],
-                model=gateway_devices[device][CONF_DEVICE_MODEL],
-                gateway=gateway
+                who=_configured_sensors[_sensor][CONF_WHO],
+                where=_sensor,
+                name=_configured_sensors[_sensor][CONF_NAME],
+                device_class=_configured_sensors[_sensor][CONF_DEVICE_CLASS],
+                manufacturer=_configured_sensors[_sensor][CONF_MANUFACTURER],
+                model=_configured_sensors[_sensor][CONF_DEVICE_MODEL],
+                gateway=hass.data[DOMAIN][CONF_GATEWAY]
             )
 
-            devices.append(device)
+            _sensors.append(_sensor)
     
-    if power_devices_configured:
+    if _power_devices_configured:
         platform = entity_platform.current_platform.get()
 
         platform.async_register_entity_service(
@@ -194,35 +179,32 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             "start_sending_instant_power",
         )
 
-    async_add_entities(devices)
+    async_add_entities(_sensors)
 
 async def async_unload_entry(hass, config_entry):
+    _configured_sensors = hass.data[DOMAIN][CONF][PLATFORM]
 
-    gateway = hass.data[DOMAIN][CONF_GATEWAY]
-
-    gateway_devices = gateway.get_sensors()
-
-    for device in gateway_devices.keys():
-        if gateway_devices[device][CONF_DEVICE_CLASS] == DEVICE_CLASS_POWER:
-            del hass.data[DOMAIN][f"18-{device}-power"]
-            del hass.data[DOMAIN][f"18-{device}-total-energy"]
-            del hass.data[DOMAIN][f"18-{device}-monthly-energy"]
-            del hass.data[DOMAIN][f"18-{device}-daily-energy"]
-        elif gateway_devices[device][CONF_DEVICE_CLASS] == DEVICE_CLASS_TEMPERATURE:
-            del hass.data[DOMAIN][f"4-{device}"]
+    for _sensor in _configured_sensors.keys():
+        if _configured_sensors[_sensor][CONF_DEVICE_CLASS] == DEVICE_CLASS_POWER:
+            del hass.data[DOMAIN][CONF_ENTITIES][f"18-{_sensor}-power"]
+            del hass.data[DOMAIN][CONF_ENTITIES][f"18-{_sensor}-total-energy"]
+            del hass.data[DOMAIN][CONF_ENTITIES][f"18-{_sensor}-monthly-energy"]
+            del hass.data[DOMAIN][CONF_ENTITIES][f"18-{_sensor}-daily-energy"]
+        elif _configured_sensors[_sensor][CONF_DEVICE_CLASS] == DEVICE_CLASS_TEMPERATURE:
+            del hass.data[DOMAIN][CONF_ENTITIES][f"4-{_sensor}"]
 
 class MyHOMEPowerSensor(SensorEntity):
 
-    def __init__(self, hass, name: str, who: str, where: str, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGateway):
+    def __init__(self, hass, name: str, who: str, where: str, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler):
 
-        self._hass = hass
+        self.hass = hass
         self._manufacturer = manufacturer or "BTicino S.p.A."
         self._model = model
         self._who = who or 18
         self._where = where
         self._device_name = name or f"Sensor {self._where[1:]}"
         self._device_id = f"{self._who}-{self._where}"
-        self._gateway = gateway
+        self._gateway_handler = gateway
         self._type_id = "power"
         self._type_name = "Power"
 
@@ -233,7 +215,7 @@ class MyHOMEPowerSensor(SensorEntity):
             "name": self._device_name,
             "manufacturer": self._manufacturer,
             "model": self._model,
-            "via_device": (DOMAIN, self._gateway.id),
+            "via_device": (DOMAIN, self._gateway_handler.id),
         }
 
         self._attr_name = f"{self._device_name} {self._type_name}"
@@ -247,12 +229,12 @@ class MyHOMEPowerSensor(SensorEntity):
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""
-        self._hass.data[DOMAIN][self._attr_unique_id] = self
+        self.hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id] = self
         await self.async_update()
 
     async def async_will_remove_from_hass(self):
         """When entity is removed from hass."""
-        del self._hass.data[DOMAIN][self._attr_unique_id]
+        del self.hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id]
 
     async def async_update(self):
         """Update the entity.
@@ -264,17 +246,17 @@ class MyHOMEPowerSensor(SensorEntity):
     def handle_event(self, message: OWNEnergyEvent):
         """Handle an event message."""
         if message.message_type == MESSAGE_TYPE_ACTIVE_POWER:
-            _LOGGER.info(message.human_readable_log)
+            LOGGER.info(message.human_readable_log)
             self._attr_state = message.active_power
             self.async_schedule_update_ha_state()
     
     async def start_sending_instant_power(self, duration):
         """Request automatic instant power."""
-        await self._gateway.send(OWNEnergyCommand.start_sending_instant_power(self._where, duration))
+        await self._gateway_handler.send(OWNEnergyCommand.start_sending_instant_power(self._where, duration))
 
 class MyHOMEEnergySensor(SensorEntity):
 
-    def __init__(self, hass, name: str, who: str, where: str, period: str, manufacturer: str, model: str, gateway: MyHOMEGateway):
+    def __init__(self, hass, name: str, who: str, where: str, period: str, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler):
 
         self._hass = hass
         self._manufacturer = manufacturer or "BTicino S.p.A."
@@ -283,7 +265,7 @@ class MyHOMEEnergySensor(SensorEntity):
         self._where = where
         self._device_name = name or f"Sensor {self._where[1:]}"
         self._device_id = f"{self._who}-{self._where}"
-        self._gateway = gateway
+        self._gateway_handler = gateway
 
         if period == "daily":
             self._type_id = "daily-energy"
@@ -308,7 +290,7 @@ class MyHOMEEnergySensor(SensorEntity):
             "name": self._device_name,
             "manufacturer": self._manufacturer,
             "model": self._model,
-            "via_device": (DOMAIN, self._gateway.id),
+            "via_device": (DOMAIN, self._gateway_handler.id),
         }
 
         self._attr_name = f"{self._device_name} {self._type_name}"
@@ -321,12 +303,12 @@ class MyHOMEEnergySensor(SensorEntity):
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""
-        self._hass.data[DOMAIN][self._attr_unique_id] = self
+        self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id] = self
         await self.async_update()
 
     async def async_will_remove_from_hass(self):
         """When entity is removed from hass."""
-        del self._hass.data[DOMAIN][self._attr_unique_id]
+        del self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id]
 
     async def async_update(self):
         """Update the entity.
@@ -334,30 +316,30 @@ class MyHOMEEnergySensor(SensorEntity):
         Only used by the generic entity update service.
         """
         if self._type_id == "total-energy":
-            await self._gateway.send_status_request(OWNEnergyCommand.get_total_consumption(self._where))
+            await self._gateway_handler.send_status_request(OWNEnergyCommand.get_total_consumption(self._where))
         elif self._type_id == "monthly-energy":
-            await self._gateway.send_status_request(OWNEnergyCommand.get_partial_monthly_consumption(self._where))
+            await self._gateway_handler.send_status_request(OWNEnergyCommand.get_partial_monthly_consumption(self._where))
         elif self._type_id == "daily-energy":
-            await self._gateway.send_status_request(OWNEnergyCommand.get_partial_daily_consumption(self._where))
+            await self._gateway_handler.send_status_request(OWNEnergyCommand.get_partial_daily_consumption(self._where))
 
     def handle_event(self, message: OWNEnergyEvent):
         """Handle an event message."""
         if self._type_id == "total-energy" and message.message_type == MESSAGE_TYPE_ENERGY_TOTALIZER:
-            _LOGGER.info(message.human_readable_log)
+            LOGGER.info(message.human_readable_log)
             self._attr_state = message.total_consumption
         elif self._type_id == "monthly-energy" and message.message_type == MESSAGE_TYPE_CURRENT_MONTH_CONSUMPTION:
-            _LOGGER.info(message.human_readable_log)
+            LOGGER.info(message.human_readable_log)
             self._attr_state = message.current_month_partial_consumption
             self._attr_last_reset = dt_util.start_of_local_day().replace(day=1)
         elif self._type_id == "daily-energy" and message.message_type == MESSAGE_TYPE_CURRENT_DAY_CONSUMPTION:
-            _LOGGER.info(message.human_readable_log)
+            LOGGER.info(message.human_readable_log)
             self._attr_state = message.current_day_partial_consumption
             self._attr_last_reset = dt_util.start_of_local_day()
         self.async_schedule_update_ha_state()
 
 class MyHOMETemperatureSensor(SensorEntity):
 
-    def __init__(self, hass, name: str, who: str, where: str, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGateway):
+    def __init__(self, hass, name: str, who: str, where: str, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler):
 
         self._hass = hass
         self._manufacturer = manufacturer or "BTicino S.p.A."
@@ -366,7 +348,7 @@ class MyHOMETemperatureSensor(SensorEntity):
         self._where = where
         self._attr_name = name or f"Sensor {self._where[1:]}"
         self._attr_unique_id = f"{self._who}-{self._where}"
-        self._gateway = gateway
+        self._gateway_handler = gateway
 
         self._attr_device_info = {
             "identifiers": {
@@ -375,7 +357,7 @@ class MyHOMETemperatureSensor(SensorEntity):
             "name": self._attr_name,
             "manufacturer": self._manufacturer,
             "model": self._model,
-            "via_device": (DOMAIN, self._gateway.id),
+            "via_device": (DOMAIN, self._gateway_handler.id),
         }
 
         self._attr_entity_registry_enabled_default = True
@@ -387,27 +369,27 @@ class MyHOMETemperatureSensor(SensorEntity):
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""
-        self._hass.data[DOMAIN][self._attr_unique_id] = self
+        self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id] = self
         await self.async_update()
 
     async def async_will_remove_from_hass(self):
         """When entity is removed from hass."""
-        del self._hass.data[DOMAIN][self._attr_unique_id]
+        del self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id]
 
     async def async_update(self):
         """Update the entity.
 
         Only used by the generic entity update service.
         """
-        await self._gateway.send_status_request(OWNHeatingCommand.get_temperature(self._where))
+        await self._gateway_handler.send_status_request(OWNHeatingCommand.get_temperature(self._where))
 
     def handle_event(self, message: OWNHeatingEvent):
         """Handle an event message."""
         if message.message_type == MESSAGE_TYPE_MAIN_TEMPERATURE:
-            _LOGGER.info(message.human_readable_log)
+            LOGGER.info(message.human_readable_log)
             self._attr_state = message.main_temperature
             self.async_schedule_update_ha_state()
         elif message.message_type == MESSAGE_TYPE_SECONDARY_TEMPERATURE:
-            _LOGGER.info(message.human_readable_log)
+            LOGGER.info(message.human_readable_log)
             self._attr_state = message.secondary_temperature[1]
             self.async_schedule_update_ha_state()

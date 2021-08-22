@@ -36,7 +36,10 @@
     },
     "error": {
       "invalid_port": "Ongeldig poortnummer",
+      "invalid_ip": "Invalid IP address",
+      "invalid_mac": "Invalid MAC address",
       "invalid_password": "Ongeldig wachtwoord",
+      "password_retry": "Gateway refusing password negotiation, wait 60s before retrying.",
       "password_error": "Ongeldig wachtwoord"
     },
     "abort": {
@@ -46,7 +49,8 @@
       "unknown": "Er is een onbekende fout opgetreden",
       "cannot_connect": "Kan niet verbinden met de gateway",
       "already_configured": "Deze gateway is reeds geconfigureerd",
-      "already_in_progress": "De configuratie van deze gateway is reeds begonnen"
+      "already_in_progress": "De configuratie van deze gateway is reeds begonnen",
+      "reauth_successful": "Password change successful"
     }
   },
   "options": {
@@ -55,9 +59,17 @@
           "title": "MyHome options",
           "description": "Advanced system settings",
             "data": {
+                "address": "IP address",
+                "password": "Wachtwoord",
                 "command_worker_count": "Number of concurrent command sessions"
             }
         }
+    },
+    "error": {
+      "invalid_ip": "Invalid IP address",
+      "invalid_worker_count": "Workers must be between 1 and 10",
+      "invalid_password": "Invalid password",
+      "password_error": "Invalid password"
     }
   }
 }

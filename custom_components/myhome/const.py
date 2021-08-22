@@ -6,6 +6,10 @@ DOMAIN = "myhome"
 
 ATTR_MESSAGE = "message"
 
+CONF = "config"
+CONF_ENTITIES = "entities"
+CONF_ADDRESS = "address"
+CONF_OWN_PASSWORD = "password"
 CONF_FIRMWARE = "firmware"
 CONF_SSDP_LOCATION = "ssdp_location"
 CONF_SSDP_ST = "ssdp_st"
