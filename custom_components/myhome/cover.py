@@ -68,6 +68,8 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
+    if PLATFORM not in hass.data[DOMAIN][CONF]: return True
+
     _covers = []
     _configured_covers = hass.data[DOMAIN][CONF][PLATFORM]
    

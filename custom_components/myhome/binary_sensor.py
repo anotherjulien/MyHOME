@@ -112,6 +112,8 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
             hass.data[DOMAIN][CONF][PLATFORM][where] = {CONF_WHO: who, CONF_NAME: name, CONF_INVERTED: inverted, CONF_DEVICE_CLASS: device_class, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model}
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
+    if PLATFORM not in hass.data[DOMAIN][CONF]: return True
+
     _binary_sensors = []
     _configured_binary_sensors = hass.data[DOMAIN][CONF][PLATFORM]
 

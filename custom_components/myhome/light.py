@@ -68,6 +68,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
             hass.data[DOMAIN][CONF][PLATFORM][where] = {CONF_NAME: name, CONF_DIMMABLE: dimmable, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model}
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
+    if PLATFORM not in hass.data[DOMAIN][CONF]: return True
 
     _lights = []
     _configured_lights = hass.data[DOMAIN][CONF][PLATFORM]
