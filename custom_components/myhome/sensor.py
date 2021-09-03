@@ -7,6 +7,7 @@ from homeassistant.components.sensor import (
     PLATFORM_SCHEMA,
     DOMAIN as PLATFORM,
     STATE_CLASS_MEASUREMENT,
+    STATE_CLASS_TOTAL_INCREASING,
     SensorEntity,
 )
 from homeassistant.const import (
@@ -224,10 +225,10 @@ class MyHOMEPowerSensor(SensorEntity):
         self._attr_unique_id = f"{self._device_id}-{self._type_id}"
         self._attr_entity_registry_enabled_default = True
         self._attr_device_class = DEVICE_CLASS_POWER
-        self._attr_unit_of_measurement = POWER_WATT
+        self._attr_native_unit_of_measurement = POWER_WATT
         self._attr_state_class = STATE_CLASS_MEASUREMENT
         self._attr_should_poll = False
-        self._attr_state = 0
+        self._attr_native_value = 0
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""
@@ -249,7 +250,7 @@ class MyHOMEPowerSensor(SensorEntity):
         """Handle an event message."""
         if message.message_type == MESSAGE_TYPE_ACTIVE_POWER:
             LOGGER.info(message.human_readable_log)
-            self._attr_state = message.active_power
+            self._attr_native_value = message.active_power
             self.async_schedule_update_ha_state()
     
     async def start_sending_instant_power(self, duration):
@@ -273,17 +274,17 @@ class MyHOMEEnergySensor(SensorEntity):
             self._type_id = "daily-energy"
             self._type_name = "Energy (today)"
             self._attr_entity_registry_enabled_default = False
-            self._attr_last_reset = dt_util.start_of_local_day()
+            # self._attr_last_reset = dt_util.start_of_local_day()
         elif period == "monthly":
             self._type_id = "monthly-energy"
             self._type_name = "Energy (current month)"
             self._attr_entity_registry_enabled_default = False
-            self._attr_last_reset = dt_util.start_of_local_day().replace(day=1)
+            # self._attr_last_reset = dt_util.start_of_local_day().replace(day=1)
         else:
             self._type_id = "total-energy"
             self._type_name = "Energy"
             self._attr_entity_registry_enabled_default = True
-            self._attr_last_reset = dt_util.utc_from_timestamp(0)
+            # self._attr_last_reset = dt_util.utc_from_timestamp(0)
 
         self._attr_device_info = {
             "identifiers": {
@@ -298,10 +299,10 @@ class MyHOMEEnergySensor(SensorEntity):
         self._attr_name = f"{self._device_name} {self._type_name}"
         self._attr_unique_id = f"{self._device_id}-{self._type_id}"
         self._attr_device_class = DEVICE_CLASS_ENERGY
-        self._attr_unit_of_measurement = ENERGY_WATT_HOUR
-        self._attr_state_class = STATE_CLASS_MEASUREMENT
+        self._attr_native_unit_of_measurement = ENERGY_WATT_HOUR
+        self._attr_state_class = STATE_CLASS_TOTAL_INCREASING
         self._attr_should_poll = True
-        self._attr_state = None
+        self._attr_native_value = None
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""
@@ -328,15 +329,15 @@ class MyHOMEEnergySensor(SensorEntity):
         """Handle an event message."""
         if self._type_id == "total-energy" and message.message_type == MESSAGE_TYPE_ENERGY_TOTALIZER:
             LOGGER.info(message.human_readable_log)
-            self._attr_state = message.total_consumption
+            self._attr_native_value = message.total_consumption
         elif self._type_id == "monthly-energy" and message.message_type == MESSAGE_TYPE_CURRENT_MONTH_CONSUMPTION:
             LOGGER.info(message.human_readable_log)
-            self._attr_state = message.current_month_partial_consumption
-            self._attr_last_reset = dt_util.start_of_local_day().replace(day=1)
+            self._attr_native_value = message.current_month_partial_consumption
+            # self._attr_last_reset = dt_util.start_of_local_day().replace(day=1)
         elif self._type_id == "daily-energy" and message.message_type == MESSAGE_TYPE_CURRENT_DAY_CONSUMPTION:
             LOGGER.info(message.human_readable_log)
-            self._attr_state = message.current_day_partial_consumption
-            self._attr_last_reset = dt_util.start_of_local_day()
+            self._attr_native_value = message.current_day_partial_consumption
+            # self._attr_last_reset = dt_util.start_of_local_day()
         self.async_schedule_update_ha_state()
 
 class MyHOMETemperatureSensor(SensorEntity):
@@ -364,10 +365,10 @@ class MyHOMETemperatureSensor(SensorEntity):
 
         self._attr_entity_registry_enabled_default = True
         self._attr_device_class = DEVICE_CLASS_TEMPERATURE
-        self._attr_unit_of_measurement = TEMP_CELSIUS
+        self._attr_native_unit_of_measurement = TEMP_CELSIUS
         self._attr_state_class = STATE_CLASS_MEASUREMENT
         self._attr_should_poll = True
-        self._attr_state = None
+        self._attr_native_value = None
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""
@@ -389,9 +390,9 @@ class MyHOMETemperatureSensor(SensorEntity):
         """Handle an event message."""
         if message.message_type == MESSAGE_TYPE_MAIN_TEMPERATURE:
             LOGGER.info(message.human_readable_log)
-            self._attr_state = message.main_temperature
+            self._attr_native_value = message.main_temperature
             self.async_schedule_update_ha_state()
         elif message.message_type == MESSAGE_TYPE_SECONDARY_TEMPERATURE:
             LOGGER.info(message.human_readable_log)
-            self._attr_state = message.secondary_temperature[1]
+            self._attr_native_value = message.secondary_temperature[1]
             self.async_schedule_update_ha_state()
