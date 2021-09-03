@@ -50,8 +50,6 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 )
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    if PLATFORM not in hass.data[DOMAIN][CONF]: return True
-
     hass.data[DOMAIN][CONF][PLATFORM] = {}
     _configured_switches = config.get(CONF_DEVICES)
     
@@ -65,6 +63,8 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
             hass.data[DOMAIN][CONF][PLATFORM][where] = {CONF_NAME: name, CONF_DEVICE_CLASS: device_class, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model}
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
+    if PLATFORM not in hass.data[DOMAIN][CONF]: return True
+
     _switches = []
     _configured_switches = hass.data[DOMAIN][CONF][PLATFORM]
 
