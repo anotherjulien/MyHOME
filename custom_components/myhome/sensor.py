@@ -17,9 +17,11 @@ from homeassistant.const import (
     DEVICE_CLASS_TEMPERATURE,
     DEVICE_CLASS_POWER,
     DEVICE_CLASS_ENERGY,
+    DEVICE_CLASS_ILLUMINANCE,
     POWER_WATT,
     ENERGY_WATT_HOUR,
     TEMP_CELSIUS,
+    LIGHT_LUX,
 )
 from homeassistant.helpers import config_validation as cv, entity_platform, service, entity_registry
 from homeassistant.util import dt as dt_util
@@ -31,10 +33,13 @@ from OWNd.message import (
     MESSAGE_TYPE_CURRENT_MONTH_CONSUMPTION,
     MESSAGE_TYPE_MAIN_TEMPERATURE,
     MESSAGE_TYPE_SECONDARY_TEMPERATURE,
+    MESSAGE_TYPE_ILLUMINANCE,
     OWNEnergyEvent,
     OWNEnergyCommand,
     OWNHeatingEvent,
     OWNHeatingCommand,
+    OWNLightingCommand,
+    OWNLightingEvent,
 )
 
 from .const import (
@@ -63,6 +68,7 @@ MYHOME_SCHEMA = vol.Schema(
             DEVICE_CLASS_TEMPERATURE,
             DEVICE_CLASS_POWER,
             DEVICE_CLASS_ENERGY,
+            DEVICE_CLASS_ILLUMINANCE,
             ]),
         vol.Optional(CONF_MANUFACTURER): cv.string,
         vol.Optional(CONF_DEVICE_MODEL): cv.string,
@@ -167,6 +173,18 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                 gateway=hass.data[DOMAIN][CONF_GATEWAY]
             )
 
+        elif _configured_sensors[_sensor][CONF_DEVICE_CLASS] == DEVICE_CLASS_ILLUMINANCE:
+            _sensor = MyHOMEIlluminanceSensor(
+                hass=hass,
+                who=_configured_sensors[_sensor][CONF_WHO],
+                where=_sensor,
+                name=_configured_sensors[_sensor][CONF_NAME],
+                device_class=_configured_sensors[_sensor][CONF_DEVICE_CLASS],
+                manufacturer=_configured_sensors[_sensor][CONF_MANUFACTURER],
+                model=_configured_sensors[_sensor][CONF_DEVICE_MODEL],
+                gateway=hass.data[DOMAIN][CONF_GATEWAY]
+            )
+
             _sensors.append(_sensor)
     
     if _power_devices_configured:
@@ -198,7 +216,7 @@ async def async_unload_entry(hass, config_entry):
 
 class MyHOMEPowerSensor(SensorEntity):
 
-    def __init__(self, hass, name: str, who: str, where: str, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler):
+    def __init__(self, hass, name: str, who: str, where: str, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler) -> None:
 
         self.hass = hass
         self._manufacturer = manufacturer or "BTicino S.p.A."
@@ -259,7 +277,7 @@ class MyHOMEPowerSensor(SensorEntity):
 
 class MyHOMEEnergySensor(SensorEntity):
 
-    def __init__(self, hass, name: str, who: str, where: str, period: str, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler):
+    def __init__(self, hass, name: str, who: str, where: str, period: str, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler) -> None:
 
         self._hass = hass
         self._manufacturer = manufacturer or "BTicino S.p.A."
@@ -342,7 +360,7 @@ class MyHOMEEnergySensor(SensorEntity):
 
 class MyHOMETemperatureSensor(SensorEntity):
 
-    def __init__(self, hass, name: str, who: str, where: str, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler):
+    def __init__(self, hass, name: str, who: str, where: str, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler) -> None:
 
         self._hass = hass
         self._manufacturer = manufacturer or "BTicino S.p.A."
@@ -395,4 +413,58 @@ class MyHOMETemperatureSensor(SensorEntity):
         elif message.message_type == MESSAGE_TYPE_SECONDARY_TEMPERATURE:
             LOGGER.info(message.human_readable_log)
             self._attr_native_value = message.secondary_temperature[1]
+            self.async_schedule_update_ha_state()
+
+class MyHOMEIlluminanceSensor(SensorEntity):
+
+    def __init__(self, hass, name: str, who: str, where: str, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler) -> None:
+
+        self._hass = hass
+        self._manufacturer = manufacturer or "BTicino S.p.A."
+        self._model = model
+        self._who = who or 1
+        self._where = where
+        self._attr_name = name or f"Sensor {self._where}"
+        self._attr_unique_id = f"{self._who}-{self._where}-illuminance"
+        self._attr_device_id = f"{self._who}-{self._where}"
+        self._gateway_handler = gateway
+
+        self._attr_device_info = {
+            "identifiers": {
+                (DOMAIN, self._attr_device_id)
+            },
+            "name": self._attr_name,
+            "manufacturer": self._manufacturer,
+            "model": self._model,
+            "via_device": (DOMAIN, self._gateway_handler.id),
+        }
+
+        self._attr_entity_registry_enabled_default = True
+        self._attr_device_class = DEVICE_CLASS_ILLUMINANCE
+        self._attr_native_unit_of_measurement = LIGHT_LUX
+        self._attr_state_class = STATE_CLASS_MEASUREMENT
+        self._attr_should_poll = False
+        self._attr_native_value = None
+
+    async def async_added_to_hass(self):
+        """When entity is added to hass."""
+        self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id] = self
+        await self.async_update()
+
+    async def async_will_remove_from_hass(self):
+        """When entity is removed from hass."""
+        del self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id]
+
+    async def async_update(self):
+        """Update the entity.
+
+        Only used by the generic entity update service.
+        """
+        await self._gateway_handler.send_status_request(OWNLightingCommand.get_illuminance(self._where))
+
+    def handle_event(self, message: OWNLightingEvent):
+        """Handle an event message."""
+        if message.message_type == MESSAGE_TYPE_ILLUMINANCE:
+            LOGGER.info(message.human_readable_log)
+            self._attr_native_value = message.illuminance
             self.async_schedule_update_ha_state()

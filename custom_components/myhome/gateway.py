@@ -102,14 +102,8 @@ class MyHOMEGatewayHandler:
             if not message:
                 LOGGER.warning("Data received is not a message: %s", message)
             elif isinstance(message, OWNEnergyEvent):
-                if message.message_type == MESSAGE_TYPE_ACTIVE_POWER and f"{message.unique_id}-power" in self.hass.data[DOMAIN][CONF_ENTITIES]:
-                    self.hass.data[DOMAIN][CONF_ENTITIES][f"{message.unique_id}-power"].handle_event(message)
-                elif message.message_type == MESSAGE_TYPE_ENERGY_TOTALIZER and f"{message.unique_id}-total-energy" in self.hass.data[DOMAIN][CONF_ENTITIES]:
-                    self.hass.data[DOMAIN][CONF_ENTITIES][f"{message.unique_id}-total-energy"].handle_event(message)
-                elif message.message_type == MESSAGE_TYPE_CURRENT_MONTH_CONSUMPTION and f"{message.unique_id}-monthly-energy" in self.hass.data[DOMAIN][CONF_ENTITIES]:
-                    self.hass.data[DOMAIN][CONF_ENTITIES][f"{message.unique_id}-monthly-energy"].handle_event(message)
-                elif message.message_type == MESSAGE_TYPE_CURRENT_DAY_CONSUMPTION and f"{message.unique_id}-daily-energy" in self.hass.data[DOMAIN][CONF_ENTITIES]:
-                    self.hass.data[DOMAIN][CONF_ENTITIES][f"{message.unique_id}-daily-energy"].handle_event(message)
+                if message.entity in self.hass.data[DOMAIN][CONF_ENTITIES]:
+                    self.hass.data[DOMAIN][CONF_ENTITIES][message.entity].handle_event(message)
                 else:
                     continue
             elif isinstance(message, OWNLightingEvent) or isinstance(message, OWNAutomationEvent) or isinstance(message, OWNDryContactEvent) or isinstance(message, OWNAuxEvent) or isinstance(message, OWNHeatingEvent):
@@ -179,11 +173,11 @@ class MyHOMEGatewayHandler:
                                 {"message": str(message), "group": message.group, "event": event},
                             )
                     if not is_event:
-                        if message.unique_id in self.hass.data[DOMAIN][CONF_ENTITIES]:
+                        if message.entity in self.hass.data[DOMAIN][CONF_ENTITIES]:
                             if isinstance(message, OWNLightingEvent) and message.brightness_preset:
-                                await self.hass.data[DOMAIN][CONF_ENTITIES][message.unique_id].async_update()
+                                await self.hass.data[DOMAIN][CONF_ENTITIES][message.entity].async_update()
                             else:
-                                self.hass.data[DOMAIN][CONF_ENTITIES][message.unique_id].handle_event(message)
+                                self.hass.data[DOMAIN][CONF_ENTITIES][message.entity].handle_event(message)
                         else:
                             LOGGER.warning("Unknown device: WHO=%s WHERE=%s", message.who, message.where)
                 else:
