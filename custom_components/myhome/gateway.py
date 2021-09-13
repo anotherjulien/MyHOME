@@ -1,6 +1,6 @@
 """Code to handle a MyHome Gateway."""
 import asyncio
-from typing import Dict
+from typing import Dict, List
 
 from homeassistant.const import (
     CONF_ENTITIES,
@@ -13,7 +13,21 @@ from homeassistant.const import (
 )
 
 from OWNd.connection import OWNSession, OWNEventSession, OWNCommandSession, OWNGateway
-from OWNd.message import *
+from OWNd.message import (
+    OWNLightingEvent,
+    OWNLightingCommand,
+    OWNEnergyEvent,
+    OWNAutomationEvent,
+    OWNDryContactEvent,
+    OWNAuxEvent,
+    OWNHeatingEvent,
+    OWNHeatingCommand,
+    OWNCENPlusEvent,
+    OWNCENEvent,
+    OWNGatewayEvent,
+    OWNGatewayCommand,
+    OWNCommand,
+)
 
 from .const import (
     CONF_FIRMWARE,
@@ -56,7 +70,7 @@ class MyHOMEGatewayHandler:
         self._terminate_listener = False
         self.is_connected = False
         self.listening_worker: asyncio.tasks.Task = None
-        self.sending_workers: list[asyncio.tasks.Task] = []
+        self.sending_workers: List[asyncio.tasks.Task] = []
         self.send_buffer = asyncio.Queue()
 
     @property
