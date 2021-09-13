@@ -88,16 +88,20 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
     if _configured_climate_devices:
         for _, entity_info in _configured_climate_devices.items():
+            who = "4"
             zone = entity_info[CONF_ZONE] if CONF_ZONE in entity_info else "#0"
-            name = entity_info[CONF_NAME] if CONF_NAME in entity_info else None
+            central = entity_info[CONF_CENTRAL] if CONF_CENTRAL in entity_info else False
+            zone = f"#0#{zone}" if central and zone != "#0" else zone
+            device_id = f"{who}-{zone}"
+            name = entity_info[CONF_NAME] if CONF_NAME in entity_info else "Central unit" if zone.startswith("#0") else f"Zone {zone}"
             heating = entity_info[CONF_HEATING_SUPPORT] if CONF_HEATING_SUPPORT in entity_info else True
             cooling = entity_info[CONF_COOLING_SUPPORT] if CONF_COOLING_SUPPORT in entity_info else False
             fan = entity_info[CONF_FAN_SUPPORT] if CONF_FAN_SUPPORT in entity_info else False
             standalone = entity_info[CONF_STANDALONE] if CONF_STANDALONE in entity_info else False
-            central = entity_info[CONF_CENTRAL] if CONF_CENTRAL in entity_info else False
+            entities = []
             manufacturer = entity_info[CONF_MANUFACTURER] if CONF_MANUFACTURER in entity_info else None
             model = entity_info[CONF_DEVICE_MODEL] if CONF_DEVICE_MODEL in entity_info else None
-            hass.data[DOMAIN][CONF][PLATFORM][zone] = {CONF_NAME: name, CONF_HEATING_SUPPORT: heating, CONF_COOLING_SUPPORT: cooling, CONF_FAN_SUPPORT: fan, CONF_STANDALONE: standalone, CONF_CENTRAL: central, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model}
+            hass.data[DOMAIN][CONF][PLATFORM][device_id] = {CONF_WHO: who, CONF_ZONE: zone, CONF_ENTITIES: entities, CONF_NAME: name, CONF_HEATING_SUPPORT: heating, CONF_COOLING_SUPPORT: cooling, CONF_FAN_SUPPORT: fan, CONF_STANDALONE: standalone, CONF_CENTRAL: central, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model}
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     if PLATFORM not in hass.data[DOMAIN][CONF]: return True
@@ -108,7 +112,9 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     for _climate_device in _configured_climate_devices.keys():
         _climate_device = MyHOMEClimate(
             hass=hass,
-            zone=_climate_device,
+            device_id=_climate_device,
+            who=_configured_climate_devices[_climate_device][CONF_WHO],
+            zone=_configured_climate_devices[_climate_device][CONF_ZONE],
             name=_configured_climate_devices[_climate_device][CONF_NAME],
             heating=_configured_climate_devices[_climate_device][CONF_HEATING_SUPPORT],
             cooling=_configured_climate_devices[_climate_device][CONF_COOLING_SUPPORT],
@@ -129,30 +135,28 @@ async def async_unload_entry(hass, config_entry):
     _configured_climate_devices = hass.data[DOMAIN][CONF][PLATFORM]
 
     for _climate_device in _configured_climate_devices.keys():
-        del hass.data[DOMAIN][CONF_ENTITIES][f"4-{_climate_device}"]
+        del hass.data[DOMAIN][CONF_ENTITIES][_climate_device]
 
 class MyHOMEClimate(ClimateEntity):
 
-    def __init__(self, hass, zone: str, name: str, heating: bool, cooling: bool, fan: bool, standalone: bool, central: bool, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler):
+    def __init__(self, hass, name: str, device_id: str, who: str, zone: str, heating: bool, cooling: bool, fan: bool, standalone: bool, central: bool, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler):
 
         self._hass = hass
+        self._device_id = device_id
         self._manufacturer = manufacturer or "BTicino S.p.A."
         self._model = model
-        self._who = "4"
-        self._zone = f"#0#{zone}" if central and zone != "#0" else zone
+        self._who = who
+        self._zone = zone
         self._standalone = standalone
         self._central = True if self._zone == "#0" else central
 
-        self._attr_unique_id = f"{self._who}-{zone}"
-        if name is None:
-            self._attr_name = "Central unit" if self._zone == "#0" else f"Zone {self._zone}"
-        else:
-            self._attr_name = name
+        self._attr_unique_id = self._device_id
+        self._attr_name = name
         self._gateway_handler = gateway
 
         self._attr_device_info = {
             "identifiers": {
-                (DOMAIN, self._attr_unique_id)
+                (DOMAIN, self._device_id)
             },
             "name": self._attr_name,
             "manufacturer": self._manufacturer,

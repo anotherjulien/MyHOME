@@ -29,6 +29,7 @@ from OWNd.message import (
 from .const import (
     CONF,
     CONF_GATEWAY,
+    CONF_WHO,
     CONF_WHERE,
     CONF_MANUFACTURER,
     CONF_DEVICE_MODEL,
@@ -58,12 +59,15 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
     if _configured_covers:
         for _, entity_info in _configured_covers.items():
-            name = entity_info[CONF_NAME] if CONF_NAME in entity_info else None
+            who = "2"
             where = entity_info[CONF_WHERE]
+            device_id = f"{who}-{where}"
+            name = entity_info[CONF_NAME] if CONF_NAME in entity_info else f"A{where[:len(where)//2]}PL{where[len(where)//2:]}"
             advanced = entity_info[CONF_ADVANCED_SHUTTER] if CONF_ADVANCED_SHUTTER in entity_info else False
+            entities = []
             manufacturer = entity_info[CONF_MANUFACTURER] if CONF_MANUFACTURER in entity_info else None
             model = entity_info[CONF_DEVICE_MODEL] if CONF_DEVICE_MODEL in entity_info else None
-            hass.data[DOMAIN][CONF][PLATFORM][where] = {CONF_NAME: name, CONF_ADVANCED_SHUTTER: advanced, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model}
+            hass.data[DOMAIN][CONF][PLATFORM][device_id] = {CONF_WHO: who, CONF_WHERE: where, CONF_ENTITIES: entities, CONF_NAME: name, CONF_ADVANCED_SHUTTER: advanced, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model}
 
 
 
@@ -76,7 +80,9 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     for _cover in _configured_covers.keys():
         _cover = MyHOMECover(
             hass=hass,
-            where=_cover,
+            device_id=_cover,
+            who=_configured_covers[_cover][CONF_WHO],
+            where=_configured_covers[_cover][CONF_WHERE],
             name=_configured_covers[_cover][CONF_NAME],
             advanced=_configured_covers[_cover][CONF_ADVANCED_SHUTTER],
             manufacturer=_configured_covers[_cover][CONF_MANUFACTURER],
@@ -88,33 +94,37 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     async_add_entities(_covers)
 
 async def async_unload_entry(hass, config_entry):
+    if PLATFORM not in hass.data[DOMAIN][CONF]: return True
+
     _configured_covers = hass.data[DOMAIN][CONF][PLATFORM]
 
     for _cover in _configured_covers.keys():
-        del hass.data[DOMAIN][CONF_ENTITIES][f"2-{_cover}"]
+        del hass.data[DOMAIN][CONF_ENTITIES][_cover]
 
 class MyHOMECover(CoverEntity):
 
     device_class = DEVICE_CLASS_SHUTTER
 
-    def __init__(self, hass, name: str, where: str, advanced: bool, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler):
+    def __init__(self, hass, name: str, device_id: str, who: str, where: str, advanced: bool, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler):
 
         self._hass = hass
+        self._device_id = device_id
         self._where = where
         self._manufacturer = manufacturer or "BTicino S.p.A."
-        self._who = "2"
+        self._who = who
         self._model = model
         self._attr_supported_features = (SUPPORT_OPEN | SUPPORT_CLOSE | SUPPORT_STOP)
         if advanced:
             self._attr_supported_features |= SUPPORT_SET_POSITION
         self._gateway_handler = gateway
 
-        self._attr_name = name or f"A{self._where[:len(self._where)//2]}PL{self._where[len(self._where)//2:]}"
-        self._attr_unique_id = f"{self._who}-{self._where}"
+        self._attr_name = name
+        self._attr_unique_id = self._device_id
+        self._attr_extra_state_attributes = {"A": where[:len(where)//2], "PL": where[len(where)//2:]}
 
         self._attr_device_info = {
             "identifiers": {
-                (DOMAIN, self._attr_unique_id)
+                (DOMAIN, self._device_id)
             },
             "name": self._attr_name,
             "manufacturer": self._manufacturer,

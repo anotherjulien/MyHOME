@@ -60,12 +60,15 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
     if _configured_lights:
         for _, entity_info in _configured_lights.items():
-            name = entity_info[CONF_NAME] if CONF_NAME in entity_info else None
+            who = "1"
             where = entity_info[CONF_WHERE]
+            device_id = f"{who}-{where}"
+            name = entity_info[CONF_NAME] if CONF_NAME in entity_info else f"A{where[:len(where)//2]}PL{where[len(where)//2:]}"
             dimmable = entity_info[CONF_DIMMABLE] if CONF_DIMMABLE in entity_info else False
+            entities = []
             manufacturer = entity_info[CONF_MANUFACTURER] if CONF_MANUFACTURER in entity_info else None
             model = entity_info[CONF_DEVICE_MODEL] if CONF_DEVICE_MODEL in entity_info else None
-            hass.data[DOMAIN][CONF][PLATFORM][where] = {CONF_NAME: name, CONF_DIMMABLE: dimmable, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model}
+            hass.data[DOMAIN][CONF][PLATFORM][device_id] = {CONF_WHO: who, CONF_WHERE: where, CONF_ENTITIES: entities, CONF_NAME: name, CONF_DIMMABLE: dimmable, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model}
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     if PLATFORM not in hass.data[DOMAIN][CONF]: return True
@@ -76,7 +79,9 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     for _light in _configured_lights.keys():
         _light = MyHOMELight(
             hass=hass,
-            where=_light,
+            device_id=_light,
+            who=_configured_lights[_light][CONF_WHO],
+            where=_configured_lights[_light][CONF_WHERE],
             name=_configured_lights[_light][CONF_NAME],
             dimmable=_configured_lights[_light][CONF_DIMMABLE],
             manufacturer=_configured_lights[_light][CONF_MANUFACTURER],
@@ -88,10 +93,12 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     async_add_entities(_lights)
 
 async def async_unload_entry(hass, config_entry):
+    if PLATFORM not in hass.data[DOMAIN][CONF]: return True
+    
     _configured_lights = hass.data[DOMAIN][CONF][PLATFORM]
 
     for _light in _configured_lights.keys():
-        del hass.data[DOMAIN][CONF_ENTITIES][f"1-{_light}"]
+        del hass.data[DOMAIN][CONF_ENTITIES][_light]
 
 def eight_bits_to_percent(value: int) -> int:
     return int(round(100/255*value, 0))
@@ -101,12 +108,13 @@ def percent_to_eight_bits(value: int) -> int:
 
 class MyHOMELight(LightEntity):
 
-    def __init__(self, hass, name: str, where: str, dimmable: bool, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler):
+    def __init__(self, hass, name: str, device_id: str, who: str, where: str, dimmable: bool, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler):
 
         self._hass = hass
+        self._device_id = device_id
         self._where = where
         self._manufacturer = manufacturer or "BTicino S.p.A."
-        self._who = "1"
+        self._who = who
         self._model = model
         self._attr_supported_features = 0
         if dimmable:
@@ -116,12 +124,13 @@ class MyHOMELight(LightEntity):
             self._attr_supported_features |= SUPPORT_FLASH
         self._gateway_handler = gateway
 
-        self._attr_name = name or f"A{self._where[:len(self._where)//2]}PL{self._where[len(self._where)//2:]}"
-        self._attr_unique_id = f"{self._who}-{self._where}"
+        self._attr_name = name
+        self._attr_unique_id = self._device_id
+        self._attr_extra_state_attributes = {"A": where[:len(where)//2], "PL": where[len(where)//2:]}
 
         self._attr_device_info = {
             "identifiers": {
-                (DOMAIN, self._attr_unique_id)
+                (DOMAIN, self._device_id)
             },
             "name": self._attr_name,
             "manufacturer": self._manufacturer,

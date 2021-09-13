@@ -112,14 +112,16 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
     if _configured_binary_sensors:
         for _, entity_info in _configured_binary_sensors.items():
-            name = entity_info[CONF_NAME] if CONF_NAME in entity_info else None
-            where = entity_info[CONF_WHERE]
             who = entity_info[CONF_WHO] if CONF_WHO in entity_info else "25"
+            where = entity_info[CONF_WHERE]
+            device_id = f"{who}-{where}"
+            name = entity_info[CONF_NAME] if CONF_NAME in entity_info else f"Sensor {where}"
             inverted = entity_info[CONF_INVERTED] if CONF_INVERTED in entity_info else False
             device_class = entity_info[CONF_DEVICE_CLASS] if CONF_DEVICE_CLASS in entity_info else None
+            entities = [device_class] if who == "1" else []
             manufacturer = entity_info[CONF_MANUFACTURER] if CONF_MANUFACTURER in entity_info else None
             model = entity_info[CONF_DEVICE_MODEL] if CONF_DEVICE_MODEL in entity_info else None
-            hass.data[DOMAIN][CONF][PLATFORM][where] = {CONF_WHO: who, CONF_NAME: name, CONF_INVERTED: inverted, CONF_DEVICE_CLASS: device_class, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model}
+            hass.data[DOMAIN][CONF][PLATFORM][device_id] = {CONF_WHO: who, CONF_WHERE: where, CONF_ENTITIES: entities, CONF_NAME: name, CONF_INVERTED: inverted, CONF_DEVICE_CLASS: device_class, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model}
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     if PLATFORM not in hass.data[DOMAIN][CONF]: return True
@@ -133,8 +135,9 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         if _who == 25:
             _binary_sensor = MyHOMEDryContact(
                 hass=hass,
-                who=_who,
-                where=_binary_sensor,
+                device_id=_binary_sensor,
+                who=_configured_binary_sensors[_binary_sensor][CONF_WHO],
+                where=_configured_binary_sensors[_binary_sensor][CONF_WHERE],
                 name=_configured_binary_sensors[_binary_sensor][CONF_NAME],
                 inverted=_configured_binary_sensors[_binary_sensor][CONF_INVERTED],
                 device_class=_device_class,
@@ -146,11 +149,13 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         elif _who == 1 and _device_class == DEVICE_CLASS_MOTION:
             _binary_sensor = MyHOMEMotionSensor(
                 hass=hass,
-                who=_who,
-                where=_binary_sensor,
+                device_id=_binary_sensor,
+                who=_configured_binary_sensors[_binary_sensor][CONF_WHO],
+                where=_configured_binary_sensors[_binary_sensor][CONF_WHERE],
                 name=_configured_binary_sensors[_binary_sensor][CONF_NAME],
+                entity_name=_configured_binary_sensors[_binary_sensor][CONF_ENTITIES][0],
                 inverted=_configured_binary_sensors[_binary_sensor][CONF_INVERTED],
-                device_class=DEVICE_CLASS_MOTION,
+                device_class=_device_class,
                 manufacturer=_configured_binary_sensors[_binary_sensor][CONF_MANUFACTURER],
                 model=_configured_binary_sensors[_binary_sensor][CONF_DEVICE_MODEL],
                 gateway=hass.data[DOMAIN][CONF_GATEWAY]
@@ -160,16 +165,23 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     async_add_entities(_binary_sensors)
 
 async def async_unload_entry(hass, config_entry):
+    if PLATFORM not in hass.data[DOMAIN][CONF]: return True
+    
     _configured_binary_sensors = hass.data[DOMAIN][CONF][PLATFORM]
 
     for _binary_sensor in _configured_binary_sensors.keys():
-        del hass.data[DOMAIN][CONF_ENTITIES][f"25-{_binary_sensor}"]
+        if _configured_binary_sensors[_binary_sensor][CONF_ENTITIES]:
+            for _entity_name in _configured_binary_sensors[_binary_sensor][CONF_ENTITIES]:
+                del hass.data[DOMAIN][CONF_ENTITIES][f"{_binary_sensor}-{_entity_name}"]
+        else:
+            del hass.data[DOMAIN][CONF_ENTITIES][_binary_sensor]
 
 class MyHOMEDryContact(BinarySensorEntity):
 
-    def __init__(self, hass, name: str, who: str, where: str, inverted: bool, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler):
+    def __init__(self, hass, name: str, device_id: str, who: str, where: str, inverted: bool, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler):
 
         self._hass = hass
+        self._device_id = device_id
         self._where = where
         self._manufacturer = manufacturer or "BTicino S.p.A."
         self._who = who
@@ -177,12 +189,12 @@ class MyHOMEDryContact(BinarySensorEntity):
         self._gateway_handler = gateway
         self._inverted = inverted
 
-        self._attr_name = name or f"Sensor {self._where[1:]}"
-        self._attr_unique_id = f"{self._who}-{self._where}"
+        self._attr_name = name
+        self._attr_unique_id = self._device_id
 
         self._attr_device_info = {
             "identifiers": {
-                (DOMAIN, self._attr_unique_id)
+                (DOMAIN, self._device_id)
             },
             "name": self._attr_name,
             "manufacturer": self._manufacturer,
@@ -194,6 +206,7 @@ class MyHOMEDryContact(BinarySensorEntity):
         self._attr_entity_registry_enabled_default = True
         self._attr_should_poll = False
         self._attr_is_on = False
+        self._attr_extra_state_attributes = {"Sensor": f"({self._where[0]}){self._where[1:]}"}
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""
@@ -219,10 +232,11 @@ class MyHOMEDryContact(BinarySensorEntity):
 
 class MyHOMEMotionSensor(BinarySensorEntity):
 
-    def __init__(self, hass, name: str, who: str, where: str, inverted: bool, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler):
+    def __init__(self, hass, name: str, device_id: str, who: str, where: str, entity_name: str, inverted: bool, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler):
 
         self._hass = hass
-        self._ent_reg = entity_registry.async_get(hass)
+        self._device_id = device_id
+        self._entity_name = entity_name
         self._where = where
         self._manufacturer = manufacturer or "BTicino S.p.A."
         self._who = who
@@ -230,16 +244,15 @@ class MyHOMEMotionSensor(BinarySensorEntity):
         self._gateway_handler = gateway
         self._inverted = inverted
 
-        self._attr_name = name or f"Sensor {self._where}"
-        self._attr_unique_id = f"{self._who}-{self._where}-motion"
-        self._attr_device_id = f"{self._who}-{self._where}"
+        self._attr_name = name 
+        self._attr_unique_id = f"{self._device_id}-{self._entity_name}"
 
         self._last_updated = None
         self._timeout = timedelta(seconds=315)
 
         self._attr_device_info = {
             "identifiers": {
-                (DOMAIN, self._attr_device_id)
+                (DOMAIN, self._device_id)
             },
             "name": self._attr_name,
             "manufacturer": self._manufacturer,
@@ -251,14 +264,13 @@ class MyHOMEMotionSensor(BinarySensorEntity):
         self._attr_entity_registry_enabled_default = True
         self._attr_should_poll = True
         self._attr_is_on = False
-        self._attr_extra_state_attributes = {"Timeout": self._timeout.total_seconds(), "Sensitivity": PIR_SENSITIVITY[1]}
+        self._attr_extra_state_attributes = {"A": where[:len(where)//2], "PL": where[len(where)//2:], "Timeout": self._timeout.total_seconds(), "Sensitivity": PIR_SENSITIVITY[1]}
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""
         self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id] = self
         await self._gateway_handler.send_status_request(OWNLightingCommand.get_pir_sensitivity(self._where))
         await self._gateway_handler.send_status_request(OWNLightingCommand.get_motion_timeout(self._where))
-        self._entity_id = self._ent_reg.async_get_entity_id("binary_sensor", DOMAIN, self._attr_unique_id)
         await self.async_update()
 
     async def async_will_remove_from_hass(self):

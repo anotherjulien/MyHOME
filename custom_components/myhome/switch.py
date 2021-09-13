@@ -55,12 +55,15 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     
     if _configured_switches:
         for _, entity_info in _configured_switches.items():
-            name = entity_info[CONF_NAME] if CONF_NAME in entity_info else None
+            who = "1"
             where = entity_info[CONF_WHERE]
-            device_class = entity_info[CONF_DEVICE_CLASS] if CONF_DEVICE_CLASS in entity_info else "switch"
+            device_id = f"{who}-{where}"
+            name = entity_info[CONF_NAME] if CONF_NAME in entity_info else f"A{where[:len(where)//2]}PL{where[len(where)//2:]}"
+            device_class = entity_info[CONF_DEVICE_CLASS] if CONF_DEVICE_CLASS in entity_info else DEVICE_CLASS_SWITCH
+            entities = []
             manufacturer = entity_info[CONF_MANUFACTURER] if CONF_MANUFACTURER in entity_info else None
             model = entity_info[CONF_DEVICE_MODEL] if CONF_DEVICE_MODEL in entity_info else None
-            hass.data[DOMAIN][CONF][PLATFORM][where] = {CONF_NAME: name, CONF_DEVICE_CLASS: device_class, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model}
+            hass.data[DOMAIN][CONF][PLATFORM][device_id] = {CONF_WHO: who, CONF_WHERE: where, CONF_ENTITIES: entities, CONF_NAME: name, CONF_DEVICE_CLASS: device_class, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model}
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     if PLATFORM not in hass.data[DOMAIN][CONF]: return True
@@ -71,7 +74,9 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     for _switch in _configured_switches.keys():
         _switch = MyHOMESwitch(
             hass=hass,
-            where=_switch,
+            device_id=_switch,
+            who=_configured_switches[_switch][CONF_WHO],
+            where=_configured_switches[_switch][CONF_WHERE],
             name=_configured_switches[_switch][CONF_NAME],
             device_class=_configured_switches[_switch][CONF_DEVICE_CLASS],
             manufacturer=_configured_switches[_switch][CONF_MANUFACTURER],
@@ -83,28 +88,32 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     async_add_entities(_switches)
 
 async def async_unload_entry(hass, config_entry):
+    if PLATFORM not in hass.data[DOMAIN][CONF]: return True
+    
     _configured_switches = hass.data[DOMAIN][CONF][PLATFORM]
 
     for _switch in _configured_switches.keys():
-        del hass.data[DOMAIN][CONF_ENTITIES][f"1-{_switch}"]
+        del hass.data[DOMAIN][CONF_ENTITIES][_switch]
 
 class MyHOMESwitch(SwitchEntity):
 
-    def __init__(self, hass, name: str, where: str, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler):
+    def __init__(self, hass, name: str, device_id: str, who: str, where: str, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler):
 
         self._hass = hass
+        self._device_id = device_id
         self._where = where
         self._manufacturer = manufacturer or "BTicino S.p.A."
-        self._who = "1"
+        self._who = who
         self._model = model
         self._gateway_handler = gateway
 
-        self._attr_name = name or f"A{self._where[:len(self._where)//2]}PL{self._where[len(self._where)//2:]}"
-        self._attr_unique_id = f"{self._who}-{self._where}"
+        self._attr_name = name
+        self._attr_unique_id = self._device_id
+        self._attr_extra_state_attributes = {"A": where[:len(where)//2], "PL": where[len(where)//2:]}
 
         self._attr_device_info = {
             "identifiers": {
-                (DOMAIN, self._attr_unique_id)
+                (DOMAIN, self._device_id)
             },
             "name": self._attr_name,
             "manufacturer": self._manufacturer,

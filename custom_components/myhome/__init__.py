@@ -2,7 +2,12 @@
 from homeassistant.config_entries import ConfigEntry, SOURCE_REAUTH
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_validation as cv, device_registry as dr
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, format_mac
+from homeassistant.helpers.entity_registry import (
+    async_entries_for_config_entry,
+    async_entries_for_device,
+)
 
 from OWNd.message import OWNGatewayCommand, OWNCommand
 
@@ -12,6 +17,7 @@ from .const import (
     CONF_GATEWAY,
     ATTR_MESSAGE,
     CONF_WORKER_COUNT,
+    CONF_CENTRAL,
     DOMAIN,
     LOGGER,
 )
@@ -36,8 +42,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     if CONF_ENTITIES not in hass.data[DOMAIN] : hass.data[DOMAIN][CONF_ENTITIES] = {}
 
     # Migrating the config entry's unique_id if it was not formated to the recommended hass standard
-    if entry.unique_id != dr.format_mac(entry.unique_id):
-        hass.config_entries.async_update_entry(entry, unique_id=dr.format_mac(entry.unique_id))
+    if entry.unique_id != format_mac(entry.unique_id):
+        hass.config_entries.async_update_entry(entry, unique_id=format_mac(entry.unique_id))
         LOGGER.warning("Migrating config entry unique_id to %s", entry.unique_id)
 
     hass.data[DOMAIN][CONF_GATEWAY] = MyHOMEGatewayHandler(hass=hass, config_entry=entry)
@@ -62,10 +68,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     _command_worker_count = int(entry.options[CONF_WORKER_COUNT]) if CONF_WORKER_COUNT in entry.options else 1
 
-    device_registry = await dr.async_get_registry(hass)
+    device_registry = await hass.helpers.device_registry.async_get_registry()
+
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
-        connections={(dr.CONNECTION_NETWORK_MAC, hass.data[DOMAIN][CONF_GATEWAY].mac)},
+        connections={(CONNECTION_NETWORK_MAC, hass.data[DOMAIN][CONF_GATEWAY].mac)},
         identifiers={(DOMAIN, hass.data[DOMAIN][CONF_GATEWAY].id)},
         manufacturer=hass.data[DOMAIN][CONF_GATEWAY].manufacturer,
         name=hass.data[DOMAIN][CONF_GATEWAY].name,
@@ -77,6 +84,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         hass.async_create_task(
             hass.config_entries.async_forward_entry_setup(entry, platform)
         )
+
+    await registry_cleanup(hass, entry)
 
     hass.data[DOMAIN][CONF_GATEWAY].listening_worker = hass.loop.create_task(
         hass.data[DOMAIN][CONF_GATEWAY].listening_loop())
@@ -121,3 +130,57 @@ async def async_unload_entry(hass, entry):
 
     gateway_handler = hass.data[DOMAIN].pop(CONF_GATEWAY)
     return await gateway_handler.close_listener()
+
+async def registry_cleanup(hass: HomeAssistant, entry: ConfigEntry):
+
+    entity_registry = await hass.helpers.entity_registry.async_get_registry()
+    device_registry = await hass.helpers.device_registry.async_get_registry()
+
+    entity_entries = async_entries_for_config_entry(entity_registry, entry.entry_id)
+
+    entities_to_be_removed = []
+    devices_to_be_removed = [
+        device_entry.id
+        for device_entry in device_registry.devices.values()
+        if entry.entry_id in device_entry.config_entries
+    ]
+    gateway_entry = device_registry.async_get_device(
+        identifiers={(DOMAIN, hass.data[DOMAIN][CONF_GATEWAY].id)},
+        connections={(CONNECTION_NETWORK_MAC, hass.data[DOMAIN][CONF_GATEWAY].mac)}
+    )
+    if gateway_entry.id in devices_to_be_removed:
+        devices_to_be_removed.remove(gateway_entry.id)
+
+    configured_entities = []
+
+    for platform in PLATFORMS:
+        if platform in hass.data[DOMAIN][CONF]:
+            for _device in hass.data[DOMAIN][CONF][platform].keys():
+                if hass.data[DOMAIN][CONF][platform][_device][CONF_ENTITIES]:
+                    for _entity_name in hass.data[DOMAIN][CONF][platform][_device][CONF_ENTITIES]:
+                        configured_entities.append(f"{_device}-{_entity_name}")
+                else:
+                    configured_entities.append(_device)
+    
+    for entity_entry in entity_entries:
+
+        if entity_entry.unique_id in configured_entities:
+            if entity_entry.device_id in devices_to_be_removed:
+                devices_to_be_removed.remove(entity_entry.device_id)
+            continue
+
+        entities_to_be_removed.append(entity_entry.entity_id)
+
+    for enity_id in entities_to_be_removed:
+        entity_registry.async_remove(enity_id)
+
+    for device_id in devices_to_be_removed:
+        if (
+            len(
+                async_entries_for_device(
+                    entity_registry, device_id, include_disabled_entities=True
+                )
+            )
+            == 0
+        ):
+            device_registry.async_remove_device(device_id)
