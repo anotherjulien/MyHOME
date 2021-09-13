@@ -5,10 +5,10 @@ from typing import Dict, List
 from homeassistant.const import (
     CONF_ENTITIES,
     CONF_HOST,
-    CONF_PORT, 
-    CONF_PASSWORD, 
-    CONF_NAME, 
-    CONF_MAC, 
+    CONF_PORT,
+    CONF_PASSWORD,
+    CONF_NAME,
+    CONF_MAC,
     CONF_FRIENDLY_NAME,
 )
 
@@ -45,6 +45,7 @@ from .const import (
     LOGGER,
 )
 
+
 class MyHOMEGatewayHandler:
     """Manages a single MyHOME Gateway."""
 
@@ -65,9 +66,10 @@ class MyHOMEGatewayHandler:
             "UDN": config_entry.data[CONF_UDN],
         }
         self.hass = hass
-        self.config_entry =  config_entry
+        self.config_entry = config_entry
         self.gateway = OWNGateway(build_info)
         self._terminate_listener = False
+        self._terminate_sender = False
         self.is_connected = False
         self.listening_worker: asyncio.tasks.Task = None
         self.sending_workers: List[asyncio.tasks.Task] = []
@@ -78,20 +80,20 @@ class MyHOMEGatewayHandler:
         return self.gateway.serial
 
     @property
-    def id(self) -> str:
+    def unique_id(self) -> str:
         return self.mac
 
     @property
     def manufacturer(self) -> str:
         return self.gateway.manufacturer
-    
+
     @property
     def name(self) -> str:
-        return f"{self.gateway.modelName} Gateway"
+        return f"{self.gateway.model_name} Gateway"
 
     @property
     def model(self) -> str:
-        return self.gateway.modelName
+        return self.gateway.model_name
 
     @property
     def firmware(self) -> str:
@@ -117,10 +119,18 @@ class MyHOMEGatewayHandler:
                 LOGGER.warning("Data received is not a message: %s", message)
             elif isinstance(message, OWNEnergyEvent):
                 if message.entity in self.hass.data[DOMAIN][CONF_ENTITIES]:
-                    self.hass.data[DOMAIN][CONF_ENTITIES][message.entity].handle_event(message)
+                    self.hass.data[DOMAIN][CONF_ENTITIES][message.entity].handle_event(
+                        message
+                    )
                 else:
                     continue
-            elif isinstance(message, OWNLightingEvent) or isinstance(message, OWNAutomationEvent) or isinstance(message, OWNDryContactEvent) or isinstance(message, OWNAuxEvent) or isinstance(message, OWNHeatingEvent):
+            elif (
+                isinstance(message, OWNLightingEvent)
+                or isinstance(message, OWNAutomationEvent)
+                or isinstance(message, OWNDryContactEvent)
+                or isinstance(message, OWNAuxEvent)
+                or isinstance(message, OWNHeatingEvent)
+            ):
                 if not message.is_translation:
                     is_event = False
                     if isinstance(message, OWNLightingEvent):
@@ -132,22 +142,34 @@ class MyHOMEGatewayHandler:
                                 {"message": str(message), "event": event},
                             )
                             await asyncio.sleep(0.1)
-                            await self.send_status_request(OWNLightingCommand.status("0"))
+                            await self.send_status_request(
+                                OWNLightingCommand.status("0")
+                            )
                         elif message.is_area:
                             is_event = True
                             event = "on" if message.is_on else "off"
                             self.hass.bus.async_fire(
                                 "myhome_area_light_event",
-                                {"message": str(message), "area": message.area, "event": event},
+                                {
+                                    "message": str(message),
+                                    "area": message.area,
+                                    "event": event,
+                                },
                             )
                             await asyncio.sleep(0.1)
-                            await self.send_status_request(OWNLightingCommand.status(message.area))
+                            await self.send_status_request(
+                                OWNLightingCommand.status(message.area)
+                            )
                         elif message.is_group:
                             is_event = True
                             event = "on" if message.is_on else "off"
                             self.hass.bus.async_fire(
                                 "myhome_group_light_event",
-                                {"message": str(message), "group": message.group, "event": event},
+                                {
+                                    "message": str(message),
+                                    "group": message.group,
+                                    "event": event,
+                                },
                             )
                     elif isinstance(message, OWNAutomationEvent):
                         if message.is_general:
@@ -172,7 +194,11 @@ class MyHOMEGatewayHandler:
                                 event = "stop"
                             self.hass.bus.async_fire(
                                 "myhome_area_automation_event",
-                                {"message": str(message), "area": message.area, "event": event},
+                                {
+                                    "message": str(message),
+                                    "area": message.area,
+                                    "event": event,
+                                },
                             )
                         elif message.is_group:
                             is_event = True
@@ -184,21 +210,46 @@ class MyHOMEGatewayHandler:
                                 event = "stop"
                             self.hass.bus.async_fire(
                                 "myhome_group_automation_event",
-                                {"message": str(message), "group": message.group, "event": event},
+                                {
+                                    "message": str(message),
+                                    "group": message.group,
+                                    "event": event,
+                                },
                             )
                     if not is_event:
                         if message.entity in self.hass.data[DOMAIN][CONF_ENTITIES]:
-                            if isinstance(message, OWNLightingEvent) and message.brightness_preset:
-                                await self.hass.data[DOMAIN][CONF_ENTITIES][message.entity].async_update()
+                            if (
+                                isinstance(message, OWNLightingEvent)
+                                and message.brightness_preset
+                            ):
+                                await self.hass.data[DOMAIN][CONF_ENTITIES][
+                                    message.entity
+                                ].async_update()
                             else:
-                                self.hass.data[DOMAIN][CONF_ENTITIES][message.entity].handle_event(message)
+                                self.hass.data[DOMAIN][CONF_ENTITIES][
+                                    message.entity
+                                ].handle_event(message)
                         else:
-                            LOGGER.warning("Unknown device: WHO=%s WHERE=%s", message.who, message.where)
+                            LOGGER.warning(
+                                "Unknown device: WHO=%s WHERE=%s",
+                                message.who,
+                                message.where,
+                            )
                 else:
                     LOGGER.debug("Ignoring translation message %s", message)
-            elif (isinstance(message, OWNHeatingCommand) and message._dimension is not None and message._dimension == 14):
-                where = message._where[1:] if message._where.startswith('#') else message._where
-                LOGGER.debug("Received heating command, sending query to zone %s", where)
+            elif (
+                isinstance(message, OWNHeatingCommand)
+                and message.dimension is not None
+                and message.dimension == 14
+            ):
+                where = (
+                    message.where[1:]
+                    if message.where.startswith("#")
+                    else message.where
+                )
+                LOGGER.debug(
+                    "Received heating command, sending query to zone %s", where
+                )
                 await self.send_status_request(OWNHeatingCommand.status(where))
             elif isinstance(message, OWNCENPlusEvent):
                 event = None
@@ -212,7 +263,11 @@ class MyHOMEGatewayHandler:
                     event = None
                 self.hass.bus.async_fire(
                     "myhome_cenplus_event",
-                    {"object": int(message.object), "pushbutton": int(message.push_button), "event": event},
+                    {
+                        "object": int(message.object),
+                        "pushbutton": int(message.push_button),
+                        "event": event,
+                    },
                 )
                 LOGGER.info(message.human_readable_log)
             elif isinstance(message, OWNCENEvent):
@@ -229,10 +284,16 @@ class MyHOMEGatewayHandler:
                     event = None
                 self.hass.bus.async_fire(
                     "myhome_cen_event",
-                    {"object": int(message.object), "pushbutton": int(message.push_button), "event": event},
+                    {
+                        "object": int(message.object),
+                        "pushbutton": int(message.push_button),
+                        "event": event,
+                    },
                 )
                 LOGGER.info(message.human_readable_log)
-            elif isinstance(message, OWNGatewayEvent) or isinstance(message, OWNGatewayCommand):
+            elif isinstance(message, OWNGatewayEvent) or isinstance(
+                message, OWNGatewayCommand
+            ):
                 LOGGER.info(message.human_readable_log)
             else:
                 LOGGER.info("Unsupported message type: %s", message)
@@ -254,27 +315,32 @@ class MyHOMEGatewayHandler:
 
         while not self._terminate_sender:
             task = await self.send_buffer.get()
-            LOGGER.debug("Message %s was successfully unqueued by worker %s.", task['message'], worker_id)
-            await _command_session.send(message=task['message'], is_status_request=task['is_status_request'])
+            LOGGER.debug(
+                "Message %s was successfully unqueued by worker %s.",
+                task["message"],
+                worker_id,
+            )
+            await _command_session.send(
+                message=task["message"], is_status_request=task["is_status_request"]
+            )
             self.send_buffer.task_done()
 
         await _command_session.close()
 
         LOGGER.debug("Destroying sending worker %s", worker_id)
         self.sending_workers[worker_id].cancel()
-        
 
-    async def close_listener(self, event=None) -> bool:
+    async def close_listener(self) -> bool:
         LOGGER.info("Closing event listener")
         self._terminate_sender = True
         self._terminate_listener = True
 
         return True
-    
+
     async def send(self, message: OWNCommand):
-        await self.send_buffer.put({'message': message, 'is_status_request': False})
+        await self.send_buffer.put({"message": message, "is_status_request": False})
         LOGGER.debug("Message %s was successfully queued.", message)
-    
+
     async def send_status_request(self, message: OWNCommand):
-        await self.send_buffer.put({'message': message, 'is_status_request': True})
+        await self.send_buffer.put({"message": message, "is_status_request": True})
         LOGGER.debug("Message %s was successfully queued.", message)

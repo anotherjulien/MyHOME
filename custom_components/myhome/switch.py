@@ -1,4 +1,4 @@
-"""Support for MyHome lights."""
+"""Support for MyHome switches (light modules used for controlled outlets, relays)."""
 import voluptuous as vol
 
 from homeassistant.components.switch import (
@@ -9,9 +9,7 @@ from homeassistant.components.switch import (
     SwitchEntity,
 )
 from homeassistant.const import (
-    CONF_NAME, 
-    ATTR_ENTITY_ID,
-    ATTR_STATE,
+    CONF_NAME,
     CONF_DEVICES,
     CONF_ENTITIES,
 )
@@ -39,7 +37,9 @@ MYHOME_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_WHERE): cv.string,
         vol.Optional(CONF_NAME): cv.string,
-        vol.Optional(CONF_DEVICE_CLASS): vol.In([DEVICE_CLASS_OUTLET, DEVICE_CLASS_SWITCH]),
+        vol.Optional(CONF_DEVICE_CLASS): vol.In(
+            [DEVICE_CLASS_OUTLET, DEVICE_CLASS_SWITCH]
+        ),
         vol.Optional(CONF_MANUFACTURER): cv.string,
         vol.Optional(CONF_DEVICE_MODEL): cv.string,
     }
@@ -49,24 +49,55 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {vol.Required(CONF_DEVICES): cv.schema_with_slug_keys(MYHOME_SCHEMA)}
 )
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+
+async def async_setup_platform(
+    hass, config, async_add_entities, discovery_info=None
+):  # pylint: disable=unused-argument
     hass.data[DOMAIN][CONF][PLATFORM] = {}
     _configured_switches = config.get(CONF_DEVICES)
-    
+
     if _configured_switches:
         for _, entity_info in _configured_switches.items():
             who = "1"
             where = entity_info[CONF_WHERE]
             device_id = f"{who}-{where}"
-            name = entity_info[CONF_NAME] if CONF_NAME in entity_info else f"A{where[:len(where)//2]}PL{where[len(where)//2:]}"
-            device_class = entity_info[CONF_DEVICE_CLASS] if CONF_DEVICE_CLASS in entity_info else DEVICE_CLASS_SWITCH
+            name = (
+                entity_info[CONF_NAME]
+                if CONF_NAME in entity_info
+                else f"A{where[:len(where)//2]}PL{where[len(where)//2:]}"
+            )
+            device_class = (
+                entity_info[CONF_DEVICE_CLASS]
+                if CONF_DEVICE_CLASS in entity_info
+                else DEVICE_CLASS_SWITCH
+            )
             entities = []
-            manufacturer = entity_info[CONF_MANUFACTURER] if CONF_MANUFACTURER in entity_info else None
-            model = entity_info[CONF_DEVICE_MODEL] if CONF_DEVICE_MODEL in entity_info else None
-            hass.data[DOMAIN][CONF][PLATFORM][device_id] = {CONF_WHO: who, CONF_WHERE: where, CONF_ENTITIES: entities, CONF_NAME: name, CONF_DEVICE_CLASS: device_class, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model}
+            manufacturer = (
+                entity_info[CONF_MANUFACTURER]
+                if CONF_MANUFACTURER in entity_info
+                else None
+            )
+            model = (
+                entity_info[CONF_DEVICE_MODEL]
+                if CONF_DEVICE_MODEL in entity_info
+                else None
+            )
+            hass.data[DOMAIN][CONF][PLATFORM][device_id] = {
+                CONF_WHO: who,
+                CONF_WHERE: where,
+                CONF_ENTITIES: entities,
+                CONF_NAME: name,
+                CONF_DEVICE_CLASS: device_class,
+                CONF_MANUFACTURER: manufacturer,
+                CONF_DEVICE_MODEL: model,
+            }
 
-async def async_setup_entry(hass, config_entry, async_add_entities):
-    if PLATFORM not in hass.data[DOMAIN][CONF]: return True
+
+async def async_setup_entry(
+    hass, config_entry, async_add_entities
+):  # pylint: disable=unused-argument
+    if PLATFORM not in hass.data[DOMAIN][CONF]:
+        return True
 
     _switches = []
     _configured_switches = hass.data[DOMAIN][CONF][PLATFORM]
@@ -81,23 +112,36 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=_configured_switches[_switch][CONF_DEVICE_CLASS],
             manufacturer=_configured_switches[_switch][CONF_MANUFACTURER],
             model=_configured_switches[_switch][CONF_DEVICE_MODEL],
-            gateway=hass.data[DOMAIN][CONF_GATEWAY]
+            gateway=hass.data[DOMAIN][CONF_GATEWAY],
         )
         _switches.append(_switch)
-        
+
     async_add_entities(_switches)
 
-async def async_unload_entry(hass, config_entry):
-    if PLATFORM not in hass.data[DOMAIN][CONF]: return True
-    
+
+async def async_unload_entry(hass, config_entry):  # pylint: disable=unused-argument
+    if PLATFORM not in hass.data[DOMAIN][CONF]:
+        return True
+
     _configured_switches = hass.data[DOMAIN][CONF][PLATFORM]
 
     for _switch in _configured_switches.keys():
         del hass.data[DOMAIN][CONF_ENTITIES][_switch]
 
-class MyHOMESwitch(SwitchEntity):
 
-    def __init__(self, hass, name: str, device_id: str, who: str, where: str, device_class: str, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler):
+class MyHOMESwitch(SwitchEntity):
+    def __init__(
+        self,
+        hass,
+        name: str,
+        device_id: str,
+        who: str,
+        where: str,
+        device_class: str,
+        manufacturer: str,
+        model: str,
+        gateway: MyHOMEGatewayHandler,
+    ):
 
         self._hass = hass
         self._device_id = device_id
@@ -109,19 +153,24 @@ class MyHOMESwitch(SwitchEntity):
 
         self._attr_name = name
         self._attr_unique_id = self._device_id
-        self._attr_extra_state_attributes = {"A": where[:len(where)//2], "PL": where[len(where)//2:]}
+        self._attr_extra_state_attributes = {
+            "A": where[: len(where) // 2],
+            "PL": where[len(where) // 2 :],
+        }
 
         self._attr_device_info = {
-            "identifiers": {
-                (DOMAIN, self._device_id)
-            },
+            "identifiers": {(DOMAIN, self._device_id)},
             "name": self._attr_name,
             "manufacturer": self._manufacturer,
             "model": self._model,
-            "via_device": (DOMAIN, self._gateway_handler.id),
+            "via_device": (DOMAIN, self._gateway_handler.unique_id),
         }
 
-        self._attr_device_class = DEVICE_CLASS_OUTLET if device_class.lower() == "outlet" else DEVICE_CLASS_SWITCH
+        self._attr_device_class = (
+            DEVICE_CLASS_OUTLET
+            if device_class.lower() == "outlet"
+            else DEVICE_CLASS_SWITCH
+        )
         self._attr_entity_registry_enabled_default = True
         self._attr_should_poll = False
         self._attr_is_on = False
@@ -140,13 +189,15 @@ class MyHOMESwitch(SwitchEntity):
 
         Only used by the generic entity update service.
         """
-        await self._gateway_handler.send_status_request(OWNLightingCommand.status(self._where))
+        await self._gateway_handler.send_status_request(
+            OWNLightingCommand.status(self._where)
+        )
 
-    async def async_turn_on(self, **kwargs):
+    async def async_turn_on(self, **kwargs):  # pylint: disable=unused-argument
         """Turn the device on."""
         await self._gateway_handler.send(OWNLightingCommand.switch_on(self._where))
 
-    async def async_turn_off(self, **kwargs):
+    async def async_turn_off(self, **kwargs):  # pylint: disable=unused-argument
         """Turn the device off."""
         await self._gateway_handler.send(OWNLightingCommand.switch_off(self._where))
 

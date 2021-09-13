@@ -2,7 +2,7 @@
 import voluptuous as vol
 
 from homeassistant.components.climate import (
-    ClimateEntity, 
+    ClimateEntity,
     PLATFORM_SCHEMA,
     DOMAIN as PLATFORM,
 )
@@ -73,7 +73,7 @@ MYHOME_SCHEMA = vol.Schema(
         vol.Optional(CONF_COOLING_SUPPORT): cv.boolean,
         vol.Optional(CONF_STANDALONE): cv.boolean,
         vol.Optional(CONF_CENTRAL): cv.boolean,
-        #vol.Optional(CONF_FAN_SUPPORT): cv.boolean,
+        # vol.Optional(CONF_FAN_SUPPORT): cv.boolean,
         vol.Optional(CONF_MANUFACTURER): cv.string,
         vol.Optional(CONF_DEVICE_MODEL): cv.string,
     }
@@ -83,7 +83,10 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {vol.Required(CONF_DEVICES): cv.schema_with_slug_keys(MYHOME_SCHEMA)}
 )
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+
+async def async_setup_platform(
+    hass, config, async_add_entities, discovery_info=None
+):  # pylint: disable=unused-argument
     hass.data[DOMAIN][CONF][PLATFORM] = {}
     _configured_climate_devices = config.get(CONF_DEVICES)
 
@@ -91,21 +94,69 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         for _, entity_info in _configured_climate_devices.items():
             who = "4"
             zone = entity_info[CONF_ZONE] if CONF_ZONE in entity_info else "#0"
-            central = entity_info[CONF_CENTRAL] if CONF_CENTRAL in entity_info else False
+            central = (
+                entity_info[CONF_CENTRAL] if CONF_CENTRAL in entity_info else False
+            )
             zone = f"#0#{zone}" if central and zone != "#0" else zone
             device_id = f"{who}-{zone}"
-            name = entity_info[CONF_NAME] if CONF_NAME in entity_info else "Central unit" if zone.startswith("#0") else f"Zone {zone}"
-            heating = entity_info[CONF_HEATING_SUPPORT] if CONF_HEATING_SUPPORT in entity_info else True
-            cooling = entity_info[CONF_COOLING_SUPPORT] if CONF_COOLING_SUPPORT in entity_info else False
-            fan = entity_info[CONF_FAN_SUPPORT] if CONF_FAN_SUPPORT in entity_info else False
-            standalone = entity_info[CONF_STANDALONE] if CONF_STANDALONE in entity_info else False
+            name = (
+                entity_info[CONF_NAME]
+                if CONF_NAME in entity_info
+                else "Central unit"
+                if zone.startswith("#0")
+                else f"Zone {zone}"
+            )
+            heating = (
+                entity_info[CONF_HEATING_SUPPORT]
+                if CONF_HEATING_SUPPORT in entity_info
+                else True
+            )
+            cooling = (
+                entity_info[CONF_COOLING_SUPPORT]
+                if CONF_COOLING_SUPPORT in entity_info
+                else False
+            )
+            fan = (
+                entity_info[CONF_FAN_SUPPORT]
+                if CONF_FAN_SUPPORT in entity_info
+                else False
+            )
+            standalone = (
+                entity_info[CONF_STANDALONE]
+                if CONF_STANDALONE in entity_info
+                else False
+            )
             entities = []
-            manufacturer = entity_info[CONF_MANUFACTURER] if CONF_MANUFACTURER in entity_info else None
-            model = entity_info[CONF_DEVICE_MODEL] if CONF_DEVICE_MODEL in entity_info else None
-            hass.data[DOMAIN][CONF][PLATFORM][device_id] = {CONF_WHO: who, CONF_ZONE: zone, CONF_ENTITIES: entities, CONF_NAME: name, CONF_HEATING_SUPPORT: heating, CONF_COOLING_SUPPORT: cooling, CONF_FAN_SUPPORT: fan, CONF_STANDALONE: standalone, CONF_CENTRAL: central, CONF_MANUFACTURER: manufacturer, CONF_DEVICE_MODEL: model}
+            manufacturer = (
+                entity_info[CONF_MANUFACTURER]
+                if CONF_MANUFACTURER in entity_info
+                else None
+            )
+            model = (
+                entity_info[CONF_DEVICE_MODEL]
+                if CONF_DEVICE_MODEL in entity_info
+                else None
+            )
+            hass.data[DOMAIN][CONF][PLATFORM][device_id] = {
+                CONF_WHO: who,
+                CONF_ZONE: zone,
+                CONF_ENTITIES: entities,
+                CONF_NAME: name,
+                CONF_HEATING_SUPPORT: heating,
+                CONF_COOLING_SUPPORT: cooling,
+                CONF_FAN_SUPPORT: fan,
+                CONF_STANDALONE: standalone,
+                CONF_CENTRAL: central,
+                CONF_MANUFACTURER: manufacturer,
+                CONF_DEVICE_MODEL: model,
+            }
 
-async def async_setup_entry(hass, config_entry, async_add_entities):
-    if PLATFORM not in hass.data[DOMAIN][CONF]: return True
+
+async def async_setup_entry(
+    hass, config_entry, async_add_entities
+):  # pylint: disable=unused-argument
+    if PLATFORM not in hass.data[DOMAIN][CONF]:
+        return True
 
     _climate_devices = []
     _configured_climate_devices = hass.data[DOMAIN][CONF][PLATFORM]
@@ -122,25 +173,44 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             fan=_configured_climate_devices[_climate_device][CONF_FAN_SUPPORT],
             standalone=_configured_climate_devices[_climate_device][CONF_STANDALONE],
             central=_configured_climate_devices[_climate_device][CONF_CENTRAL],
-            manufacturer=_configured_climate_devices[_climate_device][CONF_MANUFACTURER],
+            manufacturer=_configured_climate_devices[_climate_device][
+                CONF_MANUFACTURER
+            ],
             model=_configured_climate_devices[_climate_device][CONF_DEVICE_MODEL],
-            gateway=hass.data[DOMAIN][CONF_GATEWAY]
+            gateway=hass.data[DOMAIN][CONF_GATEWAY],
         )
         _climate_devices.append(_climate_device)
-        
+
     async_add_entities(_climate_devices)
 
-async def async_unload_entry(hass, config_entry):
-    if PLATFORM not in hass.data[DOMAIN][CONF]: return True
+
+async def async_unload_entry(hass, config_entry):  # pylint: disable=unused-argument
+    if PLATFORM not in hass.data[DOMAIN][CONF]:
+        return True
 
     _configured_climate_devices = hass.data[DOMAIN][CONF][PLATFORM]
 
     for _climate_device in _configured_climate_devices.keys():
         del hass.data[DOMAIN][CONF_ENTITIES][_climate_device]
 
-class MyHOMEClimate(ClimateEntity):
 
-    def __init__(self, hass, name: str, device_id: str, who: str, zone: str, heating: bool, cooling: bool, fan: bool, standalone: bool, central: bool, manufacturer: str, model: str, gateway: MyHOMEGatewayHandler):
+class MyHOMEClimate(ClimateEntity):
+    def __init__(
+        self,
+        hass,
+        name: str,
+        device_id: str,
+        who: str,
+        zone: str,
+        heating: bool,
+        cooling: bool,
+        fan: bool,
+        standalone: bool,
+        central: bool,
+        manufacturer: str,
+        model: str,
+        gateway: MyHOMEGatewayHandler,
+    ):
 
         self._hass = hass
         self._device_id = device_id
@@ -156,15 +226,13 @@ class MyHOMEClimate(ClimateEntity):
         self._gateway_handler = gateway
 
         self._attr_device_info = {
-            "identifiers": {
-                (DOMAIN, self._device_id)
-            },
+            "identifiers": {(DOMAIN, self._device_id)},
             "name": self._attr_name,
             "manufacturer": self._manufacturer,
             "model": self._model,
-            "via_device": (DOMAIN, self._gateway_handler.id),
+            "via_device": (DOMAIN, self._gateway_handler.unique_id),
         }
-        
+
         self._attr_entity_registry_enabled_default = True
         self._attr_should_poll = False
 
@@ -218,8 +286,10 @@ class MyHOMEClimate(ClimateEntity):
 
         Only used by the generic entity update service.
         """
-        await self._gateway_handler.send_status_request(OWNHeatingCommand.status(self._zone))
-    
+        await self._gateway_handler.send_status_request(
+            OWNHeatingCommand.status(self._zone)
+        )
+
     @property
     def target_temperature(self) -> float:
         if self._local_target_temperature is not None:
@@ -230,29 +300,77 @@ class MyHOMEClimate(ClimateEntity):
     async def async_set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
         if hvac_mode == HVAC_MODE_OFF:
-            await self._gateway_handler.send(OWNHeatingCommand.set_mode(where=self._zone, mode=CLIMATE_MODE_OFF, standalone=self._standalone))
+            await self._gateway_handler.send(
+                OWNHeatingCommand.set_mode(
+                    where=self._zone, mode=CLIMATE_MODE_OFF, standalone=self._standalone
+                )
+            )
         elif hvac_mode == HVAC_MODE_AUTO:
-            await self._gateway_handler.send(OWNHeatingCommand.set_mode(where=self._zone, mode=CLIMATE_MODE_AUTO, standalone=self._standalone))
+            await self._gateway_handler.send(
+                OWNHeatingCommand.set_mode(
+                    where=self._zone,
+                    mode=CLIMATE_MODE_AUTO,
+                    standalone=self._standalone,
+                )
+            )
         elif hvac_mode == HVAC_MODE_HEAT:
             if self._target_temperature is not None:
-                await self._gateway_handler.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=self._target_temperature, mode=CLIMATE_MODE_HEAT, standalone=self._standalone))
+                await self._gateway_handler.send(
+                    OWNHeatingCommand.set_temperature(
+                        where=self._zone,
+                        temperature=self._target_temperature,
+                        mode=CLIMATE_MODE_HEAT,
+                        standalone=self._standalone,
+                    )
+                )
         elif hvac_mode == HVAC_MODE_COOL:
             if self._target_temperature is not None:
-                await self._gateway_handler.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=self._target_temperature, mode=CLIMATE_MODE_COOL, standalone=self._standalone))
+                await self._gateway_handler.send(
+                    OWNHeatingCommand.set_temperature(
+                        where=self._zone,
+                        temperature=self._target_temperature,
+                        mode=CLIMATE_MODE_COOL,
+                        standalone=self._standalone,
+                    )
+                )
 
-    async def async_set_fan_mode(self, fan_mode):
-        """Set new target fan mode."""
-        pass
+    # async def async_set_fan_mode(self, fan_mode):
+    #     """Set new target fan mode."""
+    #     pass
 
     async def async_set_temperature(self, **kwargs):
         """Set new target temperature."""
-        target_temperature = kwargs.get("temperature", self._local_target_temperature) - self._local_offset
+        target_temperature = (
+            kwargs.get("temperature", self._local_target_temperature)
+            - self._local_offset
+        )
         if self._attr_hvac_mode == HVAC_MODE_HEAT:
-            await self._gateway_handler.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=target_temperature, mode=CLIMATE_MODE_HEAT, standalone=self._standalone))
+            await self._gateway_handler.send(
+                OWNHeatingCommand.set_temperature(
+                    where=self._zone,
+                    temperature=target_temperature,
+                    mode=CLIMATE_MODE_HEAT,
+                    standalone=self._standalone,
+                )
+            )
         elif self._attr_hvac_mode == HVAC_MODE_COOL:
-            await self._gateway_handler.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=target_temperature, mode=CLIMATE_MODE_COOL, standalone=self._standalone))
+            await self._gateway_handler.send(
+                OWNHeatingCommand.set_temperature(
+                    where=self._zone,
+                    temperature=target_temperature,
+                    mode=CLIMATE_MODE_COOL,
+                    standalone=self._standalone,
+                )
+            )
         else:
-            await self._gateway_handler.send(OWNHeatingCommand.set_temperature(where=self._zone, temperature=target_temperature, mode=CLIMATE_MODE_AUTO, standalone=self._standalone))
+            await self._gateway_handler.send(
+                OWNHeatingCommand.set_temperature(
+                    where=self._zone,
+                    temperature=target_temperature,
+                    mode=CLIMATE_MODE_AUTO,
+                    standalone=self._standalone,
+                )
+            )
 
     def handle_event(self, message: OWNHeatingEvent):
         """Handle an event message."""
@@ -265,15 +383,21 @@ class MyHOMEClimate(ClimateEntity):
         elif message.message_type == MESSAGE_TYPE_TARGET_TEMPERATURE:
             LOGGER.info(message.human_readable_log)
             self._target_temperature = message.set_temperature
-            self._local_target_temperature = self._target_temperature + self._local_offset
+            self._local_target_temperature = (
+                self._target_temperature + self._local_offset
+            )
         elif message.message_type == MESSAGE_TYPE_LOCAL_OFFSET:
             LOGGER.info(message.human_readable_log)
             self._local_offset = message.local_offset
-            self._local_target_temperature = self._target_temperature + self._local_offset
+            self._local_target_temperature = (
+                self._target_temperature + self._local_offset
+            )
         elif message.message_type == MESSAGE_TYPE_LOCAL_TARGET_TEMPERATURE:
             LOGGER.info(message.human_readable_log)
             self._local_target_temperature = message.local_set_temperature
-            self._target_temperature = self._local_target_temperature - self._local_offset
+            self._target_temperature = (
+                self._local_target_temperature - self._local_offset
+            )
         elif message.message_type == MESSAGE_TYPE_MODE:
             if message.mode == CLIMATE_MODE_AUTO:
                 LOGGER.info(message.human_readable_log)
@@ -309,13 +433,15 @@ class MyHOMEClimate(ClimateEntity):
                 LOGGER.info(message.human_readable_log)
                 self._attr_hvac_mode = HVAC_MODE_HEAT
                 if self._attr_hvac_action == CURRENT_HVAC_OFF:
-                    self._attr_hvac_action = CURRENT_HVAC_IDLE 
+                    self._attr_hvac_action = CURRENT_HVAC_IDLE
             elif message.mode == CLIMATE_MODE_OFF:
                 LOGGER.info(message.human_readable_log)
                 self._attr_hvac_mode = HVAC_MODE_OFF
                 self._attr_hvac_action = CURRENT_HVAC_OFF
             self._target_temperature = message.set_temperature
-            self._local_target_temperature = self._target_temperature + self._local_offset
+            self._local_target_temperature = (
+                self._target_temperature + self._local_offset
+            )
         elif message.message_type == MESSAGE_TYPE_ACTION:
             LOGGER.info(message.human_readable_log)
             if message.is_active():
@@ -332,5 +458,5 @@ class MyHOMEClimate(ClimateEntity):
                 self._attr_hvac_action = CURRENT_HVAC_OFF
             else:
                 self._attr_hvac_action = CURRENT_HVAC_IDLE
-                
+
         self.async_schedule_update_ha_state()

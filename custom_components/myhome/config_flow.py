@@ -1,20 +1,25 @@
 """Config flow to configure MyHome."""
-import async_timeout
 import asyncio
+from typing import Dict, Optional
 import ipaddress
 import re
-from typing import Dict, Optional
+import async_timeout
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow, CONN_CLASS_LOCAL_PUSH
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    OptionsFlow,
+    CONN_CLASS_LOCAL_PUSH,
+)
 from homeassistant.core import callback
 from homeassistant.const import (
-    CONF_HOST, 
-    CONF_PORT, 
-    CONF_PASSWORD, 
-    CONF_NAME, 
-    CONF_MAC, 
-    CONF_ID, 
+    CONF_HOST,
+    CONF_PORT,
+    CONF_PASSWORD,
+    CONF_NAME,
+    CONF_MAC,
+    CONF_ID,
     CONF_FRIENDLY_NAME,
 )
 from homeassistant.helpers import device_registry
@@ -33,28 +38,25 @@ from .const import (
     CONF_MANUFACTURER_URL,
     CONF_UDN,
     CONF_WORKER_COUNT,
-    CONF_WHO,
-    CONF_WHERE,
-    CONF_PARENT_ID,
     DOMAIN,
     LOGGER,
 )
 from .gateway import MyHOMEGatewayHandler
 
-class MACAddress():
 
+class MACAddress:
     def __init__(self, mac: str):
-        mac = re.sub('[.:-]', '', mac).upper()
-        mac = ''.join(mac.split())
+        mac = re.sub("[.:-]", "", mac).upper()
+        mac = "".join(mac.split())
         if len(mac) != 12 or not mac.isalnum() or re.search("[G-Z]", mac) is not None:
             raise ValueError("Invalid MAC address")
         self.mac = mac
 
     def __repr__(self) -> str:
-        return ":".join(["%s" % (self.mac[i:i+2]) for i in range(0, 12, 2)])
+        return ":".join(["%s" % (self.mac[i : i + 2]) for i in range(0, 12, 2)])
 
     def __str__(self) -> str:
-        return ":".join(["%s" % (self.mac[i:i+2]) for i in range(0, 12, 2)])
+        return ":".join(["%s" % (self.mac[i : i + 2]) for i in range(0, 12, 2)])
 
 
 class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
@@ -62,8 +64,6 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
     CONNECTION_CLASS = CONN_CLASS_LOCAL_PUSH
-
-    # pylint: disable=no-member # https://github.com/PyCQA/pylint/issues/3167
 
     @staticmethod
     @callback
@@ -89,8 +89,13 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
             and self.discovered_gateways is not None
             and user_input["serial"] in self.discovered_gateways
         ):
-            self.gateway_handler = await OWNGateway.build_from_discovery_info(self.discovered_gateways[user_input["serial"]])
-            await self.async_set_unique_id(device_registry.format_mac(self.gateway_handler.serial), raise_on_progress=False)
+            self.gateway_handler = await OWNGateway.build_from_discovery_info(
+                self.discovered_gateways[user_input["serial"]]
+            )
+            await self.async_set_unique_id(
+                device_registry.format_mac(self.gateway_handler.serial),
+                raise_on_progress=False,
+            )
             # We pass user input to link so it will attempt to link right away
             return await self.async_step_test_connection()
 
@@ -100,22 +105,20 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
         except asyncio.TimeoutError:
             return self.async_abort(reason="discovery_timeout")
 
-        #if not local_gateways:
-        #    return self.async_abort(reason="no_gateways")
-
         # Find already configured hosts
         already_configured = self._async_current_ids(False)
-        local_gateways = [gateway for gateway in local_gateways if gateway["serialNumber"] not in already_configured]
+        local_gateways = [
+            gateway
+            for gateway in local_gateways
+            if gateway["serialNumber"] not in already_configured
+        ]
 
         if not local_gateways:
             return self.async_abort(reason="all_configured")
 
-        # if len(local_gateways) == 1:
-        #     self.gateway = await OWNGateway.build_from_discovery_info(local_gateways[0])
-        #     await self.async_set_unique_id(device_registry.format_mac(self.gateway.serial), raise_on_progress=False)
-        #     return await self.async_step_test_connection()
-
-        self.discovered_gateways = {gateway["serialNumber"]: gateway for gateway in local_gateways}
+        self.discovered_gateways = {
+            gateway["serialNumber"]: gateway for gateway in local_gateways
+        }
 
         return self.async_show_form(
             step_id="user",
@@ -123,7 +126,12 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required("serial"): vol.In(
                         {
-                            **{gateway["serialNumber"]: f"{gateway['modelName']} Gateway ({gateway['address']})" for gateway in local_gateways},
+                            **{
+                                gateway[
+                                    "serialNumber"
+                                ]: f"{gateway['modelName']} Gateway ({gateway['address']})"
+                                for gateway in local_gateways
+                            },
                             "00:00:00:00:00:00": "Custom",
                         }
                     )
@@ -131,75 +139,115 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
             ),
         )
 
-    async def async_step_custom(self, user_input=None, errors={}):
+    async def async_step_custom(
+        self, user_input=None, errors={}
+    ):  # pylint: disable=dangerous-default-value
         """Handle manual gateway setup."""
 
         if user_input is not None:
-            
-            try: 
-                user_input["address"] = str(ipaddress.IPv4Address(user_input["address"]))
+
+            try:
+                user_input["address"] = str(
+                    ipaddress.IPv4Address(user_input["address"])
+                )
             except ipaddress.AddressValueError:
                 errors["address"] = "invalid_ip"
-                
+
             try:
-                user_input["serialNumber"] = device_registry.format_mac(MACAddress(user_input["serialNumber"]))
+                user_input["serialNumber"] = device_registry.format_mac(
+                    MACAddress(user_input["serialNumber"])
+                )
             except ValueError:
                 errors["serialNumber"] = "invalid_mac"
 
             if not errors:
-                user_input["ssdp_location"]= None,
-                user_input["ssdp_st"]= None,
-                user_input["deviceType"]= None,
-                user_input["friendlyName"]= None,
-                user_input["manufacturer"] = "BTicino S.p.A.",
-                user_input["manufacturerURL"]= "http://www.bticino.it",
-                user_input["modelNumber"]= None,
-                user_input["UDN"]= None,
+                user_input["ssdp_location"] = (None,)
+                user_input["ssdp_st"] = (None,)
+                user_input["deviceType"] = (None,)
+                user_input["friendlyName"] = (None,)
+                user_input["manufacturer"] = ("BTicino S.p.A.",)
+                user_input["manufacturerURL"] = ("http://www.bticino.it",)
+                user_input["modelNumber"] = (None,)
+                user_input["UDN"] = (None,)
                 self.gateway_handler = OWNGateway(user_input)
-                await self.async_set_unique_id(user_input["serialNumber"], raise_on_progress=False)
+                await self.async_set_unique_id(
+                    user_input["serialNumber"], raise_on_progress=False
+                )
                 return await self.async_step_test_connection()
 
-        address_suggestion = user_input["address"] if user_input is not None and user_input["address"] is not None else "192.168.1.135"
-        port_suggestion = user_input["port"] if user_input is not None and user_input["port"] is not None else 20000
-        serialNumber_suggestion = user_input["serialNumber"] if user_input is not None and user_input["serialNumber"] is not None else "00:03:50:00:00:00"
-        modelName_suggestion = user_input["modelName"] if user_input is not None and user_input["modelName"] is not None else "F454"
+        address_suggestion = (
+            user_input["address"]
+            if user_input is not None and user_input["address"] is not None
+            else "192.168.1.135"
+        )
+        port_suggestion = (
+            user_input["port"]
+            if user_input is not None and user_input["port"] is not None
+            else 20000
+        )
+        serial_number_suggestion = (
+            user_input["serialNumber"]
+            if user_input is not None and user_input["serialNumber"] is not None
+            else "00:03:50:00:00:00"
+        )
+        model_name_suggestion = (
+            user_input["modelName"]
+            if user_input is not None and user_input["modelName"] is not None
+            else "F454"
+        )
 
         return self.async_show_form(
             step_id="custom",
             data_schema=vol.Schema(
                 {
-                    vol.Required("address", description={"suggested_value": address_suggestion}): str,
-                    vol.Required("port", description={"suggested_value": port_suggestion}): int,
-                    vol.Required("serialNumber", description={"suggested_value": serialNumber_suggestion}): str,
-                    vol.Required("modelName", description={"suggested_value": modelName_suggestion}): str,
+                    vol.Required(
+                        "address", description={"suggested_value": address_suggestion}
+                    ): str,
+                    vol.Required(
+                        "port", description={"suggested_value": port_suggestion}
+                    ): int,
+                    vol.Required(
+                        "serialNumber",
+                        description={"suggested_value": serial_number_suggestion},
+                    ): str,
+                    vol.Required(
+                        "modelName",
+                        description={"suggested_value": model_name_suggestion},
+                    ): str,
                 }
             ),
-            errors=errors
+            errors=errors,
         )
 
-    async def async_step_reauth(self, config: dict=None):
+    async def async_step_reauth(self, config: dict = None):
         """Perform reauth upon an authentication error."""
 
         self._existing_entry = await self.async_set_unique_id(config[CONF_MAC])
 
-        self.gateway_handler = MyHOMEGatewayHandler(hass=self.hass, config_entry=self._existing_entry).gateway
+        self.gateway_handler = MyHOMEGatewayHandler(
+            hass=self.hass, config_entry=self._existing_entry
+        ).gateway
 
         self.context.update(
             {
                 CONF_HOST: self.gateway_handler.host,
-                CONF_NAME: self.gateway_handler.modelName,
+                CONF_NAME: self.gateway_handler.model,
                 CONF_MAC: self.gateway_handler.serial,
                 "title_placeholders": {
                     CONF_HOST: self.gateway_handler.host,
-                    CONF_NAME: self.gateway_handler.modelName,
+                    CONF_NAME: self.gateway_handler.model,
                     CONF_MAC: self.gateway_handler.serial,
                 },
             }
         )
 
-        return await self.async_step_password(errors={CONF_OWN_PASSWORD: "password_error"})
+        return await self.async_step_password(
+            errors={CONF_OWN_PASSWORD: "password_error"}
+        )
 
-    async def async_step_test_connection(self, user_input=None, errors={}):
+    async def async_step_test_connection(
+        self, user_input=None, errors={}
+    ):  # pylint: disable=unused-argument,dangerous-default-value
         """Testing connection to the OWN Gateway.
 
         Given a configured gateway, will attempt to connect and negociate a
@@ -211,11 +259,11 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
         self.context.update(
             {
                 CONF_HOST: gateway.host,
-                CONF_NAME: gateway.modelName,
+                CONF_NAME: gateway.model_name,
                 CONF_MAC: gateway.serial,
                 "title_placeholders": {
                     CONF_HOST: gateway.host,
-                    CONF_NAME: gateway.modelName,
+                    CONF_NAME: gateway.model_name,
                     CONF_MAC: gateway.serial,
                 },
             }
@@ -232,40 +280,54 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
                 CONF_PASSWORD: gateway.password,
                 CONF_SSDP_LOCATION: gateway.ssdp_location,
                 CONF_SSDP_ST: gateway.ssdp_st,
-                CONF_DEVICE_TYPE: gateway.deviceType,
-                CONF_FRIENDLY_NAME: gateway.friendlyName,
+                CONF_DEVICE_TYPE: gateway.device_type,
+                CONF_FRIENDLY_NAME: gateway.friendly_name,
                 CONF_MANUFACTURER: gateway.manufacturer,
-                CONF_MANUFACTURER_URL: gateway.manufacturerURL,
-                CONF_NAME: gateway.modelName,
-                CONF_FIRMWARE: gateway.modelNumber,
+                CONF_MANUFACTURER_URL: gateway.manufacturer_url,
+                CONF_NAME: gateway.model_name,
+                CONF_FIRMWARE: gateway.model_number,
                 CONF_MAC: device_registry.format_mac(gateway.serial),
-                CONF_UDN: gateway.UDN,
+                CONF_UDN: gateway.udn,
             }
             _new_entry_options = {
-                CONF_WORKER_COUNT: self._existing_entry.options[CONF_WORKER_COUNT] if self._existing_entry and CONF_WORKER_COUNT in self._existing_entry.options else 1,
+                CONF_WORKER_COUNT: self._existing_entry.options[CONF_WORKER_COUNT]
+                if self._existing_entry
+                and CONF_WORKER_COUNT in self._existing_entry.options
+                else 1,
             }
 
             if self._existing_entry:
-                self.hass.config_entries.async_update_entry(self._existing_entry, data=_new_entry_data, options=_new_entry_options)
-                await self.hass.config_entries.async_reload(self._existing_entry.entry_id)
+                self.hass.config_entries.async_update_entry(
+                    self._existing_entry,
+                    data=_new_entry_data,
+                    options=_new_entry_options,
+                )
+                await self.hass.config_entries.async_reload(
+                    self._existing_entry.entry_id
+                )
                 return self.async_abort(reason="reauth_successful")
             else:
                 return self.async_create_entry(
-                    title=f"{gateway.modelName} Gateway",
+                    title=f"{gateway.model_name} Gateway",
                     data=_new_entry_data,
                     options=_new_entry_options,
                 )
         else:
             if test_result["Message"] == "password_required":
                 return await self.async_step_password()
-            elif test_result["Message"] == "password_error" or test_result["Message"] == "password_retry":
+            elif (
+                test_result["Message"] == "password_error"
+                or test_result["Message"] == "password_retry"
+            ):
                 errors["password"] = test_result["Message"]
                 return await self.async_step_password(errors=errors)
             else:
                 return self.async_abort(reason=test_result["Message"])
 
-    async def async_step_port(self, user_input=None, errors={}):
-        """ Port information for the gateway is missing.
+    async def async_step_port(
+        self, user_input=None, errors={}
+    ):  # pylint: disable=dangerous-default-value
+        """Port information for the gateway is missing.
 
         Asking user to provide the port on which the gateway is listening.
         """
@@ -280,7 +342,9 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
             step_id="port",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_PORT, description={"suggested_value": 20000}): int,
+                    vol.Required(
+                        CONF_PORT, description={"suggested_value": 20000}
+                    ): int,
                 }
             ),
             description_placeholders={
@@ -288,11 +352,13 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
                 CONF_NAME: self.context[CONF_NAME],
                 CONF_MAC: self.context[CONF_MAC],
             },
-            errors=errors
+            errors=errors,
         )
 
-    async def async_step_password(self, user_input=None, errors={}):
-        """ Password is required to connect the gateway.
+    async def async_step_password(
+        self, user_input=None, errors={}
+    ):  # pylint: disable=dangerous-default-value
+        """Password is required to connect the gateway.
 
         Asking user to provide the gateway's password.
         """
@@ -305,13 +371,15 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
                 _suggested_password = self.gateway_handler.password
             else:
                 _suggested_password = 12345
-        
 
         return self.async_show_form(
             step_id="password",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_OWN_PASSWORD, description={"suggested_value": _suggested_password}): str,
+                    vol.Required(
+                        CONF_OWN_PASSWORD,
+                        description={"suggested_value": _suggested_password},
+                    ): str,
                 }
             ),
             description_placeholders={
@@ -319,11 +387,11 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
                 CONF_NAME: self.context[CONF_NAME],
                 CONF_MAC: self.context[CONF_MAC],
             },
-            errors=errors
+            errors=errors,
         )
 
     async def async_step_ssdp(self, discovery_info):
-        """ Handle a discovered OpenWebNet gateway.
+        """Handle a discovered OpenWebNet gateway.
 
         This flow is triggered by the SSDP component. It will check if the
         gateway is already configured and if not, it will ask for the connection port
@@ -332,11 +400,17 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
 
         if "port" not in discovery_info:
             discovery_info["port"] = None
-        
+
         gateway = await OWNGateway.build_from_discovery_info(discovery_info)
         await self.async_set_unique_id(device_registry.format_mac(gateway.id))
         LOGGER.info("Found gateway: %s", gateway.address)
-        updatable = {CONF_HOST: gateway.address, CONF_NAME: gateway.modelName, CONF_FRIENDLY_NAME: gateway.friendlyName, CONF_UDN: gateway.UDN, CONF_FIRMWARE: gateway.firmware}
+        updatable = {
+            CONF_HOST: gateway.address,
+            CONF_NAME: gateway.model_name,
+            CONF_FRIENDLY_NAME: gateway.friendly_name,
+            CONF_UDN: gateway.udn,
+            CONF_FIRMWARE: gateway.firmware,
+        }
         if gateway.port is not None:
             updatable[CONF_PORT] = gateway.port
 
@@ -347,6 +421,7 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
         if self.gateway_handler.port is None:
             return await self.async_step_port()
         return await self.async_step_test_connection()
+
 
 class MyhomeOptionsFlowHandler(OptionsFlow):
     """Handle MyHome options."""
@@ -359,14 +434,16 @@ class MyhomeOptionsFlowHandler(OptionsFlow):
         if CONF_WORKER_COUNT not in self.options:
             self.options[CONF_WORKER_COUNT] = 1
 
-    async def async_step_init(self, user_input=None):
+    async def async_step_init(self, user_input=None):  # pylint: disable=unused-argument
         """Manage the MyHome options."""
         return await self.async_step_user()
 
-    async def async_step_user(self, user_input=None, errors={}):
+    async def async_step_user(
+        self, user_input=None, errors={}
+    ):  # pylint: disable=dangerous-default-value
         """Manage the MyHome devices options."""
 
-        errors={}
+        errors = {}
 
         if user_input is not None:
             if not 1 <= user_input[CONF_WORKER_COUNT] <= 10:
@@ -374,30 +451,48 @@ class MyhomeOptionsFlowHandler(OptionsFlow):
 
             self.options.update({CONF_WORKER_COUNT: user_input[CONF_WORKER_COUNT]})
 
-            _data_update = not (self.data[CONF_HOST] == user_input[CONF_ADDRESS] and self.data[CONF_OWN_PASSWORD] == user_input[CONF_OWN_PASSWORD])
+            _data_update = not (
+                self.data[CONF_HOST] == user_input[CONF_ADDRESS]
+                and self.data[CONF_OWN_PASSWORD] == user_input[CONF_OWN_PASSWORD]
+            )
             self.data.update({CONF_HOST: user_input[CONF_ADDRESS]})
             self.data.update({CONF_OWN_PASSWORD: user_input[CONF_OWN_PASSWORD]})
 
-            try: 
+            try:
                 self.data[CONF_HOST] = str(ipaddress.IPv4Address(self.data[CONF_HOST]))
             except ipaddress.AddressValueError:
                 errors[CONF_ADDRESS] = "invalid_ip"
 
             if not errors:
                 if _data_update:
-                    self.hass.config_entries.async_update_entry(self.config_entry, data=self.data)
-                    await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+                    self.hass.config_entries.async_update_entry(
+                        self.config_entry, data=self.data
+                    )
+                    await self.hass.config_entries.async_reload(
+                        self.config_entry.entry_id
+                    )
 
                 return self.async_create_entry(title="", data=self.options)
-                
+
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_ADDRESS, description={"suggested_value": self.data[CONF_HOST]}): str,
-                    vol.Required(CONF_OWN_PASSWORD, description={"suggested_value": self.data[CONF_PASSWORD]}): str,
-                    vol.Required(CONF_WORKER_COUNT, description={"suggested_value": self.options[CONF_WORKER_COUNT]}): int,
+                    vol.Required(
+                        CONF_ADDRESS,
+                        description={"suggested_value": self.data[CONF_HOST]},
+                    ): str,
+                    vol.Required(
+                        CONF_OWN_PASSWORD,
+                        description={"suggested_value": self.data[CONF_PASSWORD]},
+                    ): str,
+                    vol.Required(
+                        CONF_WORKER_COUNT,
+                        description={
+                            "suggested_value": self.options[CONF_WORKER_COUNT]
+                        },
+                    ): int,
                 }
             ),
-            errors=errors
+            errors=errors,
         )

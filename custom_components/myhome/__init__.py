@@ -25,6 +25,7 @@ from .gateway import MyHOMEGatewayHandler
 
 PLATFORMS = ["light", "switch", "cover", "climate", "binary_sensor", "sensor"]
 
+
 async def async_setup(hass, config):
     """Set up the MyHOME component."""
     hass.data[DOMAIN] = {}
@@ -36,26 +37,39 @@ async def async_setup(hass, config):
 
     return False
 
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
-    if CONF not in hass.data[DOMAIN] : hass.data[DOMAIN][CONF] = {}
-    if CONF_ENTITIES not in hass.data[DOMAIN] : hass.data[DOMAIN][CONF_ENTITIES] = {}
+    if CONF not in hass.data[DOMAIN]:
+        hass.data[DOMAIN][CONF] = {}
+    if CONF_ENTITIES not in hass.data[DOMAIN]:
+        hass.data[DOMAIN][CONF_ENTITIES] = {}
 
     # Migrating the config entry's unique_id if it was not formated to the recommended hass standard
     if entry.unique_id != format_mac(entry.unique_id):
-        hass.config_entries.async_update_entry(entry, unique_id=format_mac(entry.unique_id))
+        hass.config_entries.async_update_entry(
+            entry, unique_id=format_mac(entry.unique_id)
+        )
         LOGGER.warning("Migrating config entry unique_id to %s", entry.unique_id)
 
-    hass.data[DOMAIN][CONF_GATEWAY] = MyHOMEGatewayHandler(hass=hass, config_entry=entry)
+    hass.data[DOMAIN][CONF_GATEWAY] = MyHOMEGatewayHandler(
+        hass=hass, config_entry=entry
+    )
 
     try:
         tests_results = await hass.data[DOMAIN][CONF_GATEWAY].test()
     except OSError as ose:
         _gateway_handler = hass.data[DOMAIN].pop(CONF_GATEWAY)
-        raise ConfigEntryNotReady(f"Gateway cannot be reached at {_gateway_handler.gateway.host}, make sure its address is correct.") from ose
+        _host = _gateway_handler.gateway.host
+        raise ConfigEntryNotReady(
+            f"Gateway cannot be reached at {_host}, make sure its address is correct."
+        ) from ose
 
     if not tests_results["Success"]:
-        if tests_results["Message"] == "password_error" or tests_results["Message"] == "password_required":
+        if (
+            tests_results["Message"] == "password_error"
+            or tests_results["Message"] == "password_required"
+        ):
             hass.async_create_task(
                 hass.config_entries.flow.async_init(
                     DOMAIN,
@@ -66,14 +80,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         del hass.data[DOMAIN][CONF_GATEWAY]
         return False
 
-    _command_worker_count = int(entry.options[CONF_WORKER_COUNT]) if CONF_WORKER_COUNT in entry.options else 1
+    _command_worker_count = (
+        int(entry.options[CONF_WORKER_COUNT])
+        if CONF_WORKER_COUNT in entry.options
+        else 1
+    )
 
     device_registry = await hass.helpers.device_registry.async_get_registry()
 
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
         connections={(CONNECTION_NETWORK_MAC, hass.data[DOMAIN][CONF_GATEWAY].mac)},
-        identifiers={(DOMAIN, hass.data[DOMAIN][CONF_GATEWAY].id)},
+        identifiers={(DOMAIN, hass.data[DOMAIN][CONF_GATEWAY].unique_id)},
         manufacturer=hass.data[DOMAIN][CONF_GATEWAY].manufacturer,
         name=hass.data[DOMAIN][CONF_GATEWAY].name,
         model=hass.data[DOMAIN][CONF_GATEWAY].model,
@@ -88,34 +106,38 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     await registry_cleanup(hass, entry)
 
     hass.data[DOMAIN][CONF_GATEWAY].listening_worker = hass.loop.create_task(
-        hass.data[DOMAIN][CONF_GATEWAY].listening_loop())
+        hass.data[DOMAIN][CONF_GATEWAY].listening_loop()
+    )
     for i in range(_command_worker_count):
         hass.data[DOMAIN][CONF_GATEWAY].sending_workers.append(
-            hass.loop.create_task(hass.data[DOMAIN][CONF_GATEWAY].sending_loop(i)))
+            hass.loop.create_task(hass.data[DOMAIN][CONF_GATEWAY].sending_loop(i))
+        )
 
-    async def handle_sync_time(call):
-        timezone = hass.config.as_dict()['time_zone']
-        await hass.data[DOMAIN][CONF_GATEWAY].send(OWNGatewayCommand.set_datetime_to_now(timezone))
+    async def handle_sync_time(call):  # pylint: disable=unused-argument
+        timezone = hass.config.as_dict()["time_zone"]
+        await hass.data[DOMAIN][CONF_GATEWAY].send(
+            OWNGatewayCommand.set_datetime_to_now(timezone)
+        )
 
     hass.services.async_register(DOMAIN, "sync_time", handle_sync_time)
 
     async def handle_send_message(call):
         message = call.data.get(ATTR_MESSAGE, None)
-        LOGGER.debug(f"message to be sent: {message}")
+        LOGGER.debug("message to be sent: %s", message)
         if message is not None:
-            OWN_message = OWNCommand.parse(message)
-            if OWN_message is not None:
-                LOGGER.debug(f"OWN Message: {OWN_message}")
-                if OWN_message.is_valid:
+            own_message = OWNCommand.parse(message)
+            if own_message is not None:
+                LOGGER.debug("OWN Message: %s", own_message)
+                if own_message.is_valid:
                     LOGGER.debug("message valid")
-                    await hass.data[DOMAIN][CONF_GATEWAY].send(OWN_message)
+                    await hass.data[DOMAIN][CONF_GATEWAY].send(own_message)
             else:
-                LOGGER.error(
-                    f"Could not parse message {message}, not sending it.")
+                LOGGER.error("Could not parse message %s, not sending it.", message)
 
     hass.services.async_register(DOMAIN, "send_message", handle_send_message)
 
     return True
+
 
 async def async_unload_entry(hass, entry):
     """Unload a config entry."""
@@ -131,6 +153,7 @@ async def async_unload_entry(hass, entry):
     gateway_handler = hass.data[DOMAIN].pop(CONF_GATEWAY)
     return await gateway_handler.close_listener()
 
+
 async def registry_cleanup(hass: HomeAssistant, entry: ConfigEntry):
 
     entity_registry = await hass.helpers.entity_registry.async_get_registry()
@@ -145,8 +168,8 @@ async def registry_cleanup(hass: HomeAssistant, entry: ConfigEntry):
         if entry.entry_id in device_entry.config_entries
     ]
     gateway_entry = device_registry.async_get_device(
-        identifiers={(DOMAIN, hass.data[DOMAIN][CONF_GATEWAY].id)},
-        connections={(CONNECTION_NETWORK_MAC, hass.data[DOMAIN][CONF_GATEWAY].mac)}
+        identifiers={(DOMAIN, hass.data[DOMAIN][CONF_GATEWAY].unique_id)},
+        connections={(CONNECTION_NETWORK_MAC, hass.data[DOMAIN][CONF_GATEWAY].mac)},
     )
     if gateway_entry.id in devices_to_be_removed:
         devices_to_be_removed.remove(gateway_entry.id)
@@ -157,11 +180,13 @@ async def registry_cleanup(hass: HomeAssistant, entry: ConfigEntry):
         if platform in hass.data[DOMAIN][CONF]:
             for _device in hass.data[DOMAIN][CONF][platform].keys():
                 if hass.data[DOMAIN][CONF][platform][_device][CONF_ENTITIES]:
-                    for _entity_name in hass.data[DOMAIN][CONF][platform][_device][CONF_ENTITIES]:
+                    for _entity_name in hass.data[DOMAIN][CONF][platform][_device][
+                        CONF_ENTITIES
+                    ]:
                         configured_entities.append(f"{_device}-{_entity_name}")
                 else:
                     configured_entities.append(_device)
-    
+
     for entity_entry in entity_entries:
 
         if entity_entry.unique_id in configured_entities:
