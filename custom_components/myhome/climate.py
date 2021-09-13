@@ -51,6 +51,7 @@ from OWNd.message import (
 from .const import (
     CONF,
     CONF_GATEWAY,
+    CONF_WHO,
     CONF_ZONE,
     CONF_MANUFACTURER,
     CONF_DEVICE_MODEL,
