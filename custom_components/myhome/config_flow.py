@@ -402,7 +402,7 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
             discovery_info["port"] = None
 
         gateway = await OWNGateway.build_from_discovery_info(discovery_info)
-        await self.async_set_unique_id(device_registry.format_mac(gateway.id))
+        await self.async_set_unique_id(device_registry.format_mac(gateway.unique_id))
         LOGGER.info("Found gateway: %s", gateway.address)
         updatable = {
             CONF_HOST: gateway.address,
