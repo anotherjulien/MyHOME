@@ -63,6 +63,7 @@ from .const import (
     DOMAIN,
     LOGGER,
 )
+from .myhome_device import MyHOMEEntity
 from .gateway import MyHOMEGatewayHandler
 
 MYHOME_SCHEMA = vol.Schema(
@@ -166,7 +167,7 @@ async def async_setup_entry(
             hass=hass,
             device_id=_climate_device,
             who=_configured_climate_devices[_climate_device][CONF_WHO],
-            zone=_configured_climate_devices[_climate_device][CONF_ZONE],
+            where=_configured_climate_devices[_climate_device][CONF_ZONE],
             name=_configured_climate_devices[_climate_device][CONF_NAME],
             heating=_configured_climate_devices[_climate_device][CONF_HEATING_SUPPORT],
             cooling=_configured_climate_devices[_climate_device][CONF_COOLING_SUPPORT],
@@ -194,14 +195,14 @@ async def async_unload_entry(hass, config_entry):  # pylint: disable=unused-argu
         del hass.data[DOMAIN][CONF_ENTITIES][_climate_device]
 
 
-class MyHOMEClimate(ClimateEntity):
+class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
     def __init__(
         self,
         hass,
         name: str,
         device_id: str,
         who: str,
-        zone: str,
+        where: str,
         heating: bool,
         cooling: bool,
         fan: bool,
@@ -211,30 +212,19 @@ class MyHOMEClimate(ClimateEntity):
         model: str,
         gateway: MyHOMEGatewayHandler,
     ):
+        super().__init__(
+            hass=hass,
+            name=name,
+            device_id=device_id,
+            who=who,
+            where=where,
+            manufacturer=manufacturer,
+            model=model,
+            gateway=gateway,
+        )
 
-        self._hass = hass
-        self._device_id = device_id
-        self._manufacturer = manufacturer or "BTicino S.p.A."
-        self._model = model
-        self._who = who
-        self._zone = zone
         self._standalone = standalone
-        self._central = True if self._zone == "#0" else central
-
-        self._attr_unique_id = self._device_id
-        self._attr_name = name
-        self._gateway_handler = gateway
-
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, self._device_id)},
-            "name": self._attr_name,
-            "manufacturer": self._manufacturer,
-            "model": self._model,
-            "via_device": (DOMAIN, self._gateway_handler.unique_id),
-        }
-
-        self._attr_entity_registry_enabled_default = True
-        self._attr_should_poll = False
+        self._central = True if self._where == "#0" else central
 
         self._attr_temperature_unit = TEMP_CELSIUS
         self._attr_precision = 0.1
@@ -272,22 +262,13 @@ class MyHOMEClimate(ClimateEntity):
 
         self._attr_fan_mode = None
 
-    async def async_added_to_hass(self):
-        """When entity is added to hass."""
-        self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id] = self
-        await self.async_update()
-
-    async def async_will_remove_from_hass(self):
-        """When entity is removed from hass."""
-        del self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id]
-
     async def async_update(self):
         """Update the entity.
 
         Only used by the generic entity update service.
         """
         await self._gateway_handler.send_status_request(
-            OWNHeatingCommand.status(self._zone)
+            OWNHeatingCommand.status(self._where)
         )
 
     @property
@@ -302,13 +283,15 @@ class MyHOMEClimate(ClimateEntity):
         if hvac_mode == HVAC_MODE_OFF:
             await self._gateway_handler.send(
                 OWNHeatingCommand.set_mode(
-                    where=self._zone, mode=CLIMATE_MODE_OFF, standalone=self._standalone
+                    where=self._where,
+                    mode=CLIMATE_MODE_OFF,
+                    standalone=self._standalone,
                 )
             )
         elif hvac_mode == HVAC_MODE_AUTO:
             await self._gateway_handler.send(
                 OWNHeatingCommand.set_mode(
-                    where=self._zone,
+                    where=self._where,
                     mode=CLIMATE_MODE_AUTO,
                     standalone=self._standalone,
                 )
@@ -317,7 +300,7 @@ class MyHOMEClimate(ClimateEntity):
             if self._target_temperature is not None:
                 await self._gateway_handler.send(
                     OWNHeatingCommand.set_temperature(
-                        where=self._zone,
+                        where=self._where,
                         temperature=self._target_temperature,
                         mode=CLIMATE_MODE_HEAT,
                         standalone=self._standalone,
@@ -327,7 +310,7 @@ class MyHOMEClimate(ClimateEntity):
             if self._target_temperature is not None:
                 await self._gateway_handler.send(
                     OWNHeatingCommand.set_temperature(
-                        where=self._zone,
+                        where=self._where,
                         temperature=self._target_temperature,
                         mode=CLIMATE_MODE_COOL,
                         standalone=self._standalone,
@@ -347,7 +330,7 @@ class MyHOMEClimate(ClimateEntity):
         if self._attr_hvac_mode == HVAC_MODE_HEAT:
             await self._gateway_handler.send(
                 OWNHeatingCommand.set_temperature(
-                    where=self._zone,
+                    where=self._where,
                     temperature=target_temperature,
                     mode=CLIMATE_MODE_HEAT,
                     standalone=self._standalone,
@@ -356,7 +339,7 @@ class MyHOMEClimate(ClimateEntity):
         elif self._attr_hvac_mode == HVAC_MODE_COOL:
             await self._gateway_handler.send(
                 OWNHeatingCommand.set_temperature(
-                    where=self._zone,
+                    where=self._where,
                     temperature=target_temperature,
                     mode=CLIMATE_MODE_COOL,
                     standalone=self._standalone,
@@ -365,7 +348,7 @@ class MyHOMEClimate(ClimateEntity):
         else:
             await self._gateway_handler.send(
                 OWNHeatingCommand.set_temperature(
-                    where=self._zone,
+                    where=self._where,
                     temperature=target_temperature,
                     mode=CLIMATE_MODE_AUTO,
                     standalone=self._standalone,

@@ -35,8 +35,10 @@ from homeassistant.const import (
     CONF_NAME,
     CONF_DEVICES,
     CONF_ENTITIES,
+    STATE_ON,
 )
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from OWNd.message import (
     OWNDryContactEvent,
@@ -60,6 +62,7 @@ from .const import (
     DOMAIN,
     LOGGER,
 )
+from .myhome_device import MyHOMEEntity
 from .gateway import MyHOMEGatewayHandler
 
 MYHOME_SCHEMA = vol.Schema(
@@ -224,7 +227,7 @@ async def async_unload_entry(hass, config_entry):  # pylint: disable=unused-argu
             del hass.data[DOMAIN][CONF_ENTITIES][_binary_sensor]
 
 
-class MyHOMEDryContact(BinarySensorEntity):
+class MyHOMEDryContact(MyHOMEEntity, BinarySensorEntity):
     def __init__(
         self,
         hass,
@@ -238,43 +241,25 @@ class MyHOMEDryContact(BinarySensorEntity):
         model: str,
         gateway: MyHOMEGatewayHandler,
     ):
+        super().__init__(
+            hass=hass,
+            name=name,
+            device_id=device_id,
+            who=who,
+            where=where,
+            manufacturer=manufacturer,
+            model=model,
+            gateway=gateway,
+        )
 
-        self._hass = hass
-        self._device_id = device_id
-        self._where = where
-        self._manufacturer = manufacturer or "BTicino S.p.A."
-        self._who = who
-        self._model = model
-        self._gateway_handler = gateway
         self._inverted = inverted
 
-        self._attr_name = name
-        self._attr_unique_id = self._device_id
-
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, self._device_id)},
-            "name": self._attr_name,
-            "manufacturer": self._manufacturer,
-            "model": self._model,
-            "via_device": (DOMAIN, self._gateway_handler.unique_id),
-        }
-
         self._attr_device_class = device_class
-        self._attr_entity_registry_enabled_default = True
-        self._attr_should_poll = False
+
         self._attr_is_on = False
         self._attr_extra_state_attributes = {
             "Sensor": f"({self._where[0]}){self._where[1:]}"
         }
-
-    async def async_added_to_hass(self):
-        """When entity is added to hass."""
-        self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id] = self
-        await self.async_update()
-
-    async def async_will_remove_from_hass(self):
-        """When entity is removed from hass."""
-        del self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id]
 
     async def async_update(self):
         """Update the entity.
@@ -292,7 +277,7 @@ class MyHOMEDryContact(BinarySensorEntity):
         self.async_schedule_update_ha_state()
 
 
-class MyHOMEMotionSensor(BinarySensorEntity):
+class MyHOMEMotionSensor(MyHOMEEntity, BinarySensorEntity, RestoreEntity):
     def __init__(
         self,
         hass,
@@ -307,35 +292,29 @@ class MyHOMEMotionSensor(BinarySensorEntity):
         model: str,
         gateway: MyHOMEGatewayHandler,
     ):
+        super().__init__(
+            hass=hass,
+            name=name,
+            device_id=device_id,
+            who=who,
+            where=where,
+            manufacturer=manufacturer,
+            model=model,
+            gateway=gateway,
+        )
 
-        self._hass = hass
-        self._device_id = device_id
         self._entity_name = entity_name
-        self._where = where
-        self._manufacturer = manufacturer or "BTicino S.p.A."
-        self._who = who
-        self._model = model
-        self._gateway_handler = gateway
         self._inverted = inverted
 
-        self._attr_name = name
         self._attr_unique_id = f"{self._device_id}-{self._entity_name}"
 
+        self._attr_force_update = False
         self._last_updated = None
         self._timeout = timedelta(seconds=315)
 
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, self._device_id)},
-            "name": self._attr_name,
-            "manufacturer": self._manufacturer,
-            "model": self._model,
-            "via_device": (DOMAIN, self._gateway_handler.unique_id),
-        }
-
         self._attr_device_class = device_class
-        self._attr_entity_registry_enabled_default = True
         self._attr_should_poll = True
-        self._attr_is_on = False
+        self._attr_is_on = None
         self._attr_extra_state_attributes = {
             "A": where[: len(where) // 2],
             "PL": where[len(where) // 2 :],
@@ -352,11 +331,11 @@ class MyHOMEMotionSensor(BinarySensorEntity):
         await self._gateway_handler.send_status_request(
             OWNLightingCommand.get_motion_timeout(self._where)
         )
+        state = await self.async_get_last_state()
+        if state:
+            self._attr_is_on = state.state == STATE_ON
+            self._last_updated = state.last_updated
         await self.async_update()
-
-    async def async_will_remove_from_hass(self):
-        """When entity is removed from hass."""
-        del self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id]
 
     async def async_update(self):
         """Update the entity.
@@ -385,4 +364,6 @@ class MyHOMEMotionSensor(BinarySensorEntity):
                 message.pir_sensitivity
             ]
         self._last_updated = datetime.now(timezone.utc)
-        self.async_schedule_update_ha_state()
+        self._attr_force_update = True
+        self.async_write_ha_state()
+        self._attr_force_update = False

@@ -38,6 +38,7 @@ from .const import (
     DOMAIN,
     LOGGER,
 )
+from .myhome_device import MyHOMEEntity
 from .gateway import MyHOMEGatewayHandler
 
 MYHOME_SCHEMA = vol.Schema(
@@ -140,7 +141,7 @@ def percent_to_eight_bits(value: int) -> int:
     return int(round(255 / 100 * value, 0))
 
 
-class MyHOMELight(LightEntity):
+class MyHOMELight(MyHOMEEntity, LightEntity):
     def __init__(
         self,
         hass,
@@ -153,50 +154,32 @@ class MyHOMELight(LightEntity):
         model: str,
         gateway: MyHOMEGatewayHandler,
     ):
+        super().__init__(
+            hass=hass,
+            name=name,
+            device_id=device_id,
+            who=who,
+            where=where,
+            manufacturer=manufacturer,
+            model=model,
+            gateway=gateway,
+        )
 
-        self._hass = hass
-        self._device_id = device_id
-        self._where = where
-        self._manufacturer = manufacturer or "BTicino S.p.A."
-        self._who = who
-        self._model = model
         self._attr_supported_features = 0
         if dimmable:
             self._attr_supported_features |= SUPPORT_BRIGHTNESS
             self._attr_supported_features |= SUPPORT_TRANSITION
         else:
             self._attr_supported_features |= SUPPORT_FLASH
-        self._gateway_handler = gateway
 
-        self._attr_name = name
-        self._attr_unique_id = self._device_id
         self._attr_extra_state_attributes = {
             "A": where[: len(where) // 2],
             "PL": where[len(where) // 2 :],
         }
 
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, self._device_id)},
-            "name": self._attr_name,
-            "manufacturer": self._manufacturer,
-            "model": self._model,
-            "via_device": (DOMAIN, self._gateway_handler.unique_id),
-        }
-
-        self._attr_entity_registry_enabled_default = True
-        self._attr_should_poll = False
-        self._attr_is_on = False
-        self._attr_brightness = 0
-        self._attr_brightness_pct = 0
-
-    async def async_added_to_hass(self):
-        """When entity is added to hass."""
-        self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id] = self
-        await self.async_update()
-
-    async def async_will_remove_from_hass(self):
-        """When entity is removed from hass."""
-        del self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id]
+        self._attr_is_on = None
+        self._attr_brightness = None
+        self._attr_brightness_pct = None
 
     async def async_update(self):
         """Update the entity.

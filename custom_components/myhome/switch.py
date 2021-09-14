@@ -31,6 +31,7 @@ from .const import (
     DOMAIN,
     LOGGER,
 )
+from .myhome_device import MyHOMEEntity
 from .gateway import MyHOMEGatewayHandler
 
 MYHOME_SCHEMA = vol.Schema(
@@ -129,7 +130,7 @@ async def async_unload_entry(hass, config_entry):  # pylint: disable=unused-argu
         del hass.data[DOMAIN][CONF_ENTITIES][_switch]
 
 
-class MyHOMESwitch(SwitchEntity):
+class MyHOMESwitch(MyHOMEEntity, SwitchEntity):
     def __init__(
         self,
         hass,
@@ -142,28 +143,20 @@ class MyHOMESwitch(SwitchEntity):
         model: str,
         gateway: MyHOMEGatewayHandler,
     ):
+        super().__init__(
+            hass=hass,
+            name=name,
+            device_id=device_id,
+            who=who,
+            where=where,
+            manufacturer=manufacturer,
+            model=model,
+            gateway=gateway,
+        )
 
-        self._hass = hass
-        self._device_id = device_id
-        self._where = where
-        self._manufacturer = manufacturer or "BTicino S.p.A."
-        self._who = who
-        self._model = model
-        self._gateway_handler = gateway
-
-        self._attr_name = name
-        self._attr_unique_id = self._device_id
         self._attr_extra_state_attributes = {
             "A": where[: len(where) // 2],
             "PL": where[len(where) // 2 :],
-        }
-
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, self._device_id)},
-            "name": self._attr_name,
-            "manufacturer": self._manufacturer,
-            "model": self._model,
-            "via_device": (DOMAIN, self._gateway_handler.unique_id),
         }
 
         self._attr_device_class = (
@@ -171,18 +164,8 @@ class MyHOMESwitch(SwitchEntity):
             if device_class.lower() == "outlet"
             else DEVICE_CLASS_SWITCH
         )
-        self._attr_entity_registry_enabled_default = True
-        self._attr_should_poll = False
-        self._attr_is_on = False
 
-    async def async_added_to_hass(self):
-        """When entity is added to hass."""
-        self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id] = self
-        await self.async_update()
-
-    async def async_will_remove_from_hass(self):
-        """When entity is removed from hass."""
-        del self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id]
+        self._attr_is_on = None
 
     async def async_update(self):
         """Update the entity.

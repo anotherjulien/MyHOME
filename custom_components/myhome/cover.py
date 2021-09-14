@@ -37,6 +37,7 @@ from .const import (
     DOMAIN,
     LOGGER,
 )
+from .myhome_device import MyHOMEEntity
 from .gateway import MyHOMEGatewayHandler
 
 MYHOME_SCHEMA = vol.Schema(
@@ -133,7 +134,7 @@ async def async_unload_entry(hass, config_entry):  # pylint: disable=unused-argu
         del hass.data[DOMAIN][CONF_ENTITIES][_cover]
 
 
-class MyHOMECover(CoverEntity):
+class MyHOMECover(MyHOMEEntity, CoverEntity):
 
     device_class = DEVICE_CLASS_SHUTTER
 
@@ -149,48 +150,31 @@ class MyHOMECover(CoverEntity):
         model: str,
         gateway: MyHOMEGatewayHandler,
     ):
+        super().__init__(
+            hass=hass,
+            name=name,
+            device_id=device_id,
+            who=who,
+            where=where,
+            manufacturer=manufacturer,
+            model=model,
+            gateway=gateway,
+        )
 
-        self._hass = hass
-        self._device_id = device_id
-        self._where = where
-        self._manufacturer = manufacturer or "BTicino S.p.A."
-        self._who = who
-        self._model = model
         self._attr_supported_features = SUPPORT_OPEN | SUPPORT_CLOSE | SUPPORT_STOP
         if advanced:
             self._attr_supported_features |= SUPPORT_SET_POSITION
         self._gateway_handler = gateway
 
-        self._attr_name = name
-        self._attr_unique_id = self._device_id
         self._attr_extra_state_attributes = {
             "A": where[: len(where) // 2],
             "PL": where[len(where) // 2 :],
         }
 
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, self._device_id)},
-            "name": self._attr_name,
-            "manufacturer": self._manufacturer,
-            "model": self._model,
-            "via_device": (DOMAIN, self._gateway_handler.unique_id),
-        }
-
-        self._attr_entity_registry_enabled_default = True
-        self._attr_should_poll = False
         self._attr_current_cover_position = None
         self._attr_is_opening = None
         self._attr_is_closing = None
         self._attr_is_closed = None
-
-    async def async_added_to_hass(self):
-        """When entity is added to hass."""
-        self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id] = self
-        await self.async_update()
-
-    async def async_will_remove_from_hass(self):
-        """When entity is removed from hass."""
-        del self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id]
 
     async def async_update(self):
         """Update the entity.

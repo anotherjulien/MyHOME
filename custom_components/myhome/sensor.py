@@ -56,6 +56,7 @@ from .const import (
     DOMAIN,
     LOGGER,
 )
+from .myhome_device import MyHOMEEntity
 from .gateway import MyHOMEGatewayHandler
 
 SCAN_INTERVAL = timedelta(seconds=60)
@@ -296,7 +297,7 @@ async def async_unload_entry(hass, config_entry):  # pylint: disable=unused-argu
             del hass.data[DOMAIN][CONF_ENTITIES][_sensor]
 
 
-class MyHOMEPowerSensor(SensorEntity):
+class MyHOMEPowerSensor(MyHOMEEntity, SensorEntity):
     def __init__(
         self,
         hass,
@@ -310,47 +311,31 @@ class MyHOMEPowerSensor(SensorEntity):
         model: str,
         gateway: MyHOMEGatewayHandler,
     ) -> None:
+        super().__init__(
+            hass=hass,
+            name=name,
+            device_id=device_id,
+            who=who,
+            where=where,
+            manufacturer=manufacturer,
+            model=model,
+            gateway=gateway,
+        )
 
-        self.hass = hass
-        self._device_id = device_id
         self._entity_specific_id = entity_specific_id
         self._entity_specific_name = "Power"
-        self._manufacturer = manufacturer or "BTicino S.p.A."
-        self._model = model
-        self._who = who
-        self._where = where
-        self._device_name = name
-        self._device_id = device_id
-        self._gateway_handler = gateway
 
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, self._device_id)},
-            "name": self._device_name,
-            "manufacturer": self._manufacturer,
-            "model": self._model,
-            "via_device": (DOMAIN, self._gateway_handler.unique_id),
-        }
-
-        self._attr_name = f"{self._device_name} {self._entity_specific_name}"
+        self._attr_name = f"{name} {self._entity_specific_name}"
         self._attr_unique_id = f"{self._device_id}-{self._entity_specific_id}"
-        self._attr_entity_registry_enabled_default = True
+
         self._attr_device_class = device_class
         self._attr_native_unit_of_measurement = POWER_WATT
         self._attr_state_class = STATE_CLASS_MEASUREMENT
-        self._attr_should_poll = False
-        self._attr_native_value = 0
+
+        self._attr_native_value = None
         self._attr_extra_state_attributes = {
             "Sensor": f"({self._where[0]}){self._where[1:]}"
         }
-
-    async def async_added_to_hass(self):
-        """When entity is added to hass."""
-        self.hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id] = self
-        await self.async_update()
-
-    async def async_will_remove_from_hass(self):
-        """When entity is removed from hass."""
-        del self.hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id]
 
     async def async_update(self):
         """Update the entity.
@@ -373,7 +358,7 @@ class MyHOMEPowerSensor(SensorEntity):
         )
 
 
-class MyHOMEEnergySensor(SensorEntity):
+class MyHOMEEnergySensor(MyHOMEEntity, SensorEntity):
     def __init__(
         self,
         hass,
@@ -387,9 +372,17 @@ class MyHOMEEnergySensor(SensorEntity):
         model: str,
         gateway: MyHOMEGatewayHandler,
     ) -> None:
+        super().__init__(
+            hass=hass,
+            name=name,
+            device_id=device_id,
+            who=who,
+            where=where,
+            manufacturer=manufacturer,
+            model=model,
+            gateway=gateway,
+        )
 
-        self._hass = hass
-        self._device_id = device_id
         self._entity_specific_id = entity_specific_id
         if self._entity_specific_id == "daily-energy":
             self._entity_specific_name = "Energy (today)"
@@ -400,22 +393,8 @@ class MyHOMEEnergySensor(SensorEntity):
         elif self._entity_specific_id == "total-energy":
             self._entity_specific_name = "Energy"
             self._attr_entity_registry_enabled_default = True
-        self._manufacturer = manufacturer or "BTicino S.p.A."
-        self._model = model
-        self._who = who
-        self._where = where
-        self._device_name = name
-        self._gateway_handler = gateway
 
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, self._device_id)},
-            "name": self._device_name,
-            "manufacturer": self._manufacturer,
-            "model": self._model,
-            "via_device": (DOMAIN, self._gateway_handler.unique_id),
-        }
-
-        self._attr_name = f"{self._device_name} {self._entity_specific_name}"
+        self._attr_name = f"{name} {self._entity_specific_name}"
         self._attr_unique_id = f"{self._device_id}-{self._entity_specific_id}"
         self._attr_device_class = device_class
         self._attr_native_unit_of_measurement = ENERGY_WATT_HOUR
@@ -425,15 +404,6 @@ class MyHOMEEnergySensor(SensorEntity):
         self._attr_extra_state_attributes = {
             "Sensor": f"({self._where[0]}){self._where[1:]}"
         }
-
-    async def async_added_to_hass(self):
-        """When entity is added to hass."""
-        self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id] = self
-        await self.async_update()
-
-    async def async_will_remove_from_hass(self):
-        """When entity is removed from hass."""
-        del self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id]
 
     async def async_update(self):
         """Update the entity.
@@ -476,7 +446,7 @@ class MyHOMEEnergySensor(SensorEntity):
         self.async_schedule_update_ha_state()
 
 
-class MyHOMETemperatureSensor(SensorEntity):
+class MyHOMETemperatureSensor(MyHOMEEntity, SensorEntity):
     def __init__(
         self,
         hass,
@@ -489,27 +459,17 @@ class MyHOMETemperatureSensor(SensorEntity):
         model: str,
         gateway: MyHOMEGatewayHandler,
     ) -> None:
+        super().__init__(
+            hass=hass,
+            name=name,
+            device_id=device_id,
+            who=who,
+            where=where,
+            manufacturer=manufacturer,
+            model=model,
+            gateway=gateway,
+        )
 
-        self._hass = hass
-        self._device_id = device_id
-        self._where = where
-        self._manufacturer = manufacturer or "BTicino S.p.A."
-        self._who = who
-        self._model = model
-        self._gateway_handler = gateway
-
-        self._attr_name = name
-        self._attr_unique_id = self._device_id
-
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, self._device_id)},
-            "name": self._attr_name,
-            "manufacturer": self._manufacturer,
-            "model": self._model,
-            "via_device": (DOMAIN, self._gateway_handler.unique_id),
-        }
-
-        self._attr_entity_registry_enabled_default = True
         self._attr_device_class = device_class
         self._attr_native_unit_of_measurement = TEMP_CELSIUS
         self._attr_state_class = STATE_CLASS_MEASUREMENT
@@ -518,15 +478,6 @@ class MyHOMETemperatureSensor(SensorEntity):
         self._attr_extra_state_attributes = {
             "Sensor": f"({self._where[0]}){self._where[1:]}"
         }
-
-    async def async_added_to_hass(self):
-        """When entity is added to hass."""
-        self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id] = self
-        await self.async_update()
-
-    async def async_will_remove_from_hass(self):
-        """When entity is removed from hass."""
-        del self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id]
 
     async def async_update(self):
         """Update the entity.
@@ -549,7 +500,7 @@ class MyHOMETemperatureSensor(SensorEntity):
             self.async_schedule_update_ha_state()
 
 
-class MyHOMEIlluminanceSensor(SensorEntity):
+class MyHOMEIlluminanceSensor(MyHOMEEntity, SensorEntity):
     def __init__(
         self,
         hass,
@@ -563,46 +514,29 @@ class MyHOMEIlluminanceSensor(SensorEntity):
         model: str,
         gateway: MyHOMEGatewayHandler,
     ) -> None:
+        super().__init__(
+            hass=hass,
+            name=name,
+            device_id=device_id,
+            who=who,
+            where=where,
+            manufacturer=manufacturer,
+            model=model,
+            gateway=gateway,
+        )
 
-        self._hass = hass
-        self._device_id = device_id
         self._entity_specific_id = entity_specific_id
-        self._where = where
-        self._manufacturer = manufacturer or "BTicino S.p.A."
-        self._who = who
-        self._model = model
-        self._gateway_handler = gateway
 
-        self._attr_name = name
         self._attr_unique_id = f"{self._device_id}-{self._entity_specific_id}"
 
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, self._device_id)},
-            "name": self._attr_name,
-            "manufacturer": self._manufacturer,
-            "model": self._model,
-            "via_device": (DOMAIN, self._gateway_handler.unique_id),
-        }
-
-        self._attr_entity_registry_enabled_default = True
         self._attr_device_class = device_class
         self._attr_native_unit_of_measurement = LIGHT_LUX
         self._attr_state_class = STATE_CLASS_MEASUREMENT
-        self._attr_should_poll = False
         self._attr_native_value = None
         self._attr_extra_state_attributes = {
             "A": where[: len(where) // 2],
             "PL": where[len(where) // 2 :],
         }
-
-    async def async_added_to_hass(self):
-        """When entity is added to hass."""
-        self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id] = self
-        await self.async_update()
-
-    async def async_will_remove_from_hass(self):
-        """When entity is removed from hass."""
-        del self._hass.data[DOMAIN][CONF_ENTITIES][self._attr_unique_id]
 
     async def async_update(self):
         """Update the entity.
@@ -616,6 +550,8 @@ class MyHOMEIlluminanceSensor(SensorEntity):
     def handle_event(self, message: OWNLightingEvent):
         """Handle an event message."""
         if message.message_type == MESSAGE_TYPE_ILLUMINANCE:
+            # if message.illuminance == 65535:
+            #     return True
             LOGGER.info(message.human_readable_log)
             self._attr_native_value = message.illuminance
             self.async_schedule_update_ha_state()
