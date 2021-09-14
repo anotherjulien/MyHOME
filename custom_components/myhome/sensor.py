@@ -215,9 +215,9 @@ async def async_setup_entry(
                     )
                 )
 
-                _required_entities.remove(DEVICE_CLASS_POWER)
-
             for entity_specific_id in _required_entities:
+                if entity_specific_id == DEVICE_CLASS_POWER:
+                    continue
                 _sensors.append(
                     MyHOMEEnergySensor(
                         hass=hass,
