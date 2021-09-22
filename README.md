@@ -120,6 +120,25 @@ binary_sensor:
 `where` for these is one of a few special cases, as per specification, they are always "3" followed by the sensor number assigned "[1-201]".  
 `class` allows you to specify any supported Home-Assistant binary sensor `device_class`, this will affect the way the device is presented in the interface.
 
+#### Motion sensors
+The "motion" part of the light and motion sensors on WHO 1 are available if the sensor is configured in "scenario" mode. You need to specify the `who`:
+
+```yaml
+binary_sensor:
+  - platform: myhome
+    devices:
+      office_motion:
+        who: '1'
+        where: '0312'
+        name: Office
+        class: motion
+        manufacturer: Legrand
+        model: 048822
+```
+`where` is the OpenWebNet address of your device (the 'APL').  
+`who` must be "1" for these sensors.  
+`class` must be "motion" for these sensors.
+
 #### Auxiliary sensors
 Auxiliary sensors from the alarm system can also be added, you just need to specify the `who`:  
 
@@ -273,12 +292,20 @@ sensor:
         class: temperature
         manufacturer: BTicino
         model: L4692
+      office_illuminance:
+        where: '0312'
+        name: Office
+        class: illuminance
+        manufacturer: Legrand
+        model: 048822
 ```
 `where` is also a special case for those as well since power meters are always "5" followed by the sensor number assigned "[1-255]" for F520, the address shoud always be "7" followed by the sensor number assigned "[1-255]" for F522.  
-`class` is a required element as it will be used to tell apart other types of sensors once implemented, for now `power` and `temperature` are the only admissible values.  
+`class` is a required element as it will be used to tell apart other types of sensors once implemented, for now `power`, `energy`, `temperature` and `illuminance` are the only admissible values.  
 
-Note that you can add secondary temperature sensors (with 3 digits as per OpenWebNet documentation, ie `105` is the 1st 'secondary sensor' of the 5th zone) or main temperature sensor (with 1 or 2 digit being the Zone number).  
-*However*, if you add a main zone temperature sensor, *you will not be able to configure a climate entity for that zone* at the same time! You can chose one or the other, if you need both, you should configure the climate entity and then a "template sensor" with the temperature value of the climate entity.
+**Note** that you can add secondary temperature sensors (with 3 digits as per OpenWebNet documentation, ie `105` is the 1st 'secondary sensor' of the 5th zone) or main temperature sensor (with 1 or 2 digit being the Zone number).  
+*However*, if you add a main zone temperature sensor, *you will not be able to configure a climate entity for that zone* at the same time! You can chose one or the other, if you need both, you should configure the climate entity and then a "template sensor" with the temperature value of the climate entity.  
+  
+**Note** that illuminance sensors are only available if the sensor itself is configured in "scenario" mode, this is similar to the requirement of the "motion" binary sensor.
 
 ### CEN/CEN+ events
 A powerful feature is to be able to assign CEN or CEN+ commands to your wall switches and use the events it generates in Home-Assistant to trigger automations.  
