@@ -188,7 +188,10 @@ class MyHOMELight(MyHOMEEntity, LightEntity):
         """
         if self._attr_supported_features & SUPPORT_BRIGHTNESS:
             await self._gateway_handler.send_status_request(
-                OWNLightingCommand.get_brightness(self._where)
+                # OWNLightingCommand.get_brightness(self._where)
+                OWNLightingCommand(
+                    f"*#1*{self._where}*1##"
+                )  # TODO pending fix in OWNd OWNLightingCommand.get_brightness
             )
         else:
             await self._gateway_handler.send_status_request(
