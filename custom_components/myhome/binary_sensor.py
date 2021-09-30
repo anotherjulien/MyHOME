@@ -188,6 +188,22 @@ async def async_setup_entry(
                 gateway=hass.data[DOMAIN][CONF_GATEWAY],
             )
             _binary_sensors.append(_binary_sensor)
+        elif _who == 9:
+            _binary_sensor = MyHOMEAuxiliary(
+                hass=hass,
+                device_id=_binary_sensor,
+                who=_configured_binary_sensors[_binary_sensor][CONF_WHO],
+                where=_configured_binary_sensors[_binary_sensor][CONF_WHERE],
+                name=_configured_binary_sensors[_binary_sensor][CONF_NAME],
+                inverted=_configured_binary_sensors[_binary_sensor][CONF_INVERTED],
+                device_class=_device_class,
+                manufacturer=_configured_binary_sensors[_binary_sensor][
+                    CONF_MANUFACTURER
+                ],
+                model=_configured_binary_sensors[_binary_sensor][CONF_DEVICE_MODEL],
+                gateway=hass.data[DOMAIN][CONF_GATEWAY],
+            )
+            _binary_sensors.append(_binary_sensor)
         elif _who == 1 and _device_class == DEVICE_CLASS_MOTION:
             _binary_sensor = MyHOMEMotionSensor(
                 hass=hass,
@@ -269,6 +285,45 @@ class MyHOMEDryContact(MyHOMEEntity, BinarySensorEntity):
         await self._gateway_handler.send_status_request(
             OWNDryContactCommand.status(self._where)
         )
+
+    def handle_event(self, message: OWNDryContactEvent):
+        """Handle an event message."""
+        LOGGER.info(message.human_readable_log)
+        self._attr_is_on = message.is_on != self._inverted
+        self.async_schedule_update_ha_state()
+
+
+class MyHOMEAuxiliary(MyHOMEEntity, BinarySensorEntity):
+    def __init__(
+        self,
+        hass,
+        name: str,
+        device_id: str,
+        who: str,
+        where: str,
+        inverted: bool,
+        device_class: str,
+        manufacturer: str,
+        model: str,
+        gateway: MyHOMEGatewayHandler,
+    ):
+        super().__init__(
+            hass=hass,
+            name=name,
+            device_id=device_id,
+            who=who,
+            where=where,
+            manufacturer=manufacturer,
+            model=model,
+            gateway=gateway,
+        )
+
+        self._inverted = inverted
+
+        self._attr_device_class = device_class
+
+        self._attr_is_on = False
+        self._attr_extra_state_attributes = {"Auxiliary channel": self._where}
 
     def handle_event(self, message: OWNDryContactEvent):
         """Handle an event message."""
