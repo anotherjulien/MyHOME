@@ -372,9 +372,10 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
         elif message.message_type == MESSAGE_TYPE_LOCAL_OFFSET:
             LOGGER.info(message.human_readable_log)
             self._local_offset = message.local_offset
-            self._local_target_temperature = (
-                self._target_temperature + self._local_offset
-            )
+            if self._target_temperature is not None:
+                self._local_target_temperature = (
+                    self._target_temperature + self._local_offset
+                )
         elif message.message_type == MESSAGE_TYPE_LOCAL_TARGET_TEMPERATURE:
             LOGGER.info(message.human_readable_log)
             self._local_target_temperature = message.local_set_temperature
