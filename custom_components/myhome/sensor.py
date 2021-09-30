@@ -237,35 +237,37 @@ async def async_setup_entry(
         elif (
             _configured_sensors[_sensor][CONF_DEVICE_CLASS] == DEVICE_CLASS_TEMPERATURE
         ):
-            _sensor = MyHOMETemperatureSensor(
-                hass=hass,
-                device_id=_sensor,
-                who=_configured_sensors[_sensor][CONF_WHO],
-                where=_configured_sensors[_sensor][CONF_WHERE],
-                name=_configured_sensors[_sensor][CONF_NAME],
-                device_class=_configured_sensors[_sensor][CONF_DEVICE_CLASS],
-                manufacturer=_configured_sensors[_sensor][CONF_MANUFACTURER],
-                model=_configured_sensors[_sensor][CONF_DEVICE_MODEL],
-                gateway=hass.data[DOMAIN][CONF_GATEWAY],
+            _sensors.append(
+                MyHOMETemperatureSensor(
+                    hass=hass,
+                    device_id=_sensor,
+                    who=_configured_sensors[_sensor][CONF_WHO],
+                    where=_configured_sensors[_sensor][CONF_WHERE],
+                    name=_configured_sensors[_sensor][CONF_NAME],
+                    device_class=_configured_sensors[_sensor][CONF_DEVICE_CLASS],
+                    manufacturer=_configured_sensors[_sensor][CONF_MANUFACTURER],
+                    model=_configured_sensors[_sensor][CONF_DEVICE_MODEL],
+                    gateway=hass.data[DOMAIN][CONF_GATEWAY],
+                )
             )
 
         elif (
             _configured_sensors[_sensor][CONF_DEVICE_CLASS] == DEVICE_CLASS_ILLUMINANCE
         ):
-            _sensor = MyHOMEIlluminanceSensor(
-                hass=hass,
-                device_id=_sensor,
-                who=_configured_sensors[_sensor][CONF_WHO],
-                where=_configured_sensors[_sensor][CONF_WHERE],
-                name=_configured_sensors[_sensor][CONF_NAME],
-                entity_specific_id=_configured_sensors[_sensor][CONF_ENTITIES][0],
-                device_class=_configured_sensors[_sensor][CONF_DEVICE_CLASS],
-                manufacturer=_configured_sensors[_sensor][CONF_MANUFACTURER],
-                model=_configured_sensors[_sensor][CONF_DEVICE_MODEL],
-                gateway=hass.data[DOMAIN][CONF_GATEWAY],
+            _sensors.append(
+                MyHOMEIlluminanceSensor(
+                    hass=hass,
+                    device_id=_sensor,
+                    who=_configured_sensors[_sensor][CONF_WHO],
+                    where=_configured_sensors[_sensor][CONF_WHERE],
+                    name=_configured_sensors[_sensor][CONF_NAME],
+                    entity_specific_id=_configured_sensors[_sensor][CONF_ENTITIES][0],
+                    device_class=_configured_sensors[_sensor][CONF_DEVICE_CLASS],
+                    manufacturer=_configured_sensors[_sensor][CONF_MANUFACTURER],
+                    model=_configured_sensors[_sensor][CONF_DEVICE_MODEL],
+                    gateway=hass.data[DOMAIN][CONF_GATEWAY],
+                )
             )
-
-            _sensors.append(_sensor)
 
     if _power_devices_configured:
         platform = entity_platform.current_platform.get()
