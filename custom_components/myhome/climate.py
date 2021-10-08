@@ -95,11 +95,11 @@ async def async_setup_platform(
         for _, entity_info in _configured_climate_devices.items():
             who = "4"
             zone = entity_info[CONF_ZONE] if CONF_ZONE in entity_info else "#0"
+            device_id = f"{who}-{zone}"
             central = (
                 entity_info[CONF_CENTRAL] if CONF_CENTRAL in entity_info else False
             )
             zone = f"#0#{zone}" if central and zone != "#0" else zone
-            device_id = f"{who}-{zone}"
             name = (
                 entity_info[CONF_NAME]
                 if CONF_NAME in entity_info
@@ -163,24 +163,31 @@ async def async_setup_entry(
     _configured_climate_devices = hass.data[DOMAIN][CONF][PLATFORM]
 
     for _climate_device in _configured_climate_devices.keys():
-        _climate_device = MyHOMEClimate(
-            hass=hass,
-            device_id=_climate_device,
-            who=_configured_climate_devices[_climate_device][CONF_WHO],
-            where=_configured_climate_devices[_climate_device][CONF_ZONE],
-            name=_configured_climate_devices[_climate_device][CONF_NAME],
-            heating=_configured_climate_devices[_climate_device][CONF_HEATING_SUPPORT],
-            cooling=_configured_climate_devices[_climate_device][CONF_COOLING_SUPPORT],
-            fan=_configured_climate_devices[_climate_device][CONF_FAN_SUPPORT],
-            standalone=_configured_climate_devices[_climate_device][CONF_STANDALONE],
-            central=_configured_climate_devices[_climate_device][CONF_CENTRAL],
-            manufacturer=_configured_climate_devices[_climate_device][
-                CONF_MANUFACTURER
-            ],
-            model=_configured_climate_devices[_climate_device][CONF_DEVICE_MODEL],
-            gateway=hass.data[DOMAIN][CONF_GATEWAY],
+        _climate_devices.append(
+            MyHOMEClimate(
+                hass=hass,
+                device_id=_climate_device,
+                who=_configured_climate_devices[_climate_device][CONF_WHO],
+                where=_configured_climate_devices[_climate_device][CONF_ZONE],
+                name=_configured_climate_devices[_climate_device][CONF_NAME],
+                heating=_configured_climate_devices[_climate_device][
+                    CONF_HEATING_SUPPORT
+                ],
+                cooling=_configured_climate_devices[_climate_device][
+                    CONF_COOLING_SUPPORT
+                ],
+                fan=_configured_climate_devices[_climate_device][CONF_FAN_SUPPORT],
+                standalone=_configured_climate_devices[_climate_device][
+                    CONF_STANDALONE
+                ],
+                central=_configured_climate_devices[_climate_device][CONF_CENTRAL],
+                manufacturer=_configured_climate_devices[_climate_device][
+                    CONF_MANUFACTURER
+                ],
+                model=_configured_climate_devices[_climate_device][CONF_DEVICE_MODEL],
+                gateway=hass.data[DOMAIN][CONF_GATEWAY],
+            )
         )
-        _climate_devices.append(_climate_device)
 
     async_add_entities(_climate_devices)
 
