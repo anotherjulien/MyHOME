@@ -24,22 +24,22 @@
         }
       },
       "custom": {
-        "title": "Manual gateway entry",
-        "description": "Fill out the information for your gateway",
+        "title": "Inserimento manuale gateway",
+        "description": "Compila con le impostazioni del tuo gateway",
         "data": {
-          "address": "IP address",
-          "port": "Port",
-          "serialNumber": "MAC address",
-          "modelName": "Device type"
+          "address": "Indirizzo IP",
+          "port": "Porta",
+          "serialNumber": "Indirizzo MAC",
+          "modelName": "Tipo di gateway"
         }
       }
     },
     "error": {
       "invalid_port": "Porta non valida",
-      "invalid_ip": "Invalid IP address",
-      "invalid_mac": "Invalid MAC address",
+      "invalid_ip": "Indirizzo IP non valido",
+      "invalid_mac": "Indirizzo MAC non valido",
       "invalid_password": "Password non valida",
-      "password_retry": "Gateway refusing password negotiation, wait 60s before retrying.",
+      "password_retry": "Il gateway non ha accettato la password, aspetta 60s prima di riprovare.",
       "password_error": "Password non valida"
     },
     "abort": {
@@ -50,26 +50,26 @@
       "cannot_connect": "Impossibile connettersi al gateway",
       "already_configured": "Questo gateway è già configurato",
       "already_in_progress": "La configurazione di questo gateway è già in corso",
-      "reauth_successful": "Password change successful"
+      "reauth_successful": "Nuova password accettata"
     }
   },
   "options": {
     "step": {
         "user": {
-          "title": "MyHome options",
-          "description": "Advanced system settings",
+          "title": "Opzioni MyHome",
+          "description": "Impostazioni di sistema avanzate",
             "data": {
-                "address": "IP address",
+                "address": "Indirizzo IP",
                 "password": "Password",
-                "command_worker_count": "Number of concurrent command sessions"
+                "command_worker_count": "Numero di sessioni di comando simultanee"
             }
         }
     },
     "error": {
-      "invalid_ip": "Invalid IP address",
-      "invalid_worker_count": "Workers must be between 1 and 10",
-      "invalid_password": "Invalid password",
-      "password_error": "Invalid password"
+      "invalid_ip": "Indirizzo IP non valido",
+      "invalid_worker_count": "I workers devono essere compresi tra 1 e 10",
+      "invalid_password": "Password non valida",
+      "password_error": "Errore password"
     }
   }
 }
