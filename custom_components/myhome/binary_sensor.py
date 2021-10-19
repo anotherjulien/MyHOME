@@ -325,6 +325,9 @@ class MyHOMEAuxiliary(MyHOMEEntity, BinarySensorEntity):
         self._attr_is_on = False
         self._attr_extra_state_attributes = {"Auxiliary channel": self._where}
 
+    async def async_update(self):
+        """AUX sensors are read only and cannot be queried, no async_update implementation."""
+
     def handle_event(self, message: OWNDryContactEvent):
         """Handle an event message."""
         LOGGER.info(message.human_readable_log)
