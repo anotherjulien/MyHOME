@@ -399,7 +399,7 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
         """
 
         if "port" not in discovery_info.ssdp_headers:
-            discovery_info.ssdp_headers["port"] = None
+            discovery_info.ssdp_headers["port"] = 20000
 
         gateway = await OWNGateway.build_from_discovery_info(discovery_info.ssdp_headers)
         await self.async_set_unique_id(device_registry.format_mac(gateway.unique_id))
