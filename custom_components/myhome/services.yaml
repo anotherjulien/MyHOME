@@ -8,6 +8,9 @@ send_message:
       description: Valid OpenWebNet message.
       example: "*1*0*0##"
 
+registry_cleanup:
+  description: Cleanup the device and entity registries when an entity has been removed from the config file. (This service should be called after a restart of Home Assistant)
+
 start_sending_instant_power:
   description: Get automatic instant power draw updates for a sensor.
   fields:
