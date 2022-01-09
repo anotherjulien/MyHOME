@@ -86,6 +86,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         else 1
     )
 
+    entity_registry = await hass.helpers.entity_registry.async_get_registry()
     device_registry = await hass.helpers.device_registry.async_get_registry()
 
     device_registry.async_get_or_create(
@@ -102,8 +103,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         hass.async_create_task(
             hass.config_entries.async_forward_entry_setup(entry, platform)
         )
-
-    await registry_cleanup(hass, entry)
 
     hass.data[DOMAIN][CONF_GATEWAY].listening_worker = hass.loop.create_task(
         hass.data[DOMAIN][CONF_GATEWAY].listening_loop()
@@ -136,6 +135,61 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     hass.services.async_register(DOMAIN, "send_message", handle_send_message)
 
+    async def handle_registry_cleanup(call):
+
+        entity_entries = async_entries_for_config_entry(entity_registry, entry.entry_id)
+
+        entities_to_be_removed = []
+        devices_to_be_removed = [
+            device_entry.id
+            for device_entry in device_registry.devices.values()
+            if entry.entry_id in device_entry.config_entries
+        ]
+        gateway_entry = device_registry.async_get_device(
+            identifiers={(DOMAIN, hass.data[DOMAIN][CONF_GATEWAY].unique_id)},
+            connections={(CONNECTION_NETWORK_MAC, hass.data[DOMAIN][CONF_GATEWAY].mac)},
+        )
+        if gateway_entry.id in devices_to_be_removed:
+            devices_to_be_removed.remove(gateway_entry.id)
+
+        configured_entities = []
+
+        for platform in PLATFORMS:
+            if platform in hass.data[DOMAIN][CONF]:
+                for _device in hass.data[DOMAIN][CONF][platform].keys():
+                    if hass.data[DOMAIN][CONF][platform][_device][CONF_ENTITIES]:
+                        for _entity_name in hass.data[DOMAIN][CONF][platform][_device][
+                            CONF_ENTITIES
+                        ]:
+                            configured_entities.append(f"{_device}-{_entity_name}")
+                    else:
+                        configured_entities.append(_device)
+
+        for entity_entry in entity_entries:
+
+            if entity_entry.unique_id in configured_entities:
+                if entity_entry.device_id in devices_to_be_removed:
+                    devices_to_be_removed.remove(entity_entry.device_id)
+                continue
+
+            entities_to_be_removed.append(entity_entry.entity_id)
+
+        for enity_id in entities_to_be_removed:
+            entity_registry.async_remove(enity_id)
+
+        for device_id in devices_to_be_removed:
+            if (
+                len(
+                    async_entries_for_device(
+                        entity_registry, device_id, include_disabled_entities=True
+                    )
+                )
+                == 0
+            ):
+                device_registry.async_remove_device(device_id)
+        
+    hass.services.async_register(DOMAIN, "registry_cleanup", handle_registry_cleanup)
+
     return True
 
 
@@ -152,60 +206,3 @@ async def async_unload_entry(hass, entry):
 
     gateway_handler = hass.data[DOMAIN].pop(CONF_GATEWAY)
     return await gateway_handler.close_listener()
-
-
-async def registry_cleanup(hass: HomeAssistant, entry: ConfigEntry):
-
-    entity_registry = await hass.helpers.entity_registry.async_get_registry()
-    device_registry = await hass.helpers.device_registry.async_get_registry()
-
-    entity_entries = async_entries_for_config_entry(entity_registry, entry.entry_id)
-
-    entities_to_be_removed = []
-    devices_to_be_removed = [
-        device_entry.id
-        for device_entry in device_registry.devices.values()
-        if entry.entry_id in device_entry.config_entries
-    ]
-    gateway_entry = device_registry.async_get_device(
-        identifiers={(DOMAIN, hass.data[DOMAIN][CONF_GATEWAY].unique_id)},
-        connections={(CONNECTION_NETWORK_MAC, hass.data[DOMAIN][CONF_GATEWAY].mac)},
-    )
-    if gateway_entry.id in devices_to_be_removed:
-        devices_to_be_removed.remove(gateway_entry.id)
-
-    configured_entities = []
-
-    for platform in PLATFORMS:
-        if platform in hass.data[DOMAIN][CONF]:
-            for _device in hass.data[DOMAIN][CONF][platform].keys():
-                if hass.data[DOMAIN][CONF][platform][_device][CONF_ENTITIES]:
-                    for _entity_name in hass.data[DOMAIN][CONF][platform][_device][
-                        CONF_ENTITIES
-                    ]:
-                        configured_entities.append(f"{_device}-{_entity_name}")
-                else:
-                    configured_entities.append(_device)
-
-    for entity_entry in entity_entries:
-
-        if entity_entry.unique_id in configured_entities:
-            if entity_entry.device_id in devices_to_be_removed:
-                devices_to_be_removed.remove(entity_entry.device_id)
-            continue
-
-        entities_to_be_removed.append(entity_entry.entity_id)
-
-    for enity_id in entities_to_be_removed:
-        entity_registry.async_remove(enity_id)
-
-    for device_id in devices_to_be_removed:
-        if (
-            len(
-                async_entries_for_device(
-                    entity_registry, device_id, include_disabled_entities=True
-                )
-            )
-            == 0
-        ):
-            device_registry.async_remove_device(device_id)
