@@ -9,7 +9,7 @@ from homeassistant.components.cover import (
     SUPPORT_OPEN,
     SUPPORT_SET_POSITION,
     SUPPORT_STOP,
-    DEVICE_CLASS_SHUTTER,
+    CoverDeviceClass,
     CoverEntity,
 )
 
@@ -136,7 +136,7 @@ async def async_unload_entry(hass, config_entry):  # pylint: disable=unused-argu
 
 class MyHOMECover(MyHOMEEntity, CoverEntity):
 
-    device_class = DEVICE_CLASS_SHUTTER
+    device_class = CoverDeviceClass.SHUTTER
 
     def __init__(
         self,

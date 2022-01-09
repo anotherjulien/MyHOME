@@ -4,8 +4,7 @@ import voluptuous as vol
 from homeassistant.components.switch import (
     PLATFORM_SCHEMA,
     DOMAIN as PLATFORM,
-    DEVICE_CLASS_OUTLET,
-    DEVICE_CLASS_SWITCH,
+    SwitchDeviceClass,
     SwitchEntity,
 )
 from homeassistant.const import (
@@ -39,7 +38,7 @@ MYHOME_SCHEMA = vol.Schema(
         vol.Required(CONF_WHERE): cv.string,
         vol.Optional(CONF_NAME): cv.string,
         vol.Optional(CONF_DEVICE_CLASS): vol.In(
-            [DEVICE_CLASS_OUTLET, DEVICE_CLASS_SWITCH]
+            [SwitchDeviceClass.OUTLET, SwitchDeviceClass.SWITCH]
         ),
         vol.Optional(CONF_MANUFACTURER): cv.string,
         vol.Optional(CONF_DEVICE_MODEL): cv.string,
@@ -70,7 +69,7 @@ async def async_setup_platform(
             device_class = (
                 entity_info[CONF_DEVICE_CLASS]
                 if CONF_DEVICE_CLASS in entity_info
-                else DEVICE_CLASS_SWITCH
+                else SwitchDeviceClass.SWITCH
             )
             entities = []
             manufacturer = (
@@ -160,9 +159,9 @@ class MyHOMESwitch(MyHOMEEntity, SwitchEntity):
         }
 
         self._attr_device_class = (
-            DEVICE_CLASS_OUTLET
+            SwitchDeviceClass.OUTLET
             if device_class.lower() == "outlet"
-            else DEVICE_CLASS_SWITCH
+            else SwitchDeviceClass.SWITCH
         )
 
         self._attr_is_on = None

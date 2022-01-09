@@ -5,18 +5,14 @@ import voluptuous as vol
 from homeassistant.components.sensor import (
     PLATFORM_SCHEMA,
     DOMAIN as PLATFORM,
-    STATE_CLASS_MEASUREMENT,
-    STATE_CLASS_TOTAL_INCREASING,
+    SensorStateClass,
+    SensorDeviceClass,
     SensorEntity,
 )
 from homeassistant.const import (
     CONF_NAME,
     CONF_DEVICES,
     CONF_ENTITIES,
-    DEVICE_CLASS_TEMPERATURE,
-    DEVICE_CLASS_POWER,
-    DEVICE_CLASS_ENERGY,
-    DEVICE_CLASS_ILLUMINANCE,
     POWER_WATT,
     ENERGY_WATT_HOUR,
     TEMP_CELSIUS,
@@ -69,10 +65,10 @@ MYHOME_SCHEMA = vol.Schema(
         vol.Optional(CONF_INVERTED): cv.boolean,
         vol.Required(CONF_DEVICE_CLASS): vol.In(
             [
-                DEVICE_CLASS_TEMPERATURE,
-                DEVICE_CLASS_POWER,
-                DEVICE_CLASS_ENERGY,
-                DEVICE_CLASS_ILLUMINANCE,
+                SensorDeviceClass.TEMPERATURE,
+                SensorDeviceClass.POWER,
+                SensorDeviceClass.ENERGY,
+                SensorDeviceClass.ILLUMINANCE,
             ]
         ),
         vol.Optional(CONF_MANUFACTURER): cv.string,
@@ -114,31 +110,31 @@ async def async_setup_platform(
             )
             if who is None:
                 if (
-                    device_class == DEVICE_CLASS_POWER
-                    or device_class == DEVICE_CLASS_ENERGY
+                    device_class == SensorDeviceClass.POWER
+                    or device_class == SensorDeviceClass.ENERGY
                 ):
                     who = "18"
-                elif device_class == DEVICE_CLASS_TEMPERATURE:
+                elif device_class == SensorDeviceClass.TEMPERATURE:
                     who = "4"
-                elif device_class == DEVICE_CLASS_ILLUMINANCE:
+                elif device_class == SensorDeviceClass.ILLUMINANCE:
                     who = "1"
             device_id = f"{who}-{where}"
-            if device_class == DEVICE_CLASS_POWER:
+            if device_class == SensorDeviceClass.POWER:
                 entities = [
-                    DEVICE_CLASS_POWER,
-                    f"daily-{DEVICE_CLASS_ENERGY}",
-                    f"monthly-{DEVICE_CLASS_ENERGY}",
-                    f"total-{DEVICE_CLASS_ENERGY}",
+                    SensorDeviceClass.POWER,
+                    f"daily-{SensorDeviceClass.ENERGY}",
+                    f"monthly-{SensorDeviceClass.ENERGY}",
+                    f"total-{SensorDeviceClass.ENERGY}",
                 ]
-            elif device_class == DEVICE_CLASS_ENERGY:
+            elif device_class == SensorDeviceClass.ENERGY:
                 entities = [
-                    f"daily-{DEVICE_CLASS_ENERGY}",
-                    f"monthly-{DEVICE_CLASS_ENERGY}",
-                    f"total-{DEVICE_CLASS_ENERGY}",
+                    f"daily-{SensorDeviceClass.ENERGY}",
+                    f"monthly-{SensorDeviceClass.ENERGY}",
+                    f"total-{SensorDeviceClass.ENERGY}",
                 ]
-            elif device_class == DEVICE_CLASS_ILLUMINANCE:
-                entities = [DEVICE_CLASS_ILLUMINANCE]
-            elif device_class == DEVICE_CLASS_TEMPERATURE:
+            elif device_class == SensorDeviceClass.ILLUMINANCE:
+                entities = [SensorDeviceClass.ILLUMINANCE]
+            elif device_class == SensorDeviceClass.TEMPERATURE:
                 entities = []
             manufacturer = (
                 entity_info[CONF_MANUFACTURER]
@@ -173,13 +169,13 @@ async def async_setup_entry(
 
     for _sensor in _configured_sensors.keys():
         if (
-            _configured_sensors[_sensor][CONF_DEVICE_CLASS] == DEVICE_CLASS_POWER
-            or _configured_sensors[_sensor][CONF_DEVICE_CLASS] == DEVICE_CLASS_ENERGY
+            _configured_sensors[_sensor][CONF_DEVICE_CLASS] == SensorDeviceClass.POWER
+            or _configured_sensors[_sensor][CONF_DEVICE_CLASS] == SensorDeviceClass.ENERGY
         ):
 
             _required_entities = _configured_sensors[_sensor][CONF_ENTITIES]
 
-            if _configured_sensors[_sensor][CONF_DEVICE_CLASS] == DEVICE_CLASS_POWER:
+            if _configured_sensors[_sensor][CONF_DEVICE_CLASS] == SensorDeviceClass.POWER:
                 _power_devices_configured = True
 
                 ent_reg = entity_registry.async_get(hass)
@@ -192,11 +188,11 @@ async def async_setup_entry(
                         _sensor,
                         existing_entity_id,
                         _sensor,
-                        DEVICE_CLASS_POWER,
+                        SensorDeviceClass.POWER,
                     )
                     ent_reg.async_update_entity(
                         entity_id=existing_entity_id,
-                        new_unique_id=f"{_sensor}-{DEVICE_CLASS_POWER}",
+                        new_unique_id=f"{_sensor}-{SensorDeviceClass.POWER}",
                     )
 
                 _sensors.append(
@@ -217,7 +213,7 @@ async def async_setup_entry(
                 )
 
             for entity_specific_id in _required_entities:
-                if entity_specific_id == DEVICE_CLASS_POWER:
+                if entity_specific_id == SensorDeviceClass.POWER:
                     continue
                 _sensors.append(
                     MyHOMEEnergySensor(
@@ -227,7 +223,7 @@ async def async_setup_entry(
                         where=_configured_sensors[_sensor][CONF_WHERE],
                         name=_configured_sensors[_sensor][CONF_NAME],
                         entity_specific_id=entity_specific_id,
-                        device_class=DEVICE_CLASS_ENERGY,
+                        device_class=SensorDeviceClass.ENERGY,
                         manufacturer=_configured_sensors[_sensor][CONF_MANUFACTURER],
                         model=_configured_sensors[_sensor][CONF_DEVICE_MODEL],
                         gateway=hass.data[DOMAIN][CONF_GATEWAY],
@@ -235,7 +231,7 @@ async def async_setup_entry(
                 )
 
         elif (
-            _configured_sensors[_sensor][CONF_DEVICE_CLASS] == DEVICE_CLASS_TEMPERATURE
+            _configured_sensors[_sensor][CONF_DEVICE_CLASS] == SensorDeviceClass.TEMPERATURE
         ):
             _sensors.append(
                 MyHOMETemperatureSensor(
@@ -252,7 +248,7 @@ async def async_setup_entry(
             )
 
         elif (
-            _configured_sensors[_sensor][CONF_DEVICE_CLASS] == DEVICE_CLASS_ILLUMINANCE
+            _configured_sensors[_sensor][CONF_DEVICE_CLASS] == SensorDeviceClass.ILLUMINANCE
         ):
             _sensors.append(
                 MyHOMEIlluminanceSensor(
@@ -332,7 +328,7 @@ class MyHOMEPowerSensor(MyHOMEEntity, SensorEntity):
 
         self._attr_device_class = device_class
         self._attr_native_unit_of_measurement = POWER_WATT
-        self._attr_state_class = STATE_CLASS_MEASUREMENT
+        self._attr_state_class = SensorStateClass.MEASUREMENT
 
         self._attr_native_value = None
         self._attr_extra_state_attributes = {
@@ -400,7 +396,7 @@ class MyHOMEEnergySensor(MyHOMEEntity, SensorEntity):
         self._attr_unique_id = f"{self._device_id}-{self._entity_specific_id}"
         self._attr_device_class = device_class
         self._attr_native_unit_of_measurement = ENERGY_WATT_HOUR
-        self._attr_state_class = STATE_CLASS_TOTAL_INCREASING
+        self._attr_state_class = SensorStateClass.TOTAL_INCREASING
         self._attr_should_poll = True
         self._attr_native_value = None
         self._attr_extra_state_attributes = {
@@ -474,7 +470,7 @@ class MyHOMETemperatureSensor(MyHOMEEntity, SensorEntity):
 
         self._attr_device_class = device_class
         self._attr_native_unit_of_measurement = TEMP_CELSIUS
-        self._attr_state_class = STATE_CLASS_MEASUREMENT
+        self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_should_poll = True
         self._attr_native_value = None
         self._attr_extra_state_attributes = {
@@ -533,7 +529,7 @@ class MyHOMEIlluminanceSensor(MyHOMEEntity, SensorEntity):
 
         self._attr_device_class = device_class
         self._attr_native_unit_of_measurement = LIGHT_LUX
-        self._attr_state_class = STATE_CLASS_MEASUREMENT
+        self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_native_value = None
         self._attr_extra_state_attributes = {
             "A": where[: len(where) // 2],
