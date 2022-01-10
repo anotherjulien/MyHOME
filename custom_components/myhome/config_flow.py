@@ -398,10 +398,13 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
         if it has not been discovered on its own, and test the connection.
         """
 
-        if "port" not in discovery_info.ssdp_headers:
-            discovery_info.ssdp_headers["port"] = 20000
+        _discovery_info = discovery_info.upnp
+        _discovery_info["ssdp_st"] = discovery_info.ssdp_st
+        _discovery_info["ssdp_location"] = discovery_info.ssdp_location
+        _discovery_info["address"] = discovery_info.ssdp_headers["_host"]
+        _discovery_info["port"] = 20000
 
-        gateway = await OWNGateway.build_from_discovery_info(discovery_info.ssdp_headers)
+        gateway = await OWNGateway.build_from_discovery_info(_discovery_info)
         await self.async_set_unique_id(device_registry.format_mac(gateway.unique_id))
         LOGGER.info("Found gateway: %s", gateway.address)
         updatable = {
