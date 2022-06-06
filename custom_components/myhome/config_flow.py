@@ -1,41 +1,40 @@
 """Config flow to configure MyHome."""
 import asyncio
-from typing import Dict, Optional
 import ipaddress
 import re
+from typing import Dict, Optional
+
 import async_timeout
 import voluptuous as vol
-
 from homeassistant.config_entries import (
+    CONN_CLASS_LOCAL_PUSH,
     ConfigEntry,
     ConfigFlow,
     OptionsFlow,
-    CONN_CLASS_LOCAL_PUSH,
+)
+from homeassistant.const import (
+    CONF_FRIENDLY_NAME,
+    CONF_HOST,
+    CONF_ID,
+    CONF_MAC,
+    CONF_NAME,
+    CONF_PASSWORD,
+    CONF_PORT,
 )
 from homeassistant.core import callback
-from homeassistant.const import (
-    CONF_HOST,
-    CONF_PORT,
-    CONF_PASSWORD,
-    CONF_NAME,
-    CONF_MAC,
-    CONF_ID,
-    CONF_FRIENDLY_NAME,
-)
-from homeassistant.helpers import device_registry
-
-from OWNd.connection import OWNSession, OWNGateway
+from homeassistant.helpers import device_registry as dr
+from OWNd.connection import OWNGateway, OWNSession
 from OWNd.discovery import find_gateways
 
 from .const import (
     CONF_ADDRESS,
-    CONF_OWN_PASSWORD,
-    CONF_FIRMWARE,
-    CONF_SSDP_LOCATION,
-    CONF_SSDP_ST,
     CONF_DEVICE_TYPE,
+    CONF_FIRMWARE,
     CONF_MANUFACTURER,
     CONF_MANUFACTURER_URL,
+    CONF_OWN_PASSWORD,
+    CONF_SSDP_LOCATION,
+    CONF_SSDP_ST,
     CONF_UDN,
     CONF_WORKER_COUNT,
     DOMAIN,
@@ -93,7 +92,7 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
                 self.discovered_gateways[user_input["serial"]]
             )
             await self.async_set_unique_id(
-                device_registry.format_mac(self.gateway_handler.serial),
+                dr.format_mac(self.gateway_handler.serial),
                 raise_on_progress=False,
             )
             # We pass user input to link so it will attempt to link right away
@@ -274,7 +273,7 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
 
         if test_result["Success"]:
             _new_entry_data = {
-                CONF_ID: device_registry.format_mac(gateway.serial),
+                CONF_ID: dr.format_mac(gateway.serial),
                 CONF_HOST: gateway.address,
                 CONF_PORT: gateway.port,
                 CONF_PASSWORD: gateway.password,
@@ -286,7 +285,7 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
                 CONF_MANUFACTURER_URL: gateway.manufacturer_url,
                 CONF_NAME: gateway.model_name,
                 CONF_FIRMWARE: gateway.model_number,
-                CONF_MAC: device_registry.format_mac(gateway.serial),
+                CONF_MAC: dr.format_mac(gateway.serial),
                 CONF_UDN: gateway.udn,
             }
             _new_entry_options = {
@@ -405,7 +404,7 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
         _discovery_info["port"] = 20000
 
         gateway = await OWNGateway.build_from_discovery_info(_discovery_info)
-        await self.async_set_unique_id(device_registry.format_mac(gateway.unique_id))
+        await self.async_set_unique_id(dr.format_mac(gateway.unique_id))
         LOGGER.info("Found gateway: %s", gateway.address)
         updatable = {
             CONF_HOST: gateway.address,

@@ -4,7 +4,5 @@
   "filename": "myhome.zip",
   "render_readme": true,
   "country": ["EN", "FR", "NL", "IT"],
-  "domains": ["light", "switch", "cover", "climate", "binary_sensor", "sensor"],
-  "homeassistant": "2021.9",
-  "iot_class": ["Local Push"]
+  "homeassistant": "2022.6.0"
 }

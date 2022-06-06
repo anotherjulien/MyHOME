@@ -1,59 +1,56 @@
 """Support for MyHome sensors (power/energy, temperature, illuminance)."""
 from datetime import timedelta
-import voluptuous as vol
 
+import voluptuous as vol
+from homeassistant.components.sensor import DOMAIN as PLATFORM
 from homeassistant.components.sensor import (
     PLATFORM_SCHEMA,
-    DOMAIN as PLATFORM,
-    SensorStateClass,
     SensorDeviceClass,
     SensorEntity,
+    SensorStateClass,
 )
 from homeassistant.const import (
-    CONF_NAME,
     CONF_DEVICES,
     CONF_ENTITIES,
-    POWER_WATT,
+    CONF_NAME,
     ENERGY_WATT_HOUR,
-    TEMP_CELSIUS,
     LIGHT_LUX,
+    POWER_WATT,
+    TEMP_CELSIUS,
 )
-from homeassistant.helpers import (
-    config_validation as cv,
-    entity_platform,
-    entity_registry,
-)
-
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import entity_platform
+from homeassistant.helpers import entity_registry as er
 from OWNd.message import (
     MESSAGE_TYPE_ACTIVE_POWER,
-    MESSAGE_TYPE_ENERGY_TOTALIZER,
     MESSAGE_TYPE_CURRENT_DAY_CONSUMPTION,
     MESSAGE_TYPE_CURRENT_MONTH_CONSUMPTION,
+    MESSAGE_TYPE_ENERGY_TOTALIZER,
+    MESSAGE_TYPE_ILLUMINANCE,
     MESSAGE_TYPE_MAIN_TEMPERATURE,
     MESSAGE_TYPE_SECONDARY_TEMPERATURE,
-    MESSAGE_TYPE_ILLUMINANCE,
-    OWNEnergyEvent,
     OWNEnergyCommand,
-    OWNHeatingEvent,
+    OWNEnergyEvent,
     OWNHeatingCommand,
+    OWNHeatingEvent,
     OWNLightingCommand,
     OWNLightingEvent,
 )
 
 from .const import (
     CONF,
-    CONF_GATEWAY,
-    CONF_WHO,
-    CONF_WHERE,
-    CONF_MANUFACTURER,
-    CONF_DEVICE_MODEL,
     CONF_DEVICE_CLASS,
+    CONF_DEVICE_MODEL,
+    CONF_GATEWAY,
     CONF_INVERTED,
+    CONF_MANUFACTURER,
+    CONF_WHERE,
+    CONF_WHO,
     DOMAIN,
     LOGGER,
 )
-from .myhome_device import MyHOMEEntity
 from .gateway import MyHOMEGatewayHandler
+from .myhome_device import MyHOMEEntity
 
 SCAN_INTERVAL = timedelta(seconds=60)
 
@@ -180,7 +177,7 @@ async def async_setup_entry(
             if _configured_sensors[_sensor][CONF_DEVICE_CLASS] == SensorDeviceClass.POWER:
                 _power_devices_configured = True
 
-                ent_reg = entity_registry.async_get(hass)
+                ent_reg = er.async_get(hass)
                 existing_entity_id = ent_reg.async_get_entity_id(
                     "sensor", DOMAIN, _sensor
                 )
