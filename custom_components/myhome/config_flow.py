@@ -155,7 +155,7 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
 
             try:
                 user_input["serialNumber"] = device_registry.format_mac(
-                    MACAddress(user_input["serialNumber"])
+                    f'{MACAddress(user_input["serialNumber"])}'
                 )
             except ValueError:
                 errors["serialNumber"] = "invalid_mac"
