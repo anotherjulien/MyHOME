@@ -109,11 +109,11 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
         local_gateways = [
             gateway
             for gateway in local_gateways
-            if gateway["serialNumber"] not in already_configured
+            if device_registry.format_mac(f'{MACAddress(user_input["serialNumber"])}') not in already_configured
         ]
 
-        if not local_gateways:
-            return self.async_abort(reason="all_configured")
+        # if not local_gateways:
+        #     return self.async_abort(reason="all_configured")
 
         self.discovered_gateways = {
             gateway["serialNumber"]: gateway for gateway in local_gateways
