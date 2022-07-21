@@ -85,22 +85,25 @@ cover:
         where: '11'
         name: Living room shutter
         advanced: True
+        class: shutter
         manufacturer: Legrand
         model: 67557
       kitchen_shutter:
         where: '12'
         name: Kitchen shutter
         advanced: True
+        class: shutter
         manufacturer: Legrand
         model: 67557
       dining_room_shutter:
         where: '13'
-        name: Dining room shutter
+        name: Dining room window
+        class: window
         advanced: True
         manufacturer: Legrand
         model: 67557
 ```
-The configuration remains similar to lights and switches.  
+The configuration remains similar to lights and switches, and you can specify the `class` if you wish to distinguish between `shutter` and `window`.
 The specificity is the optional `advanced` boolean (defaulting to `False`), you need to set it to `True` if you have 'advanced' cover modules that keep track of and return position values. (Only "Céliane 67557", "Axolute H4661M2", "Livinglight LN4661M2" and the "F401" DIN module are capable of this)
 
 ### Binary sensors
