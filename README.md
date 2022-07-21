@@ -103,7 +103,7 @@ cover:
         manufacturer: Legrand
         model: 67557
 ```
-The configuration remains similar to lights and switches, and you can specify the `class` if you wish to distinguish between `shutter` and `window`.
+The configuration remains similar to lights and switches, and you can specify the `class` if you wish to distinguish between `shutter` and `window`.  
 The specificity is the optional `advanced` boolean (defaulting to `False`), you need to set it to `True` if you have 'advanced' cover modules that keep track of and return position values. (Only "Céliane 67557", "Axolute H4661M2", "Livinglight LN4661M2" and the "F401" DIN module are capable of this)
 
 ### Binary sensors
