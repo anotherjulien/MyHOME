@@ -5,12 +5,9 @@ from homeassistant.components.cover import (
     ATTR_POSITION,
     PLATFORM_SCHEMA,
     DOMAIN as PLATFORM,
-    SUPPORT_CLOSE,
-    SUPPORT_OPEN,
-    SUPPORT_SET_POSITION,
-    SUPPORT_STOP,
     CoverDeviceClass,
     CoverEntity,
+    CoverEntityFeature,
 )
 
 from homeassistant.const import (
@@ -163,9 +160,9 @@ class MyHOMECover(MyHOMEEntity, CoverEntity):
             gateway=gateway,
         )
 
-        self._attr_supported_features = SUPPORT_OPEN | SUPPORT_CLOSE | SUPPORT_STOP
+        self._attr_supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.STOP
         if advanced:
-            self._attr_supported_features |= SUPPORT_SET_POSITION
+            self._attr_supported_features |= CoverEntityFeature.SET_POSITION
         self._gateway_handler = gateway
 
         self._attr_extra_state_attributes = {
