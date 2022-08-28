@@ -7,20 +7,14 @@ from homeassistant.components.climate import (
     DOMAIN as PLATFORM,
 )
 from homeassistant.components.climate.const import (
-    HVAC_MODE_AUTO,
-    HVAC_MODE_COOL,
-    HVAC_MODE_HEAT,
-    HVAC_MODE_OFF,
     FAN_OFF,
     FAN_AUTO,
     FAN_LOW,
     FAN_MEDIUM,
     FAN_HIGH,
-    CURRENT_HVAC_OFF,
-    CURRENT_HVAC_HEAT,
-    CURRENT_HVAC_COOL,
-    CURRENT_HVAC_IDLE,
     ClimateEntityFeature,
+    HVACAction,
+    HVACMode,
 )
 from homeassistant.const import (
     CONF_NAME,
@@ -241,17 +235,17 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
         self._attr_max_temp = 40
 
         self._attr_supported_features = 0
-        self._attr_hvac_modes = [HVAC_MODE_OFF]
+        self._attr_hvac_modes = [HVACMode.OFF]
         self._heating = heating
         self._cooling = cooling
         if heating or cooling:
             self._attr_supported_features |= ClimateEntityFeature.TARGET_TEMPERATURE
             if not self._central:
-                self._attr_hvac_modes.append(HVAC_MODE_AUTO)
+                self._attr_hvac_modes.append(HVACMode.AUTO)
             if heating:
-                self._attr_hvac_modes.append(HVAC_MODE_HEAT)
+                self._attr_hvac_modes.append(HVACMode.HEAT)
             if cooling:
-                self._attr_hvac_modes.append(HVAC_MODE_COOL)
+                self._attr_hvac_modes.append(HVACMode.COOL)
 
         self._attr_fan_modes = []
         self._fan = fan
@@ -288,7 +282,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
 
     async def async_set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
-        if hvac_mode == HVAC_MODE_OFF:
+        if hvac_mode == HVACMode.OFF:
             await self._gateway_handler.send(
                 OWNHeatingCommand.set_mode(
                     where=self._where,
@@ -296,7 +290,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                     standalone=self._standalone,
                 )
             )
-        elif hvac_mode == HVAC_MODE_AUTO:
+        elif hvac_mode == HVACMode.AUTO:
             await self._gateway_handler.send(
                 OWNHeatingCommand.set_mode(
                     where=self._where,
@@ -304,7 +298,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                     standalone=self._standalone,
                 )
             )
-        elif hvac_mode == HVAC_MODE_HEAT:
+        elif hvac_mode == HVACMode.HEAT:
             if self._target_temperature is not None:
                 await self._gateway_handler.send(
                     OWNHeatingCommand.set_temperature(
@@ -314,7 +308,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                         standalone=self._standalone,
                     )
                 )
-        elif hvac_mode == HVAC_MODE_COOL:
+        elif hvac_mode == HVACMode.COOL:
             if self._target_temperature is not None:
                 await self._gateway_handler.send(
                     OWNHeatingCommand.set_temperature(
@@ -335,7 +329,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
             kwargs.get("temperature", self._local_target_temperature)
             - self._local_offset
         )
-        if self._attr_hvac_mode == HVAC_MODE_HEAT:
+        if self._attr_hvac_mode == HVACMode.HEAT:
             await self._gateway_handler.send(
                 OWNHeatingCommand.set_temperature(
                     where=self._where,
@@ -344,7 +338,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                     standalone=self._standalone,
                 )
             )
-        elif self._attr_hvac_mode == HVAC_MODE_COOL:
+        elif self._attr_hvac_mode == HVACMode.COOL:
             await self._gateway_handler.send(
                 OWNHeatingCommand.set_temperature(
                     where=self._where,
@@ -393,61 +387,61 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
         elif message.message_type == MESSAGE_TYPE_MODE:
             if (
                 message.mode == CLIMATE_MODE_AUTO
-                and HVAC_MODE_AUTO in self._attr_hvac_modes
+                and HVACMode.AUTO in self._attr_hvac_modes
             ):
                 LOGGER.info(message.human_readable_log)
-                self._attr_hvac_mode = HVAC_MODE_AUTO
-                if self._attr_hvac_action == CURRENT_HVAC_OFF:
-                    self._attr_hvac_action = CURRENT_HVAC_IDLE
+                self._attr_hvac_mode = HVACMode.AUTO
+                if self._attr_hvac_action == HVACAction.OFF:
+                    self._attr_hvac_action = HVACAction.IDLE
             elif (
                 message.mode == CLIMATE_MODE_COOL
-                and HVAC_MODE_COOL in self._attr_hvac_modes
+                and HVACMode.COOL in self._attr_hvac_modes
             ):
                 LOGGER.info(message.human_readable_log)
-                self._attr_hvac_mode = HVAC_MODE_COOL
-                if self._attr_hvac_action == CURRENT_HVAC_OFF:
-                    self._attr_hvac_action = CURRENT_HVAC_IDLE
+                self._attr_hvac_mode = HVACMode.COOL
+                if self._attr_hvac_action == HVACAction.OFF:
+                    self._attr_hvac_action = HVACAction.IDLE
             elif (
                 message.mode == CLIMATE_MODE_HEAT
-                and HVAC_MODE_HEAT in self._attr_hvac_modes
+                and HVACMode.HEAT in self._attr_hvac_modes
             ):
                 LOGGER.info(message.human_readable_log)
-                self._attr_hvac_mode = HVAC_MODE_HEAT
-                if self._attr_hvac_action == CURRENT_HVAC_OFF:
-                    self._attr_hvac_action = CURRENT_HVAC_IDLE
+                self._attr_hvac_mode = HVACMode.HEAT
+                if self._attr_hvac_action == HVACAction.OFF:
+                    self._attr_hvac_action = HVACAction.IDLE
             elif message.mode == CLIMATE_MODE_OFF:
                 LOGGER.info(message.human_readable_log)
-                self._attr_hvac_mode = HVAC_MODE_OFF
-                self._attr_hvac_action = CURRENT_HVAC_OFF
+                self._attr_hvac_mode = HVACMode.OFF
+                self._attr_hvac_action = HVACAction.OFF
         elif message.message_type == MESSAGE_TYPE_MODE_TARGET:
             if (
                 message.mode == CLIMATE_MODE_AUTO
-                and HVAC_MODE_AUTO in self._attr_hvac_modes
+                and HVACMode.AUTO in self._attr_hvac_modes
             ):
                 LOGGER.info(message.human_readable_log)
-                self._attr_hvac_mode = HVAC_MODE_AUTO
-                if self._attr_hvac_action == CURRENT_HVAC_OFF:
-                    self._attr_hvac_action = CURRENT_HVAC_IDLE
+                self._attr_hvac_mode = HVACMode.AUTO
+                if self._attr_hvac_action == HVACAction.OFF:
+                    self._attr_hvac_action = HVACAction.IDLE
             elif (
                 message.mode == CLIMATE_MODE_COOL
-                and HVAC_MODE_COOL in self._attr_hvac_modes
+                and HVACMode.COOL in self._attr_hvac_modes
             ):
                 LOGGER.info(message.human_readable_log)
-                self._attr_hvac_mode = HVAC_MODE_COOL
-                if self._attr_hvac_action == CURRENT_HVAC_OFF:
-                    self._attr_hvac_action = CURRENT_HVAC_IDLE
+                self._attr_hvac_mode = HVACMode.COOL
+                if self._attr_hvac_action == HVACAction.OFF:
+                    self._attr_hvac_action = HVACAction.IDLE
             elif (
                 message.mode == CLIMATE_MODE_HEAT
-                and HVAC_MODE_HEAT in self._attr_hvac_modes
+                and HVACMode.HEAT in self._attr_hvac_modes
             ):
                 LOGGER.info(message.human_readable_log)
-                self._attr_hvac_mode = HVAC_MODE_HEAT
-                if self._attr_hvac_action == CURRENT_HVAC_OFF:
-                    self._attr_hvac_action = CURRENT_HVAC_IDLE
+                self._attr_hvac_mode = HVACMode.HEAT
+                if self._attr_hvac_action == HVACAction.OFF:
+                    self._attr_hvac_action = HVACAction.IDLE
             elif message.mode == CLIMATE_MODE_OFF:
                 LOGGER.info(message.human_readable_log)
-                self._attr_hvac_mode = HVAC_MODE_OFF
-                self._attr_hvac_action = CURRENT_HVAC_OFF
+                self._attr_hvac_mode = HVACMode.OFF
+                self._attr_hvac_action = HVACAction.OFF
             self._target_temperature = message.set_temperature
             self._local_target_temperature = (
                 self._target_temperature + self._local_offset
@@ -457,16 +451,16 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
             if message.is_active():
                 if self._heating and self._cooling:
                     if message.is_heating():
-                        self._attr_hvac_action = CURRENT_HVAC_HEAT
+                        self._attr_hvac_action = HVACAction.HEAT
                     elif message.is_cooling():
-                        self._attr_hvac_action = CURRENT_HVAC_COOL
+                        self._attr_hvac_action = HVACAction.COOL
                 elif self._heating:
-                    self._attr_hvac_action = CURRENT_HVAC_HEAT
+                    self._attr_hvac_action = HVACAction.HEAT
                 elif self._cooling:
-                    self._attr_hvac_action = CURRENT_HVAC_COOL
-            elif self._attr_hvac_mode == HVAC_MODE_OFF:
-                self._attr_hvac_action = CURRENT_HVAC_OFF
+                    self._attr_hvac_action = HVACAction.COOL
+            elif self._attr_hvac_mode == HVACMode.OFF:
+                self._attr_hvac_action = HVACAction.OFF
             else:
-                self._attr_hvac_action = CURRENT_HVAC_IDLE
+                self._attr_hvac_action = HVACAction.IDLE
 
         self.async_schedule_update_ha_state()
