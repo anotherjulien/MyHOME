@@ -8,12 +8,11 @@ from homeassistant.components.light import (
     FLASH_LONG,
     FLASH_SHORT,
     ATTR_TRANSITION,
-    SUPPORT_BRIGHTNESS,
-    SUPPORT_FLASH,
-    SUPPORT_TRANSITION,
     PLATFORM_SCHEMA,
     DOMAIN as PLATFORM,
+    ColorMode,
     LightEntity,
+    LightEntityFeature,
 )
 from homeassistant.const import (
     CONF_NAME,
@@ -168,11 +167,16 @@ class MyHOMELight(MyHOMEEntity, LightEntity):
         )
 
         self._attr_supported_features = 0
+        self._attr_supported_color_modes: set[ColorMode] = set()
+
         if dimmable:
-            self._attr_supported_features |= SUPPORT_BRIGHTNESS
-            self._attr_supported_features |= SUPPORT_TRANSITION
+            self._attr_supported_color_modes.add(ColorMode.BRIGHTNESS)
+            self._attr_color_mode = ColorMode.BRIGHTNESS
+            self._attr_supported_features |= LightEntityFeature.TRANSITION
         else:
-            self._attr_supported_features |= SUPPORT_FLASH
+            self._attr_supported_color_modes.add(ColorMode.ONOFF)
+            self._attr_color_mode = ColorMode.ONOFF
+            self._attr_supported_features |= LightEntityFeature.FLASH
 
         self._attr_extra_state_attributes = {
             "A": where[: len(where) // 2],
@@ -188,7 +192,7 @@ class MyHOMELight(MyHOMEEntity, LightEntity):
 
         Only used by the generic entity update service.
         """
-        if self._attr_supported_features & SUPPORT_BRIGHTNESS:
+        if ColorMode.BRIGHTNESS in self._attr_supported_color_modes:
             await self._gateway_handler.send_status_request(
                 OWNLightingCommand.get_brightness(self._where)
             )
@@ -200,7 +204,7 @@ class MyHOMELight(MyHOMEEntity, LightEntity):
     async def async_turn_on(self, **kwargs):
         """Turn the device on."""
 
-        if ATTR_FLASH in kwargs and self._attr_supported_features & SUPPORT_FLASH:
+        if ATTR_FLASH in kwargs and self._attr_supported_features & LightEntityFeature.FLASH:
             if kwargs[ATTR_FLASH] == FLASH_SHORT:
                 return await self._gateway_handler.send(
                     OWNLightingCommand.flash(self._where, 0.5)
@@ -212,10 +216,10 @@ class MyHOMELight(MyHOMEEntity, LightEntity):
 
         if (
             (ATTR_BRIGHTNESS in kwargs or ATTR_BRIGHTNESS_PCT in kwargs)
-            and self._attr_supported_features & SUPPORT_BRIGHTNESS
+            and ColorMode.BRIGHTNESS in self._attr_supported_color_modes
         ) or (
             ATTR_TRANSITION in kwargs
-            and self._attr_supported_features & SUPPORT_TRANSITION
+            and self._attr_supported_features & LightEntityFeature.TRANSITION
         ):
             if ATTR_BRIGHTNESS in kwargs or ATTR_BRIGHTNESS_PCT in kwargs:
                 _percent_brightness = (
@@ -255,7 +259,7 @@ class MyHOMELight(MyHOMEEntity, LightEntity):
                 )
         else:
             await self._gateway_handler.send(OWNLightingCommand.switch_on(self._where))
-            if self._attr_supported_features & SUPPORT_BRIGHTNESS:
+            if ColorMode.BRIGHTNESS in self._attr_supported_color_modes:
                 await self.async_update()
 
     async def async_turn_off(self, **kwargs):
@@ -263,13 +267,13 @@ class MyHOMELight(MyHOMEEntity, LightEntity):
 
         if (
             ATTR_TRANSITION in kwargs
-            and self._attr_supported_features & SUPPORT_TRANSITION
+            and self._attr_supported_features & LightEntityFeature.TRANSITION
         ):
             return await self._gateway_handler.send(
                 OWNLightingCommand.switch_off(self._where, int(kwargs[ATTR_TRANSITION]))
             )
 
-        if ATTR_FLASH in kwargs and self._attr_supported_features & SUPPORT_FLASH:
+        if ATTR_FLASH in kwargs and self._attr_supported_features & LightEntityFeature.FLASH:
             if kwargs[ATTR_FLASH] == FLASH_SHORT:
                 return await self._gateway_handler.send(
                     OWNLightingCommand.flash(self._where, 0.5)
@@ -288,7 +292,7 @@ class MyHOMELight(MyHOMEEntity, LightEntity):
         LOGGER.info(message.human_readable_log)
         self._attr_is_on = message.is_on
         if (
-            self._attr_supported_features & SUPPORT_BRIGHTNESS
+            ColorMode.BRIGHTNESS in self._attr_supported_color_modes
             and message.brightness is not None
         ):
             self._attr_brightness_pct = message.brightness
