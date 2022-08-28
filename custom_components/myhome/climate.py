@@ -16,12 +16,11 @@ from homeassistant.components.climate.const import (
     FAN_LOW,
     FAN_MEDIUM,
     FAN_HIGH,
-    SUPPORT_FAN_MODE,
-    SUPPORT_TARGET_TEMPERATURE,
     CURRENT_HVAC_OFF,
     CURRENT_HVAC_HEAT,
     CURRENT_HVAC_COOL,
     CURRENT_HVAC_IDLE,
+    ClimateEntityFeature,
 )
 from homeassistant.const import (
     CONF_NAME,
@@ -246,7 +245,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
         self._heating = heating
         self._cooling = cooling
         if heating or cooling:
-            self._attr_supported_features |= SUPPORT_TARGET_TEMPERATURE
+            self._attr_supported_features |= ClimateEntityFeature.TARGET_TEMPERATURE
             if not self._central:
                 self._attr_hvac_modes.append(HVAC_MODE_AUTO)
             if heating:
@@ -257,7 +256,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
         self._attr_fan_modes = []
         self._fan = fan
         if fan:
-            self._attr_supported_features |= SUPPORT_FAN_MODE
+            self._attr_supported_features |= ClimateEntityFeature.FAN_MODE
             self._attr_fan_modes = [FAN_AUTO, FAN_LOW, FAN_MEDIUM, FAN_HIGH, FAN_OFF]
 
         self._attr_current_temperature = None
