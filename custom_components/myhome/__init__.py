@@ -94,10 +94,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         sw_version=hass.data[DOMAIN][CONF_GATEWAY].firmware,
     )
 
-    for platform in PLATFORMS:
-        hass.async_create_task(
-            hass.config_entries.async_forward_entry_setup(entry, platform)
-        )
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    
+    # for platform in PLATFORMS:
+    #     await hass.config_entries.async_forward_entry_setup(entry, platform)
+    
+    # for platform in PLATFORMS:
+    #     hass.async_create_task(
+    #         hass.config_entries.async_forward_entry_setup(entry, platform)
+    #     )
 
     hass.data[DOMAIN][CONF_GATEWAY].listening_worker = hass.loop.create_task(
         hass.data[DOMAIN][CONF_GATEWAY].listening_loop()
