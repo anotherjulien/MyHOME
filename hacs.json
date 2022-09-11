@@ -4,5 +4,5 @@
   "filename": "myhome.zip",
   "render_readme": true,
   "country": ["EN", "FR", "NL", "IT"],
-  "homeassistant": "2022.6.0"
+  "homeassistant": "2022.8.0"
 }
