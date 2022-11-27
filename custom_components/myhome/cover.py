@@ -31,6 +31,7 @@ from .const import (
     CONF_MANUFACTURER,
     CONF_DEVICE_MODEL,
     CONF_ADVANCED_SHUTTER,
+    CONF_DEVICE_CLASS,
     DOMAIN,
     LOGGER,
 )
@@ -42,6 +43,12 @@ MYHOME_SCHEMA = vol.Schema(
         vol.Required(CONF_WHERE): cv.string,
         vol.Optional(CONF_NAME): cv.string,
         vol.Optional(CONF_ADVANCED_SHUTTER): cv.boolean,
+        vol.Optional(CONF_DEVICE_CLASS): vol.In(
+            [
+                CoverDeviceClass.SHUTTER, 
+                CoverDeviceClass.WINDOW
+            ]
+        ),
         vol.Optional(CONF_MANUFACTURER): cv.string,
         vol.Optional(CONF_DEVICE_MODEL): cv.string,
     }
@@ -75,6 +82,11 @@ async def async_setup_platform(
                 if CONF_ADVANCED_SHUTTER in entity_info
                 else False
             )
+            device_class = (
+                entity_info[CONF_DEVICE_CLASS]
+                if CONF_DEVICE_CLASS in entity_info
+                else CoverDeviceClass.SHUTTER
+            )
             entities = []
             manufacturer = (
                 entity_info[CONF_MANUFACTURER]
@@ -92,6 +104,7 @@ async def async_setup_platform(
                 CONF_ENTITIES: entities,
                 CONF_NAME: name,
                 CONF_ADVANCED_SHUTTER: advanced,
+                CONF_DEVICE_CLASS: device_class,
                 CONF_MANUFACTURER: manufacturer,
                 CONF_DEVICE_MODEL: model,
             }
@@ -114,6 +127,7 @@ async def async_setup_entry(
             where=_configured_covers[_cover][CONF_WHERE],
             name=_configured_covers[_cover][CONF_NAME],
             advanced=_configured_covers[_cover][CONF_ADVANCED_SHUTTER],
+            device_class=_configured_covers[_cover][CONF_DEVICE_CLASS],
             manufacturer=_configured_covers[_cover][CONF_MANUFACTURER],
             model=_configured_covers[_cover][CONF_DEVICE_MODEL],
             gateway=hass.data[DOMAIN][CONF_GATEWAY],
@@ -134,9 +148,6 @@ async def async_unload_entry(hass, config_entry):  # pylint: disable=unused-argu
 
 
 class MyHOMECover(MyHOMEEntity, CoverEntity):
-
-    device_class = CoverDeviceClass.SHUTTER
-
     def __init__(
         self,
         hass,
@@ -145,6 +156,7 @@ class MyHOMECover(MyHOMEEntity, CoverEntity):
         who: str,
         where: str,
         advanced: bool,
+        device_class: str,
         manufacturer: str,
         model: str,
         gateway: MyHOMEGatewayHandler,
@@ -170,6 +182,7 @@ class MyHOMECover(MyHOMEEntity, CoverEntity):
             "PL": where[len(where) // 2 :],
         }
 
+        self._attr_device_class = device_class
         self._attr_current_cover_position = None
         self._attr_is_opening = None
         self._attr_is_closing = None
