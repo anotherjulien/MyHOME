@@ -106,11 +106,12 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
 
         # Find already configured hosts
         already_configured = self._async_current_ids(False)
-        local_gateways = [
-            gateway
-            for gateway in local_gateways
-            if dr.format_mac(f'{MACAddress(user_input["serialNumber"])}') not in already_configured
-        ]
+        if (user_input is not None):
+            local_gateways = [
+                gateway
+                for gateway in local_gateways
+                if dr.format_mac(f'{MACAddress(user_input["serialNumber"])}') not in already_configured
+            ]
 
         # if not local_gateways:
         #     return self.async_abort(reason="all_configured")
