@@ -23,10 +23,12 @@ from homeassistant.const import CONF_NAME, CONF_MAC
 from .const import (
     LOGGER,
     CONF,
+    CONF_PLATFORMS,
     CONF_GATEWAY,
     CONF_WHO,
     CONF_WHERE,
     CONF_BUS_INTERFACE,
+    CONF_ENTITIES,
     CONF_ZONE,
     CONF_MANUFACTURER,
     CONF_DEVICE_MODEL,
@@ -96,9 +98,10 @@ class MyHomeConfigSchema(Schema):
         _rekeyed_data = {}
         for gateway in data:
             _rekeyed_data[data[gateway][CONF_MAC]] = {}
+            _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS] = {}
             for platform in data[gateway]:
                 if platform != CONF_MAC:
-                    _rekeyed_data[data[gateway][CONF_MAC]][platform] = data[gateway][platform] 
+                    _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][platform] = data[gateway][platform] 
 
         return _rekeyed_data
 
@@ -108,6 +111,7 @@ class MyHomeDeviceSchema(Schema):
         _rekeyed_data = {} 
 
         for device in data:
+            data[device][CONF_ENTITIES] = {}
             if CONF_DEVICE_CLASS in data[device]:
                 if data[device][CONF_DEVICE_CLASS] in [SensorDeviceClass.POWER, SensorDeviceClass.ENERGY]:
                     if CONF_WHO not in data[device]:
