@@ -1,7 +1,8 @@
 {
   "domain": "myhome",
+  "integration_type": "hub",
   "name": "MyHOME",
-  "version": "0.8.6",
+  "version": "0.8.7",
   "config_flow": true,
   "documentation": "https://github.com/anotherjulien/MyHOME",
   "issue_tracker": "https://github.com/anotherjulien/MyHOME/issues",
