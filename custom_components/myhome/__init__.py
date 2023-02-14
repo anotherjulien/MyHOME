@@ -1,21 +1,26 @@
 """ MyHOME integration. """
+import aiofiles
+import yaml
+
 from OWNd.message import OWNCommand, OWNGatewayCommand
 
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.const import CONF_MAC
 
 from .const import (
     ATTR_MESSAGE,
-    CONF,
-    CONF_CENTRAL,
+    CONF_PLATFORMS,
+    CONF_ENTITY,
     CONF_ENTITIES,
     CONF_GATEWAY,
     CONF_WORKER_COUNT,
     DOMAIN,
     LOGGER,
 )
+from .validate import config_schema
 from .gateway import MyHOMEGatewayHandler
 
 PLATFORMS = ["light", "switch", "cover", "climate", "binary_sensor", "sensor"]
@@ -34,11 +39,22 @@ async def async_setup(hass, config):
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
+    if entry.data[CONF_MAC] not in hass.data[DOMAIN]:
+        hass.data[DOMAIN][entry.data[CONF_MAC]] = {}
 
-    if CONF not in hass.data[DOMAIN]:
-        hass.data[DOMAIN][CONF] = {}
-    if CONF_ENTITIES not in hass.data[DOMAIN]:
-        hass.data[DOMAIN][CONF_ENTITIES] = {}
+    try:
+        async with aiofiles.open("/config/myhome.yaml", mode="r") as yaml_file:
+            _validated_config = config_schema(yaml.safe_load(await yaml_file.read()))
+    except FileNotFoundError:
+        LOGGER.error('Configartion file "/config/myhome.yaml" is not present!')
+        return False
+
+    if entry.data[CONF_MAC] in _validated_config:
+        hass.data[DOMAIN][entry.data[CONF_MAC]] = _validated_config[
+            entry.data[CONF_MAC]
+        ]
+    else:
+        return False
 
     # Migrating the config entry's unique_id if it was not formated to the recommended hass standard
     if entry.unique_id != dr.format_mac(entry.unique_id):
@@ -47,12 +63,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         )
         LOGGER.warning("Migrating config entry unique_id to %s", entry.unique_id)
 
-    hass.data[DOMAIN][CONF_GATEWAY] = MyHOMEGatewayHandler(
+    hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY] = MyHOMEGatewayHandler(
         hass=hass, config_entry=entry
     )
 
     try:
-        tests_results = await hass.data[DOMAIN][CONF_GATEWAY].test()
+        tests_results = await hass.data[DOMAIN][entry.data[CONF_MAC]][
+            CONF_ENTITY
+        ].test()
     except OSError as ose:
         _gateway_handler = hass.data[DOMAIN].pop(CONF_GATEWAY)
         _host = _gateway_handler.gateway.host
@@ -72,7 +90,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
                     data=entry.data,
                 )
             )
-        del hass.data[DOMAIN][CONF_GATEWAY]
+        del hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY]
         return False
 
     _command_worker_count = (
@@ -86,35 +104,98 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
-        connections={(dr.CONNECTION_NETWORK_MAC, hass.data[DOMAIN][CONF_GATEWAY].mac)},
-        identifiers={(DOMAIN, hass.data[DOMAIN][CONF_GATEWAY].unique_id)},
-        manufacturer=hass.data[DOMAIN][CONF_GATEWAY].manufacturer,
-        name=hass.data[DOMAIN][CONF_GATEWAY].name,
-        model=hass.data[DOMAIN][CONF_GATEWAY].model,
-        sw_version=hass.data[DOMAIN][CONF_GATEWAY].firmware,
+        connections={(dr.CONNECTION_NETWORK_MAC, entry.data[CONF_MAC])},
+        identifiers={
+            (DOMAIN, hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].unique_id)
+        },
+        manufacturer=hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].manufacturer,
+        name=hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].name,
+        model=hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].model,
+        sw_version=hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].firmware,
     )
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    
-    # for platform in PLATFORMS:
-    #     await hass.config_entries.async_forward_entry_setup(entry, platform)
-    
-    # for platform in PLATFORMS:
-    #     hass.async_create_task(
-    #         hass.config_entries.async_forward_entry_setup(entry, platform)
-    #     )
+    await hass.config_entries.async_forward_entry_setups(
+        entry, hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_PLATFORMS].keys()
+    )
 
-    hass.data[DOMAIN][CONF_GATEWAY].listening_worker = hass.loop.create_task(
-        hass.data[DOMAIN][CONF_GATEWAY].listening_loop()
+    hass.data[DOMAIN][entry.data[CONF_MAC]][
+        CONF_ENTITY
+    ].listening_worker = hass.loop.create_task(
+        hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].listening_loop()
     )
     for i in range(_command_worker_count):
-        hass.data[DOMAIN][CONF_GATEWAY].sending_workers.append(
-            hass.loop.create_task(hass.data[DOMAIN][CONF_GATEWAY].sending_loop(i))
+        hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].sending_workers.append(
+            hass.loop.create_task(
+                hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].sending_loop(i)
+            )
         )
 
+    # Pruning lose entities and devices from the registry
+    entity_entries = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
+
+    entities_to_be_removed = []
+    devices_to_be_removed = [
+        device_entry.id
+        for device_entry in device_registry.devices.values()
+        if entry.entry_id in device_entry.config_entries
+    ]
+    gateway_entry = device_registry.async_get_device(
+        identifiers={
+            (DOMAIN, hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].unique_id)
+        },
+        connections={
+            (
+                dr.CONNECTION_NETWORK_MAC,
+                hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].mac,
+            )
+        },
+    )
+    if gateway_entry.id in devices_to_be_removed:
+        devices_to_be_removed.remove(gateway_entry.id)
+
+    configured_entities = []
+
+    for _platform in hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_PLATFORMS].keys():
+        for _device in hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_PLATFORMS][
+            _platform
+        ].keys():
+            for _entity_name in hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_PLATFORMS][
+                _platform
+            ][_device][CONF_ENTITIES]:
+                if _entity_name != _platform:
+                    configured_entities.append(
+                        f"{entry.data[CONF_MAC]}-{_device}-{_entity_name}"
+                    )  # extrapolating _attr_unique_id out of the entity's place in the config data structure
+                else:
+                    configured_entities.append(
+                        f"{entry.data[CONF_MAC]}-{_device}"
+                    )  # extrapolating _attr_unique_id out of the entity's place in the config data structure
+
+    for entity_entry in entity_entries:
+        if entity_entry.unique_id in configured_entities:
+            if entity_entry.device_id in devices_to_be_removed:
+                devices_to_be_removed.remove(entity_entry.device_id)
+            continue
+        entities_to_be_removed.append(entity_entry.entity_id)
+
+    for enity_id in entities_to_be_removed:
+        entity_registry.async_remove(enity_id)
+
+    for device_id in devices_to_be_removed:
+        if (
+            len(
+                er.async_entries_for_device(
+                    entity_registry, device_id, include_disabled_entities=True
+                )
+            )
+            == 0
+        ):
+            device_registry.async_remove_device(device_id)
+
+    # Defining the services
     async def handle_sync_time(call):  # pylint: disable=unused-argument
         timezone = hass.config.as_dict()["time_zone"]
-        await hass.data[DOMAIN][CONF_GATEWAY].send(
+        await hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].send(
             OWNGatewayCommand.set_datetime_to_now(timezone)
         )
 
@@ -129,70 +210,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
                 LOGGER.debug("OWN Message: %s", own_message)
                 if own_message.is_valid:
                     LOGGER.debug("message valid")
-                    await hass.data[DOMAIN][CONF_GATEWAY].send(own_message)
+                    await hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].send(
+                        own_message
+                    )
             else:
                 LOGGER.error("Could not parse message %s, not sending it.", message)
 
     hass.services.async_register(DOMAIN, "send_message", handle_send_message)
-
-    async def handle_registry_cleanup(call):
-
-        entity_entries = er.async_entries_for_config_entry(
-            entity_registry, entry.entry_id
-        )
-
-        entities_to_be_removed = []
-        devices_to_be_removed = [
-            device_entry.id
-            for device_entry in device_registry.devices.values()
-            if entry.entry_id in device_entry.config_entries
-        ]
-        gateway_entry = device_registry.async_get_device(
-            identifiers={(DOMAIN, hass.data[DOMAIN][CONF_GATEWAY].unique_id)},
-            connections={
-                (dr.CONNECTION_NETWORK_MAC, hass.data[DOMAIN][CONF_GATEWAY].mac)
-            },
-        )
-        if gateway_entry.id in devices_to_be_removed:
-            devices_to_be_removed.remove(gateway_entry.id)
-
-        configured_entities = []
-
-        for platform in PLATFORMS:
-            if platform in hass.data[DOMAIN][CONF]:
-                for _device in hass.data[DOMAIN][CONF][platform].keys():
-                    if hass.data[DOMAIN][CONF][platform][_device][CONF_ENTITIES]:
-                        for _entity_name in hass.data[DOMAIN][CONF][platform][_device][
-                            CONF_ENTITIES
-                        ]:
-                            configured_entities.append(f"{_device}-{_entity_name}")
-                    else:
-                        configured_entities.append(_device)
-
-        for entity_entry in entity_entries:
-
-            if entity_entry.unique_id in configured_entities:
-                if entity_entry.device_id in devices_to_be_removed:
-                    devices_to_be_removed.remove(entity_entry.device_id)
-                continue
-
-            entities_to_be_removed.append(entity_entry.entity_id)
-
-        for enity_id in entities_to_be_removed:
-            entity_registry.async_remove(enity_id)
-
-        for device_id in devices_to_be_removed:
-            if (
-                len(
-                    er.async_entries_for_device(
-                        entity_registry, device_id, include_disabled_entities=True
-                    )
-                )
-                == 0
-            ):
-                device_registry.async_remove_device(device_id)
-
-    hass.services.async_register(DOMAIN, "registry_cleanup", handle_registry_cleanup)
 
     return True
 
@@ -202,11 +226,13 @@ async def async_unload_entry(hass, entry):
 
     LOGGER.info("Unloading MyHome entry.")
 
-    for platform in PLATFORMS:
+    for platform in hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_PLATFORMS].keys():
         await hass.config_entries.async_forward_entry_unload(entry, platform)
 
     hass.services.async_remove(DOMAIN, "sync_time")
     hass.services.async_remove(DOMAIN, "send_message")
 
-    gateway_handler = hass.data[DOMAIN].pop(CONF_GATEWAY)
+    gateway_handler = hass.data[DOMAIN][entry.data[CONF_MAC]].pop(CONF_ENTITY)
+    del hass.data[DOMAIN][entry.data[CONF_MAC]]
+
     return await gateway_handler.close_listener()

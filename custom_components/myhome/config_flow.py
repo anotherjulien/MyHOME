@@ -106,11 +106,12 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
 
         # Find already configured hosts
         already_configured = self._async_current_ids(False)
-        if (user_input is not None):
+        if user_input is not None:
             local_gateways = [
                 gateway
                 for gateway in local_gateways
-                if dr.format_mac(f'{MACAddress(user_input["serialNumber"])}') not in already_configured
+                if dr.format_mac(f'{MACAddress(user_input["serialNumber"])}')
+                not in already_configured
             ]
 
         # if not local_gateways:
@@ -145,7 +146,6 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
         """Handle manual gateway setup."""
 
         if user_input is not None:
-
             try:
                 user_input["address"] = str(
                     ipaddress.IPv4Address(user_input["address"])

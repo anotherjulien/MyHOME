@@ -1,9 +1,6 @@
 """Support for MyHome heating."""
-import voluptuous as vol
-
 from homeassistant.components.climate import (
     ClimateEntity,
-    PLATFORM_SCHEMA,
     DOMAIN as PLATFORM,
 )
 from homeassistant.components.climate.const import (
@@ -18,11 +15,9 @@ from homeassistant.components.climate.const import (
 )
 from homeassistant.const import (
     CONF_NAME,
-    CONF_DEVICES,
-    CONF_ENTITIES,
+    CONF_MAC,
     TEMP_CELSIUS,
 )
-import homeassistant.helpers.config_validation as cv
 
 from OWNd.message import (
     OWNHeatingEvent,
@@ -42,8 +37,8 @@ from OWNd.message import (
 )
 
 from .const import (
-    CONF,
-    CONF_GATEWAY,
+    CONF_PLATFORMS,
+    CONF_ENTITY,
     CONF_WHO,
     CONF_ZONE,
     CONF_MANUFACTURER,
@@ -59,103 +54,15 @@ from .const import (
 from .myhome_device import MyHOMEEntity
 from .gateway import MyHOMEGatewayHandler
 
-MYHOME_SCHEMA = vol.Schema(
-    {
-        vol.Optional(CONF_ZONE): cv.string,
-        vol.Optional(CONF_NAME): cv.string,
-        vol.Optional(CONF_HEATING_SUPPORT): cv.boolean,
-        vol.Optional(CONF_COOLING_SUPPORT): cv.boolean,
-        vol.Optional(CONF_STANDALONE): cv.boolean,
-        vol.Optional(CONF_CENTRAL): cv.boolean,
-        # vol.Optional(CONF_FAN_SUPPORT): cv.boolean,
-        vol.Optional(CONF_MANUFACTURER): cv.string,
-        vol.Optional(CONF_DEVICE_MODEL): cv.string,
-    }
-)
 
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
-    {vol.Required(CONF_DEVICES): cv.schema_with_slug_keys(MYHOME_SCHEMA)}
-)
-
-
-async def async_setup_platform(
-    hass, config, async_add_entities, discovery_info=None
-):  # pylint: disable=unused-argument
-    if CONF not in hass.data[DOMAIN]:
-        return False
-    hass.data[DOMAIN][CONF][PLATFORM] = {}
-    _configured_climate_devices = config.get(CONF_DEVICES)
-
-    if _configured_climate_devices:
-        for _, entity_info in _configured_climate_devices.items():
-            who = "4"
-            zone = entity_info[CONF_ZONE] if CONF_ZONE in entity_info else "#0"
-            device_id = f"{who}-{zone}"
-            central = (
-                entity_info[CONF_CENTRAL] if CONF_CENTRAL in entity_info else False
-            )
-            zone = f"#0#{zone}" if central and zone != "#0" else zone
-            name = (
-                entity_info[CONF_NAME]
-                if CONF_NAME in entity_info
-                else "Central unit"
-                if zone.startswith("#0")
-                else f"Zone {zone}"
-            )
-            heating = (
-                entity_info[CONF_HEATING_SUPPORT]
-                if CONF_HEATING_SUPPORT in entity_info
-                else True
-            )
-            cooling = (
-                entity_info[CONF_COOLING_SUPPORT]
-                if CONF_COOLING_SUPPORT in entity_info
-                else False
-            )
-            fan = (
-                entity_info[CONF_FAN_SUPPORT]
-                if CONF_FAN_SUPPORT in entity_info
-                else False
-            )
-            standalone = (
-                entity_info[CONF_STANDALONE]
-                if CONF_STANDALONE in entity_info
-                else False
-            )
-            entities = []
-            manufacturer = (
-                entity_info[CONF_MANUFACTURER]
-                if CONF_MANUFACTURER in entity_info
-                else None
-            )
-            model = (
-                entity_info[CONF_DEVICE_MODEL]
-                if CONF_DEVICE_MODEL in entity_info
-                else None
-            )
-            hass.data[DOMAIN][CONF][PLATFORM][device_id] = {
-                CONF_WHO: who,
-                CONF_ZONE: zone,
-                CONF_ENTITIES: entities,
-                CONF_NAME: name,
-                CONF_HEATING_SUPPORT: heating,
-                CONF_COOLING_SUPPORT: cooling,
-                CONF_FAN_SUPPORT: fan,
-                CONF_STANDALONE: standalone,
-                CONF_CENTRAL: central,
-                CONF_MANUFACTURER: manufacturer,
-                CONF_DEVICE_MODEL: model,
-            }
-
-
-async def async_setup_entry(
-    hass, config_entry, async_add_entities
-):  # pylint: disable=unused-argument
-    if PLATFORM not in hass.data[DOMAIN][CONF]:
+async def async_setup_entry(hass, config_entry, async_add_entities):
+    if PLATFORM not in hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS]:
         return True
 
     _climate_devices = []
-    _configured_climate_devices = hass.data[DOMAIN][CONF][PLATFORM]
+    _configured_climate_devices = hass.data[DOMAIN][config_entry.data[CONF_MAC]][
+        CONF_PLATFORMS
+    ][PLATFORM]
 
     for _climate_device in _configured_climate_devices.keys():
         _climate_devices.append(
@@ -180,21 +87,25 @@ async def async_setup_entry(
                     CONF_MANUFACTURER
                 ],
                 model=_configured_climate_devices[_climate_device][CONF_DEVICE_MODEL],
-                gateway=hass.data[DOMAIN][CONF_GATEWAY],
+                gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_ENTITY],
             )
         )
 
     async_add_entities(_climate_devices)
 
 
-async def async_unload_entry(hass, config_entry):  # pylint: disable=unused-argument
-    if PLATFORM not in hass.data[DOMAIN][CONF]:
+async def async_unload_entry(hass, config_entry):
+    if PLATFORM not in hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS]:
         return True
 
-    _configured_climate_devices = hass.data[DOMAIN][CONF][PLATFORM]
+    _configured_climate_devices = hass.data[DOMAIN][config_entry.data[CONF_MAC]][
+        CONF_PLATFORMS
+    ][PLATFORM]
 
     for _climate_device in _configured_climate_devices.keys():
-        del hass.data[DOMAIN][CONF_ENTITIES][_climate_device]
+        del hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][PLATFORM][
+            _climate_device
+        ]
 
 
 class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
@@ -217,6 +128,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
         super().__init__(
             hass=hass,
             name=name,
+            platform=PLATFORM,
             device_id=device_id,
             who=who,
             where=where,
@@ -451,13 +363,13 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
             if message.is_active():
                 if self._heating and self._cooling:
                     if message.is_heating():
-                        self._attr_hvac_action = HVACAction.HEATING
+                        self._attr_hvac_action = HVACAction.HEAT
                     elif message.is_cooling():
-                        self._attr_hvac_action = HVACAction.COOLING
+                        self._attr_hvac_action = HVACAction.COOL
                 elif self._heating:
-                    self._attr_hvac_action = HVACAction.HEATING
+                    self._attr_hvac_action = HVACAction.HEAT
                 elif self._cooling:
-                    self._attr_hvac_action = HVACAction.COOLING
+                    self._attr_hvac_action = HVACAction.COOL
             elif self._attr_hvac_mode == HVACMode.OFF:
                 self._attr_hvac_action = HVACAction.OFF
             else:

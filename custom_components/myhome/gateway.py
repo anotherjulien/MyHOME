@@ -11,6 +11,22 @@ from homeassistant.const import (
     CONF_MAC,
     CONF_FRIENDLY_NAME,
 )
+from homeassistant.components.light import DOMAIN as LIGHT
+from homeassistant.components.switch import (
+    SwitchDeviceClass,
+    DOMAIN as SWITCH,
+)
+from homeassistant.components.button import DOMAIN as BUTTON
+from homeassistant.components.cover import DOMAIN as COVER
+from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass,
+    DOMAIN as BINARY_SENSOR,
+)
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    DOMAIN as SENSOR,
+)
+from homeassistant.components.climate import DOMAIN as CLIMATE
 
 from OWNd.connection import OWNSession, OWNEventSession, OWNCommandSession, OWNGateway
 from OWNd.message import (
@@ -30,6 +46,7 @@ from OWNd.message import (
 )
 
 from .const import (
+    CONF_PLATFORMS,
     CONF_FIRMWARE,
     CONF_SSDP_LOCATION,
     CONF_SSDP_ST,
@@ -43,6 +60,11 @@ from .const import (
     CONF_LONG_RELEASE,
     DOMAIN,
     LOGGER,
+)
+from .myhome_device import MyHOMEEntity
+from .button import (
+    DisableCommandButtonEntity,
+    EnableCommandButtonEntity,
 )
 
 
@@ -103,7 +125,6 @@ class MyHOMEGatewayHandler:
         return await OWNSession(gateway=self.gateway, logger=LOGGER).test_connection()
 
     async def listening_loop(self):
-
         self._terminate_listener = False
 
         LOGGER.debug("Creating listening worker.")
@@ -118,10 +139,22 @@ class MyHOMEGatewayHandler:
             if not message:
                 LOGGER.warning("Data received is not a message: %s", message)
             elif isinstance(message, OWNEnergyEvent):
-                if message.entity in self.hass.data[DOMAIN][CONF_ENTITIES]:
-                    self.hass.data[DOMAIN][CONF_ENTITIES][message.entity].handle_event(
-                        message
-                    )
+                if (
+                    message.entity
+                    in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][SENSOR]
+                ):
+                    for _entity in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][
+                        SENSOR
+                    ][message.entity][CONF_ENTITIES]:
+                        if isinstance(
+                            self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][SENSOR][
+                                message.entity
+                            ][CONF_ENTITIES][_entity],
+                            MyHOMEEntity,
+                        ):
+                            self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][SENSOR][
+                                message.entity
+                            ][CONF_ENTITIES][_entity].handle_event(message)
                 else:
                     continue
             elif (
@@ -217,24 +250,74 @@ class MyHOMEGatewayHandler:
                                 },
                             )
                     if not is_event:
-                        if message.entity in self.hass.data[DOMAIN][CONF_ENTITIES]:
-                            if (
-                                isinstance(message, OWNLightingEvent)
-                                and message.brightness_preset
+                        if (
+                            isinstance(message, OWNLightingEvent)
+                            and message.brightness_preset
+                        ):
+                            # TODO fix data structure for call !
+                            if isinstance(
+                                self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][LIGHT][
+                                    message.entity
+                                ][CONF_ENTITIES][LIGHT],
+                                MyHOMEEntity,
                             ):
-                                await self.hass.data[DOMAIN][CONF_ENTITIES][
-                                    message.entity
-                                ].async_update()
-                            else:
-                                self.hass.data[DOMAIN][CONF_ENTITIES][
-                                    message.entity
-                                ].handle_event(message)
+                                await self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][
+                                    LIGHT
+                                ][message.entity][CONF_ENTITIES][LIGHT].async_update()
                         else:
-                            LOGGER.warning(
-                                "Unknown device: WHO=%s WHERE=%s",
-                                message.who,
-                                message.where,
-                            )
+                            for _platform in self.hass.data[DOMAIN][self.mac][
+                                CONF_PLATFORMS
+                            ]:
+                                if (
+                                    _platform != BUTTON
+                                    and message.entity
+                                    in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][
+                                        _platform
+                                    ]
+                                ):
+                                    for _entity in self.hass.data[DOMAIN][self.mac][
+                                        CONF_PLATFORMS
+                                    ][_platform][message.entity][CONF_ENTITIES]:
+                                        if (
+                                            isinstance(
+                                                self.hass.data[DOMAIN][self.mac][
+                                                    CONF_PLATFORMS
+                                                ][_platform][message.entity][
+                                                    CONF_ENTITIES
+                                                ][
+                                                    _entity
+                                                ],
+                                                MyHOMEEntity,
+                                            )
+                                            and not isinstance(
+                                                self.hass.data[DOMAIN][self.mac][
+                                                    CONF_PLATFORMS
+                                                ][_platform][message.entity][
+                                                    CONF_ENTITIES
+                                                ][
+                                                    _entity
+                                                ],
+                                                DisableCommandButtonEntity,
+                                            )
+                                            and not isinstance(
+                                                self.hass.data[DOMAIN][self.mac][
+                                                    CONF_PLATFORMS
+                                                ][_platform][message.entity][
+                                                    CONF_ENTITIES
+                                                ][
+                                                    _entity
+                                                ],
+                                                EnableCommandButtonEntity,
+                                            )
+                                        ):
+                                            self.hass.data[DOMAIN][self.mac][
+                                                CONF_PLATFORMS
+                                            ][_platform][message.entity][CONF_ENTITIES][
+                                                _entity
+                                            ].handle_event(
+                                                message
+                                            )
+
                 else:
                     LOGGER.debug("Ignoring translation message %s", message)
             elif (
@@ -305,7 +388,6 @@ class MyHOMEGatewayHandler:
         self.listening_worker.cancel()
 
     async def sending_loop(self, worker_id: int):
-
         self._terminate_sender = False
 
         LOGGER.debug("Creating sending worker %s", worker_id)
