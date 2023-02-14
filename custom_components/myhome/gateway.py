@@ -254,7 +254,6 @@ class MyHOMEGatewayHandler:
                             isinstance(message, OWNLightingEvent)
                             and message.brightness_preset
                         ):
-                            # TODO fix data structure for call !
                             if isinstance(
                                 self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][LIGHT][
                                     message.entity
