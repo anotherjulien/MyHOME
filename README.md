@@ -8,6 +8,11 @@ Some common gateways should be auto-discovered, but it is still possible to forc
 
 It is possible that upon first install (and updates), the OWNd listener process crashes and you do not get any status feedback on your devices. If such is the case, a restart of Home Assistant should solve the issue.
 
+## BEWARE
+
+If you've been using this integration in version 0.8 and prior, configuration structure has changed and you need to create and populate the appropriate config file. See below for instructions.
+
+
 ## Configuration and use
 
 Please find the [configuration](https://github.com/anotherjulien/MyHOME/wiki/Configuration) on the project's wiki!  
