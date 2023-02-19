@@ -90,6 +90,20 @@ class Where(object):
         return "Where(%s, msg=%r)" % ("String", self.msg)
 
 
+class SpecialWhere(object):
+    def __init__(self, msg=None):
+        self.msg = msg
+
+    def __call__(self, v):
+        if type(v) == str and v.isdigit():
+            return v
+        else:
+            raise Invalid(f"Invalid WHERE {v}, it must be a string of digits.")
+
+    def __repr__(self):
+        return "Where(%s, msg=%r)" % ("String", self.msg)
+
+
 class BusInterface(object):
     def __init__(self, msg=None):
         self.msg = msg
@@ -279,7 +293,7 @@ binary_sensor_schema = MyHomeDeviceSchema(
     {
         Required(str): {
             Optional(CONF_WHO, default="25"): In(["1", "9", "25"]),
-            Required(CONF_WHERE): All(Coerce(str), Where()),
+            Required(CONF_WHERE): All(Coerce(str), SpecialWhere()),
             Required(CONF_NAME): str,
             Optional(CONF_INVERTED, default=False): Boolean(),
             Optional(CONF_DEVICE_CLASS): In(
@@ -320,7 +334,7 @@ sensor_schema = MyHomeDeviceSchema(
     {
         Required(str): {
             Optional(CONF_WHO): In(["1", "4", "18"]),
-            Required(CONF_WHERE): All(Coerce(str), Where()),
+            Required(CONF_WHERE): All(Coerce(str), SpecialWhere()),
             Required(CONF_NAME): str,
             Required(CONF_DEVICE_CLASS): In(
                 [
