@@ -55,19 +55,21 @@
   },
   "options": {
     "step": {
-        "user": {
-          "title": "Options MyHome",
-          "description": "Parametres système avancés",
-            "data": {
-                "address": "Adresse IP",
-                "password": "Mot de passe",
-                "command_worker_count": "Nombre de session de commande simultanées"
-            }
+      "user": {
+        "title": "Options MyHome",
+        "description": "Parametres système avancés",
+        "data": {
+          "address": "Adresse IP",
+          "password": "Mot de passe",
+          "config_file_path": "Chemin du fichier de configuration",
+          "command_worker_count": "Nombre de session de commande simultanées"
         }
+      }
     },
     "error": {
       "invalid_ip": "Adresse IP invalide",
       "invalid_worker_count": "Workers must be between 1 and 10",
+      "invalid_config_path": "Fichier de configuration inexistant à ce chemin",
       "invalid_password": "Mot de passe invalide",
       "password_error": "Mot de passe invalide"
     }

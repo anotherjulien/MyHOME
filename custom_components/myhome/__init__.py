@@ -17,6 +17,7 @@ from .const import (
     CONF_ENTITIES,
     CONF_GATEWAY,
     CONF_WORKER_COUNT,
+    CONF_FILE_PATH,
     DOMAIN,
     LOGGER,
 )
@@ -42,11 +43,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     if entry.data[CONF_MAC] not in hass.data[DOMAIN]:
         hass.data[DOMAIN][entry.data[CONF_MAC]] = {}
 
+    _config_file_path = (
+        str(entry.options[CONF_FILE_PATH])
+        if CONF_FILE_PATH in entry.options
+        else "/config/myhome.yaml"
+    )
+
     try:
-        async with aiofiles.open("/config/myhome.yaml", mode="r") as yaml_file:
+        async with aiofiles.open(_config_file_path, mode="r") as yaml_file:
             _validated_config = config_schema(yaml.safe_load(await yaml_file.read()))
     except FileNotFoundError:
-        LOGGER.error('Configartion file "/config/myhome.yaml" is not present!')
+        LOGGER.error(f"Configartion file '{_config_file_path}' is not present!")
         return False
 
     if entry.data[CONF_MAC] in _validated_config:

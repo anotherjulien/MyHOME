@@ -55,19 +55,21 @@
   },
   "options": {
     "step": {
-        "user": {
-          "title": "MyHome options",
-          "description": "Advanced system settings",
-            "data": {
-                "address": "IP address",
-                "password": "Password",
-                "command_worker_count": "Number of concurrent command sessions"
-            }
+      "user": {
+        "title": "MyHome options",
+        "description": "Advanced system settings",
+        "data": {
+          "address": "IP address",
+          "password": "Password",
+          "config_file_path": "Configuration file path",
+          "command_worker_count": "Number of concurrent command sessions"
         }
+      }
     },
     "error": {
       "invalid_ip": "Invalid IP address",
       "invalid_worker_count": "Workers must be between 1 and 10",
+      "invalid_config_path": "Configuration file does not exist at this path",
       "invalid_password": "Invalid password",
       "password_error": "Invalid password"
     }

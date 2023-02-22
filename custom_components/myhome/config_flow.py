@@ -2,10 +2,19 @@
 import asyncio
 import ipaddress
 import re
+import os
 from typing import Dict, Optional
 
 import async_timeout
-import voluptuous as vol
+from voluptuous import (
+    Schema,
+    Required,
+    Coerce,
+    All,
+    In,
+    Range,
+    IsFile,
+)
 from homeassistant.config_entries import (
     CONN_CLASS_LOCAL_PUSH,
     ConfigEntry,
@@ -37,6 +46,7 @@ from .const import (
     CONF_SSDP_ST,
     CONF_UDN,
     CONF_WORKER_COUNT,
+    CONF_FILE_PATH,
     DOMAIN,
     LOGGER,
 )
@@ -123,9 +133,9 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema(
+            data_schema=Schema(
                 {
-                    vol.Required("serial"): vol.In(
+                    Required("serial"): In(
                         {
                             **{
                                 gateway[
@@ -198,19 +208,19 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="custom",
-            data_schema=vol.Schema(
+            data_schema=Schema(
                 {
-                    vol.Required(
+                    Required(
                         "address", description={"suggested_value": address_suggestion}
                     ): str,
-                    vol.Required(
+                    Required(
                         "port", description={"suggested_value": port_suggestion}
                     ): int,
-                    vol.Required(
+                    Required(
                         "serialNumber",
                         description={"suggested_value": serial_number_suggestion},
                     ): str,
-                    vol.Required(
+                    Required(
                         "modelName",
                         description={"suggested_value": model_name_suggestion},
                     ): str,
@@ -340,11 +350,9 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="port",
-            data_schema=vol.Schema(
+            data_schema=Schema(
                 {
-                    vol.Required(
-                        CONF_PORT, description={"suggested_value": 20000}
-                    ): int,
+                    Required(CONF_PORT, description={"suggested_value": 20000}): int,
                 }
             ),
             description_placeholders={
@@ -374,9 +382,9 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="password",
-            data_schema=vol.Schema(
+            data_schema=Schema(
                 {
-                    vol.Required(
+                    Required(
                         CONF_OWN_PASSWORD,
                         description={"suggested_value": _suggested_password},
                     ): str,
@@ -436,6 +444,8 @@ class MyhomeOptionsFlowHandler(OptionsFlow):
         self.data = dict(config_entry.data)
         if CONF_WORKER_COUNT not in self.options:
             self.options[CONF_WORKER_COUNT] = 1
+        if CONF_FILE_PATH not in self.options:
+            self.options[CONF_FILE_PATH] = "/config/myhome.yaml"
 
     async def async_step_init(self, user_input=None):  # pylint: disable=unused-argument
         """Manage the MyHome options."""
@@ -449,10 +459,11 @@ class MyhomeOptionsFlowHandler(OptionsFlow):
         errors = {}
 
         if user_input is not None:
-            if not 1 <= user_input[CONF_WORKER_COUNT] <= 10:
-                errors[CONF_WORKER_COUNT] = "invalid_worker_count"
+            if not os.path.isfile(user_input[CONF_FILE_PATH]):
+                errors[CONF_FILE_PATH] = "invalid_config_path"
 
             self.options.update({CONF_WORKER_COUNT: user_input[CONF_WORKER_COUNT]})
+            self.options.update({CONF_FILE_PATH: user_input[CONF_FILE_PATH]})
 
             _data_update = not (
                 self.data[CONF_HOST] == user_input[CONF_ADDRESS]
@@ -479,22 +490,26 @@ class MyhomeOptionsFlowHandler(OptionsFlow):
 
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema(
+            data_schema=Schema(
                 {
-                    vol.Required(
+                    Required(
                         CONF_ADDRESS,
                         description={"suggested_value": self.data[CONF_HOST]},
                     ): str,
-                    vol.Required(
+                    Required(
                         CONF_OWN_PASSWORD,
                         description={"suggested_value": self.data[CONF_PASSWORD]},
                     ): str,
-                    vol.Required(
+                    Required(
+                        CONF_FILE_PATH,
+                        description={"suggested_value": self.options[CONF_FILE_PATH]},
+                    ): Coerce(str),
+                    Required(
                         CONF_WORKER_COUNT,
                         description={
                             "suggested_value": self.options[CONF_WORKER_COUNT]
                         },
-                    ): int,
+                    ): All(Coerce(int), Range(min=1, max=10)),
                 }
             ),
             errors=errors,

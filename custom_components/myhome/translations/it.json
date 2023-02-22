@@ -55,19 +55,21 @@
   },
   "options": {
     "step": {
-        "user": {
-          "title": "Opzioni MyHome",
-          "description": "Impostazioni di sistema avanzate",
-            "data": {
-                "address": "Indirizzo IP",
-                "password": "Password",
-                "command_worker_count": "Numero di sessioni di comando simultanee"
-            }
+      "user": {
+        "title": "Opzioni MyHome",
+        "description": "Impostazioni di sistema avanzate",
+        "data": {
+          "address": "Indirizzo IP",
+          "password": "Password",
+          "config_file_path": "Configuration file path",
+          "command_worker_count": "Numero di sessioni di comando simultanee"
         }
+      }
     },
     "error": {
       "invalid_ip": "Indirizzo IP non valido",
       "invalid_worker_count": "I workers devono essere compresi tra 1 e 10",
+      "invalid_config_path": "Configuration file does not exist at this path",
       "invalid_password": "Password non valida",
       "password_error": "Errore password"
     }
