@@ -61,7 +61,7 @@
         "data": {
           "address": "Indirizzo IP",
           "password": "Password",
-          "config_file_path": "Configuration file path",
+          "config_file_path": "Percorso del file di configurazione",
           "command_worker_count": "Numero di sessioni di comando simultanee"
         }
       }
@@ -69,7 +69,7 @@
     "error": {
       "invalid_ip": "Indirizzo IP non valido",
       "invalid_worker_count": "I workers devono essere compresi tra 1 e 10",
-      "invalid_config_path": "Configuration file does not exist at this path",
+      "invalid_config_path": "Il file di configurazione non esiste in questo percorso",
       "invalid_password": "Password non valida",
       "password_error": "Errore password"
     }
