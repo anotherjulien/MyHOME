@@ -251,7 +251,7 @@ light_schema = MyHomeDeviceSchema(
             Required(CONF_NAME): str,
             Optional(CONF_DIMMABLE, default=False): Boolean(),
             Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
-            Optional(CONF_DEVICE_MODEL): Coerce(str),
+            Optional(CONF_DEVICE_MODEL, default=None): Coerce(str),
         }
     }
 )
@@ -270,7 +270,7 @@ switch_schema = MyHomeDeviceSchema(
                 ]
             ),
             Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
-            Optional(CONF_DEVICE_MODEL): Coerce(str),
+            Optional(CONF_DEVICE_MODEL, default=None): Coerce(str),
         }
     }
 )
@@ -284,7 +284,7 @@ cover_schema = MyHomeDeviceSchema(
             Required(CONF_NAME): str,
             Optional(CONF_ADVANCED_SHUTTER, default=False): Boolean(),
             Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
-            Optional(CONF_DEVICE_MODEL): Coerce(str),
+            Optional(CONF_DEVICE_MODEL, default=None): Coerce(str),
         }
     }
 )
@@ -326,7 +326,7 @@ binary_sensor_schema = MyHomeDeviceSchema(
                 ]
             ),
             Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
-            Optional(CONF_DEVICE_MODEL): Coerce(str),
+            Optional(CONF_DEVICE_MODEL, default=None): Coerce(str),
         }
     }
 )
@@ -346,7 +346,7 @@ sensor_schema = MyHomeDeviceSchema(
                 ]
             ),
             Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
-            Optional(CONF_DEVICE_MODEL): Coerce(str),
+            Optional(CONF_DEVICE_MODEL, default=None): Coerce(str),
         }
     }
 )
@@ -363,7 +363,7 @@ climate_schema = MyHomeDeviceSchema(
             Optional(CONF_STANDALONE, default=False): Boolean(),
             Optional(CONF_CENTRAL, default=False): Boolean(),
             Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
-            Optional(CONF_DEVICE_MODEL): Coerce(str),
+            Optional(CONF_DEVICE_MODEL, default=None): Coerce(str),
         }
     }
 )
