@@ -24,8 +24,8 @@
         }
       },
       "custom": {
-        "title": "Manual gateway entry",
-        "description": "Fill out the information for your gateway",
+        "title": "Manuele gateway informatie",
+        "description": "Vul de informatie in voor uw gateway",
         "data": {
           "address": "IP address",
           "port": "Port",
@@ -36,8 +36,8 @@
     },
     "error": {
       "invalid_port": "Ongeldig poortnummer",
-      "invalid_ip": "Invalid IP address",
-      "invalid_mac": "Invalid MAC address",
+      "invalid_ip": "Ongeldig IP address",
+      "invalid_mac": "Ongeldig MAC address",
       "invalid_password": "Ongeldig wachtwoord",
       "password_retry": "Gateway refusing password negotiation, wait 60s before retrying.",
       "password_error": "Ongeldig wachtwoord"
@@ -50,28 +50,28 @@
       "cannot_connect": "Kan niet verbinden met de gateway",
       "already_configured": "Deze gateway is reeds geconfigureerd",
       "already_in_progress": "De configuratie van deze gateway is reeds begonnen",
-      "reauth_successful": "Password change successful"
+      "reauth_successful": "Paswoord is gewijzigd"
     }
   },
   "options": {
     "step": {
       "user": {
-        "title": "MyHome options",
-        "description": "Advanced system settings",
+        "title": "MyHome opties",
+        "description": "Gevorderde systeem settings",
         "data": {
           "address": "IP address",
           "password": "Wachtwoord",
-          "config_file_path": "Configuration file path",
-          "command_worker_count": "Number of concurrent command sessions"
+          "config_file_path": "Path onfiguratie bestand",
+          "command_worker_count": "Aantal open command sessies"
         }
       }
     },
     "error": {
-      "invalid_ip": "Invalid IP address",
-      "invalid_worker_count": "Workers must be between 1 and 10",
-      "invalid_config_path": "Configuration file does not exist at this path",
-      "invalid_password": "Invalid password",
-      "password_error": "Invalid password"
+      "invalid_ip": "Ongeldig IP address",
+      "invalid_worker_count": "Aantal workers moet tussen 1 and 10 zijn",
+      "invalid_config_path": "Ongeldig path voor configuratie bestand",
+      "invalid_password": "Ongeldig password",
+      "password_error": "Ongeldig password"
     }
   }
 }
