@@ -238,6 +238,8 @@ class MyHomeDeviceSchema(Schema):
                 )
                 _new_key = f"{data[device][CONF_WHO]}-{data[device][CONF_ZONE]}"
                 _rekeyed_data[_new_key] = data[device]
+            if CONF_DEVICE_MODEL not in data[device]:
+                data[device][CONF_DEVICE_MODEL] = None
 
         return _rekeyed_data
 
@@ -251,7 +253,7 @@ light_schema = MyHomeDeviceSchema(
             Required(CONF_NAME): str,
             Optional(CONF_DIMMABLE, default=False): Boolean(),
             Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
-            Optional(CONF_DEVICE_MODEL, default=None): Coerce(str),
+            Optional(CONF_DEVICE_MODEL): Coerce(str),
         }
     }
 )
@@ -270,7 +272,7 @@ switch_schema = MyHomeDeviceSchema(
                 ]
             ),
             Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
-            Optional(CONF_DEVICE_MODEL, default=None): Coerce(str),
+            Optional(CONF_DEVICE_MODEL): Coerce(str),
         }
     }
 )
@@ -284,7 +286,7 @@ cover_schema = MyHomeDeviceSchema(
             Required(CONF_NAME): str,
             Optional(CONF_ADVANCED_SHUTTER, default=False): Boolean(),
             Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
-            Optional(CONF_DEVICE_MODEL, default=None): Coerce(str),
+            Optional(CONF_DEVICE_MODEL): Coerce(str),
         }
     }
 )
@@ -326,7 +328,7 @@ binary_sensor_schema = MyHomeDeviceSchema(
                 ]
             ),
             Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
-            Optional(CONF_DEVICE_MODEL, default=None): Coerce(str),
+            Optional(CONF_DEVICE_MODEL): Coerce(str),
         }
     }
 )
@@ -346,7 +348,7 @@ sensor_schema = MyHomeDeviceSchema(
                 ]
             ),
             Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
-            Optional(CONF_DEVICE_MODEL, default=None): Coerce(str),
+            Optional(CONF_DEVICE_MODEL): Coerce(str),
         }
     }
 )
@@ -363,7 +365,7 @@ climate_schema = MyHomeDeviceSchema(
             Optional(CONF_STANDALONE, default=False): Boolean(),
             Optional(CONF_CENTRAL, default=False): Boolean(),
             Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
-            Optional(CONF_DEVICE_MODEL, default=None): Coerce(str),
+            Optional(CONF_DEVICE_MODEL): Coerce(str),
         }
     }
 )
