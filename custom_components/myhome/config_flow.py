@@ -387,7 +387,7 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
                     Required(
                         CONF_OWN_PASSWORD,
                         description={"suggested_value": _suggested_password},
-                    ): str,
+                    ): Coerce(str),
                 }
             ),
             description_placeholders={
