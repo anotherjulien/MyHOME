@@ -135,12 +135,13 @@ class MyHOMEGatewayHandler:
 
         while not self._terminate_listener:
             message = await _event_session.get_next()
-            LOGGER.debug("Received: %s", message)
+            LOGGER.debug("%s (%s) Received: %s", self.name, self.gateway.host, message)
             if not message:
                 LOGGER.warning("Data received is not a message: %s", message)
             elif isinstance(message, OWNEnergyEvent):
                 if (
-                    message.entity
+                    SENSOR in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS]
+                    and message.entity
                     in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][SENSOR]
                 ):
                     for _entity in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][
