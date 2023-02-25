@@ -138,33 +138,33 @@ class MyHomeConfigSchema(Schema):
                         platform
                     ] = data[gateway][platform]
 
-        if (
-            (LIGHT in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS])
-            or (SWITCH in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS])
-            or (COVER in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS])
-        ):
-            _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON] = {}
-            if LIGHT in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS]:
-                for key, value in _rekeyed_data[data[gateway][CONF_MAC]][
-                    CONF_PLATFORMS
-                ][LIGHT].items():
-                    _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON][
-                        key
-                    ] = value
-            if SWITCH in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS]:
-                for key, value in _rekeyed_data[data[gateway][CONF_MAC]][
-                    CONF_PLATFORMS
-                ][SWITCH].items():
-                    _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON][
-                        key
-                    ] = value
-            if COVER in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS]:
-                for key, value in _rekeyed_data[data[gateway][CONF_MAC]][
-                    CONF_PLATFORMS
-                ][COVER].items():
-                    _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON][
-                        key
-                    ] = value
+            if (
+                (LIGHT in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS])
+                or (SWITCH in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS])
+                or (COVER in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS])
+            ):
+                _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON] = {}
+                if LIGHT in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS]:
+                    for key, value in _rekeyed_data[data[gateway][CONF_MAC]][
+                        CONF_PLATFORMS
+                    ][LIGHT].items():
+                        _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON][
+                            key
+                        ] = value
+                if SWITCH in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS]:
+                    for key, value in _rekeyed_data[data[gateway][CONF_MAC]][
+                        CONF_PLATFORMS
+                    ][SWITCH].items():
+                        _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON][
+                            key
+                        ] = value
+                if COVER in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS]:
+                    for key, value in _rekeyed_data[data[gateway][CONF_MAC]][
+                        CONF_PLATFORMS
+                    ][COVER].items():
+                        _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON][
+                            key
+                        ] = value
 
         return _rekeyed_data
 
