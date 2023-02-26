@@ -106,6 +106,10 @@ class MyHOMEGatewayHandler:
         return self.mac
 
     @property
+    def log_id(self) -> str:
+        return self.gateway.log_id
+
+    @property
     def manufacturer(self) -> str:
         return self.gateway.manufacturer
 
@@ -127,7 +131,7 @@ class MyHOMEGatewayHandler:
     async def listening_loop(self):
         self._terminate_listener = False
 
-        LOGGER.debug("Creating listening worker.")
+        LOGGER.debug("%s Creating listening worker.", self.log_id)
 
         _event_session = OWNEventSession(gateway=self.gateway, logger=LOGGER)
         await _event_session.connect()
@@ -135,9 +139,13 @@ class MyHOMEGatewayHandler:
 
         while not self._terminate_listener:
             message = await _event_session.get_next()
-            LOGGER.debug("%s (%s) Received: %s", self.name, self.gateway.host, message)
+            LOGGER.debug("%s Message received: `%s`", self.log_id, message)
             if not message:
-                LOGGER.warning("Data received is not a message: %s", message)
+                LOGGER.warning(
+                    "%s Data received is not a message: `%s`",
+                    self.log_id,
+                    message,
+                )
             elif isinstance(message, OWNEnergyEvent):
                 if (
                     SENSOR in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS]
@@ -319,7 +327,11 @@ class MyHOMEGatewayHandler:
                                             )
 
                 else:
-                    LOGGER.debug("Ignoring translation message %s", message)
+                    LOGGER.debug(
+                        "%s Ignoring translation message `%s`",
+                        self.log_id,
+                        message,
+                    )
             elif (
                 isinstance(message, OWNHeatingCommand)
                 and message.dimension is not None
@@ -331,7 +343,9 @@ class MyHOMEGatewayHandler:
                     else message.where
                 )
                 LOGGER.debug(
-                    "Received heating command, sending query to zone %s", where
+                    "%s Received heating command, sending query to zone %s",
+                    self.log_id,
+                    where,
                 )
                 await self.send_status_request(OWNHeatingCommand.status(where))
             elif isinstance(message, OWNCENPlusEvent):
@@ -352,7 +366,11 @@ class MyHOMEGatewayHandler:
                         "event": event,
                     },
                 )
-                LOGGER.info(message.human_readable_log)
+                LOGGER.info(
+                    "%s %s",
+                    self.log_id,
+                    message.human_readable_log,
+                )
             elif isinstance(message, OWNCENEvent):
                 event = None
                 if message.is_pressed:
@@ -373,24 +391,40 @@ class MyHOMEGatewayHandler:
                         "event": event,
                     },
                 )
-                LOGGER.info(message.human_readable_log)
+                LOGGER.info(
+                    "%s %s",
+                    self.log_id,
+                    message.human_readable_log,
+                )
             elif isinstance(message, OWNGatewayEvent) or isinstance(
                 message, OWNGatewayCommand
             ):
-                LOGGER.info(message.human_readable_log)
+                LOGGER.info(
+                    "%s %s",
+                    self.log_id,
+                    message.human_readable_log,
+                )
             else:
-                LOGGER.info("Unsupported message type: %s", message)
+                LOGGER.info(
+                    "%s Unsupported message type: `%s`",
+                    self.log_id,
+                    message,
+                )
 
         await _event_session.close()
         self.is_connected = False
 
-        LOGGER.debug("Destroying listening worker.")
+        LOGGER.debug("%s Destroying listening worker.", self.log_id)
         self.listening_worker.cancel()
 
     async def sending_loop(self, worker_id: int):
         self._terminate_sender = False
 
-        LOGGER.debug("Creating sending worker %s", worker_id)
+        LOGGER.debug(
+            "%s Creating sending worker %s",
+            self.log_id,
+            worker_id,
+        )
 
         _command_session = OWNCommandSession(gateway=self.gateway, logger=LOGGER)
         await _command_session.connect()
@@ -398,7 +432,9 @@ class MyHOMEGatewayHandler:
         while not self._terminate_sender:
             task = await self.send_buffer.get()
             LOGGER.debug(
-                "Message %s was successfully unqueued by worker %s.",
+                "%s Message `%s` was successfully unqueued by worker %s.",
+                self.name,
+                self.gateway.host,
                 task["message"],
                 worker_id,
             )
@@ -409,11 +445,15 @@ class MyHOMEGatewayHandler:
 
         await _command_session.close()
 
-        LOGGER.debug("Destroying sending worker %s", worker_id)
+        LOGGER.debug(
+            "%s Destroying sending worker %s",
+            self.log_id,
+            worker_id,
+        )
         self.sending_workers[worker_id].cancel()
 
     async def close_listener(self) -> bool:
-        LOGGER.info("Closing event listener")
+        LOGGER.info("%s Closing event listener", self.log_id)
         self._terminate_sender = True
         self._terminate_listener = True
 
@@ -421,8 +461,16 @@ class MyHOMEGatewayHandler:
 
     async def send(self, message: OWNCommand):
         await self.send_buffer.put({"message": message, "is_status_request": False})
-        LOGGER.debug("Message %s was successfully queued.", message)
+        LOGGER.debug(
+            "%s Message `%s` was successfully queued.",
+            self.log_id,
+            message,
+        )
 
     async def send_status_request(self, message: OWNCommand):
         await self.send_buffer.put({"message": message, "is_status_request": True})
-        LOGGER.debug("Message %s was successfully queued.", message)
+        LOGGER.debug(
+            "%s Message `%s` was successfully queued.",
+            self.log_id,
+            message,
+        )

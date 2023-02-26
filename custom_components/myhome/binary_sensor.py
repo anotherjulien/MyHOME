@@ -188,7 +188,11 @@ class MyHOMEDryContact(MyHOMEEntity, BinarySensorEntity):
 
     def handle_event(self, message: OWNDryContactEvent):
         """Handle an event message."""
-        LOGGER.info(message.human_readable_log)
+        LOGGER.info(
+            "%s %s",
+            self._gateway_handler.log_id,
+            message.human_readable_log,
+        )
         self._attr_is_on = message.is_on != self._inverted
         self.async_schedule_update_ha_state()
 
@@ -253,7 +257,11 @@ class MyHOMEAuxiliary(MyHOMEEntity, BinarySensorEntity):
 
     def handle_event(self, message: OWNDryContactEvent):
         """Handle an event message."""
-        LOGGER.info(message.human_readable_log)
+        LOGGER.info(
+            "%s %s",
+            self._gateway_handler.log_id,
+            message.human_readable_log,
+        )
         self._attr_is_on = message.is_on != self._inverted
         self.async_schedule_update_ha_state()
 
@@ -354,7 +362,11 @@ class MyHOMEMotionSensor(MyHOMEEntity, BinarySensorEntity, RestoreEntity):
         ]:
             return True
 
-        LOGGER.info(message.human_readable_log)
+        LOGGER.info(
+            "%s %s",
+            self._gateway_handler.log_id,
+            message.human_readable_log,
+        )
         if message.message_type == MESSAGE_TYPE_MOTION and message.motion:
             self._attr_is_on = message.motion != self._inverted
         elif message.message_type == MESSAGE_TYPE_MOTION_TIMEOUT:

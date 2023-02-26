@@ -142,6 +142,10 @@ class MyHOMESwitch(MyHOMEEntity, SwitchEntity):
 
     def handle_event(self, message: OWNLightingEvent):
         """Handle an event message."""
-        LOGGER.info(message.human_readable_log)
+        LOGGER.info(
+            "%s %s",
+            self._gateway_handler.log_id,
+            message.human_readable_log,
+        )
         self._attr_is_on = message.is_on
         self.async_schedule_update_ha_state()

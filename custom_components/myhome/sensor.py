@@ -277,7 +277,11 @@ class MyHOMEPowerSensor(MyHOMEEntity, SensorEntity):
         if message.message_type not in [MESSAGE_TYPE_ACTIVE_POWER]:
             return True
 
-        LOGGER.info(message.human_readable_log)
+        LOGGER.info(
+            "%s %s",
+            self._gateway_handler.log_id,
+            message.human_readable_log,
+        )
         self._attr_native_value = message.active_power
         self.async_schedule_update_ha_state()
 
@@ -388,19 +392,31 @@ class MyHOMEEnergySensor(MyHOMEEntity, SensorEntity):
             self._entity_specific_id == "total-energy"
             and message.message_type == MESSAGE_TYPE_ENERGY_TOTALIZER
         ):
-            LOGGER.info(message.human_readable_log)
+            LOGGER.info(
+                "%s %s",
+                self._gateway_handler.log_id,
+                message.human_readable_log,
+            )
             self._attr_native_value = message.total_consumption
         elif (
             self._entity_specific_id == "monthly-energy"
             and message.message_type == MESSAGE_TYPE_CURRENT_MONTH_CONSUMPTION
         ):
-            LOGGER.info(message.human_readable_log)
+            LOGGER.info(
+                "%s %s",
+                self._gateway_handler.log_id,
+                message.human_readable_log,
+            )
             self._attr_native_value = message.current_month_partial_consumption
         elif (
             self._entity_specific_id == "daily-energy"
             and message.message_type == MESSAGE_TYPE_CURRENT_DAY_CONSUMPTION
         ):
-            LOGGER.info(message.human_readable_log)
+            LOGGER.info(
+                "%s %s",
+                self._gateway_handler.log_id,
+                message.human_readable_log,
+            )
             self._attr_native_value = message.current_day_partial_consumption
         self.async_schedule_update_ha_state()
 
@@ -479,11 +495,19 @@ class MyHOMETemperatureSensor(MyHOMEEntity, SensorEntity):
             return True
 
         if message.message_type == MESSAGE_TYPE_MAIN_TEMPERATURE:
-            LOGGER.info(message.human_readable_log)
+            LOGGER.info(
+                "%s %s",
+                self._gateway_handler.log_id,
+                message.human_readable_log,
+            )
             self._attr_native_value = message.main_temperature
             self.async_schedule_update_ha_state()
         elif message.message_type == MESSAGE_TYPE_SECONDARY_TEMPERATURE:
-            LOGGER.info(message.human_readable_log)
+            LOGGER.info(
+                "%s %s",
+                self._gateway_handler.log_id,
+                message.human_readable_log,
+            )
             self._attr_native_value = message.secondary_temperature[1]
             self.async_schedule_update_ha_state()
 
@@ -558,6 +582,10 @@ class MyHOMEIlluminanceSensor(MyHOMEEntity, SensorEntity):
         if message.message_type not in [MESSAGE_TYPE_ILLUMINANCE]:
             return True
 
-        LOGGER.info(message.human_readable_log)
+        LOGGER.info(
+            "%s %s",
+            self._gateway_handler.log_id,
+            message.human_readable_log,
+        )
         self._attr_native_value = message.illuminance
         self.async_schedule_update_ha_state()

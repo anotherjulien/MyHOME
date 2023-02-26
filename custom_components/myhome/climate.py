@@ -272,26 +272,46 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
     def handle_event(self, message: OWNHeatingEvent):
         """Handle an event message."""
         if message.message_type == MESSAGE_TYPE_MAIN_TEMPERATURE:
-            LOGGER.info(message.human_readable_log)
+            LOGGER.info(
+                "%s %s",
+                self._gateway_handler.log_id,
+                message.human_readable_log,
+            )
             self._attr_current_temperature = message.main_temperature
         elif message.message_type == MESSAGE_TYPE_MAIN_HUMIDITY:
-            LOGGER.info(message.human_readable_log)
+            LOGGER.info(
+                "%s %s",
+                self._gateway_handler.log_id,
+                message.human_readable_log,
+            )
             self._attr_current_humidity = message.main_humidity
         elif message.message_type == MESSAGE_TYPE_TARGET_TEMPERATURE:
-            LOGGER.info(message.human_readable_log)
+            LOGGER.info(
+                "%s %s",
+                self._gateway_handler.log_id,
+                message.human_readable_log,
+            )
             self._target_temperature = message.set_temperature
             self._local_target_temperature = (
                 self._target_temperature + self._local_offset
             )
         elif message.message_type == MESSAGE_TYPE_LOCAL_OFFSET:
-            LOGGER.info(message.human_readable_log)
+            LOGGER.info(
+                "%s %s",
+                self._gateway_handler.log_id,
+                message.human_readable_log,
+            )
             self._local_offset = message.local_offset
             if self._target_temperature is not None:
                 self._local_target_temperature = (
                     self._target_temperature + self._local_offset
                 )
         elif message.message_type == MESSAGE_TYPE_LOCAL_TARGET_TEMPERATURE:
-            LOGGER.info(message.human_readable_log)
+            LOGGER.info(
+                "%s %s",
+                self._gateway_handler.log_id,
+                message.human_readable_log,
+            )
             self._local_target_temperature = message.local_set_temperature
             self._target_temperature = (
                 self._local_target_temperature - self._local_offset
@@ -301,7 +321,11 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                 message.mode == CLIMATE_MODE_AUTO
                 and HVACMode.AUTO in self._attr_hvac_modes
             ):
-                LOGGER.info(message.human_readable_log)
+                LOGGER.info(
+                    "%s %s",
+                    self._gateway_handler.log_id,
+                    message.human_readable_log,
+                )
                 self._attr_hvac_mode = HVACMode.AUTO
                 if self._attr_hvac_action == HVACAction.OFF:
                     self._attr_hvac_action = HVACAction.IDLE
@@ -309,7 +333,11 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                 message.mode == CLIMATE_MODE_COOL
                 and HVACMode.COOL in self._attr_hvac_modes
             ):
-                LOGGER.info(message.human_readable_log)
+                LOGGER.info(
+                    "%s %s",
+                    self._gateway_handler.log_id,
+                    message.human_readable_log,
+                )
                 self._attr_hvac_mode = HVACMode.COOL
                 if self._attr_hvac_action == HVACAction.OFF:
                     self._attr_hvac_action = HVACAction.IDLE
@@ -317,12 +345,20 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                 message.mode == CLIMATE_MODE_HEAT
                 and HVACMode.HEAT in self._attr_hvac_modes
             ):
-                LOGGER.info(message.human_readable_log)
+                LOGGER.info(
+                    "%s %s",
+                    self._gateway_handler.log_id,
+                    message.human_readable_log,
+                )
                 self._attr_hvac_mode = HVACMode.HEAT
                 if self._attr_hvac_action == HVACAction.OFF:
                     self._attr_hvac_action = HVACAction.IDLE
             elif message.mode == CLIMATE_MODE_OFF:
-                LOGGER.info(message.human_readable_log)
+                LOGGER.info(
+                    "%s %s",
+                    self._gateway_handler.log_id,
+                    message.human_readable_log,
+                )
                 self._attr_hvac_mode = HVACMode.OFF
                 self._attr_hvac_action = HVACAction.OFF
         elif message.message_type == MESSAGE_TYPE_MODE_TARGET:
@@ -330,7 +366,11 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                 message.mode == CLIMATE_MODE_AUTO
                 and HVACMode.AUTO in self._attr_hvac_modes
             ):
-                LOGGER.info(message.human_readable_log)
+                LOGGER.info(
+                    "%s %s",
+                    self._gateway_handler.log_id,
+                    message.human_readable_log,
+                )
                 self._attr_hvac_mode = HVACMode.AUTO
                 if self._attr_hvac_action == HVACAction.OFF:
                     self._attr_hvac_action = HVACAction.IDLE
@@ -338,7 +378,11 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                 message.mode == CLIMATE_MODE_COOL
                 and HVACMode.COOL in self._attr_hvac_modes
             ):
-                LOGGER.info(message.human_readable_log)
+                LOGGER.info(
+                    "%s %s",
+                    self._gateway_handler.log_id,
+                    message.human_readable_log,
+                )
                 self._attr_hvac_mode = HVACMode.COOL
                 if self._attr_hvac_action == HVACAction.OFF:
                     self._attr_hvac_action = HVACAction.IDLE
@@ -346,12 +390,20 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                 message.mode == CLIMATE_MODE_HEAT
                 and HVACMode.HEAT in self._attr_hvac_modes
             ):
-                LOGGER.info(message.human_readable_log)
+                LOGGER.info(
+                    "%s %s",
+                    self._gateway_handler.log_id,
+                    message.human_readable_log,
+                )
                 self._attr_hvac_mode = HVACMode.HEAT
                 if self._attr_hvac_action == HVACAction.OFF:
                     self._attr_hvac_action = HVACAction.IDLE
             elif message.mode == CLIMATE_MODE_OFF:
-                LOGGER.info(message.human_readable_log)
+                LOGGER.info(
+                    "%s %s",
+                    self._gateway_handler.log_id,
+                    message.human_readable_log,
+                )
                 self._attr_hvac_mode = HVACMode.OFF
                 self._attr_hvac_action = HVACAction.OFF
             self._target_temperature = message.set_temperature
@@ -359,7 +411,11 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                 self._target_temperature + self._local_offset
             )
         elif message.message_type == MESSAGE_TYPE_ACTION:
-            LOGGER.info(message.human_readable_log)
+            LOGGER.info(
+                "%s %s",
+                self._gateway_handler.log_id,
+                message.human_readable_log,
+            )
             if message.is_active():
                 if self._heating and self._cooling:
                     if message.is_heating():

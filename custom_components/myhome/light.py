@@ -256,7 +256,11 @@ class MyHOMELight(MyHOMEEntity, LightEntity):
 
     def handle_event(self, message: OWNLightingEvent):
         """Handle an event message."""
-        LOGGER.info(message.human_readable_log)
+        LOGGER.info(
+            "%s %s",
+            self._gateway_handler.log_id,
+            message.human_readable_log,
+        )
         self._attr_is_on = message.is_on
         if (
             ColorMode.BRIGHTNESS in self._attr_supported_color_modes
