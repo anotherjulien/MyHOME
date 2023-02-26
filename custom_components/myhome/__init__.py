@@ -11,6 +11,7 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.const import CONF_MAC
 
 from .const import (
+    ATTR_GATEWAY,
     ATTR_MESSAGE,
     CONF_PLATFORMS,
     CONF_ENTITY,
@@ -21,7 +22,7 @@ from .const import (
     DOMAIN,
     LOGGER,
 )
-from .validate import config_schema
+from .validate import config_schema, format_mac
 from .gateway import MyHOMEGatewayHandler
 
 PLATFORMS = ["light", "switch", "cover", "climate", "binary_sensor", "sensor"]
@@ -200,28 +201,72 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             device_registry.async_remove_device(device_id)
 
     # Defining the services
-    async def handle_sync_time(call):  # pylint: disable=unused-argument
+    async def handle_sync_time(call):
+        gateway = call.data.get(ATTR_GATEWAY, None)
+        if gateway is None:
+            gateway = list(hass.data[DOMAIN].keys())[0]
+        else:
+            mac = format_mac(gateway)
+            if mac is None:
+                LOGGER.error(
+                    "Invalid gateway mac `%s`, could not send time synchronisation message.",
+                    gateway,
+                )
+                return False
+            else:
+                gateway = mac
         timezone = hass.config.as_dict()["time_zone"]
-        await hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].send(
-            OWNGatewayCommand.set_datetime_to_now(timezone)
-        )
+        if gateway in hass.data[DOMAIN]:
+            await hass.data[DOMAIN][gateway][CONF_ENTITY].send(
+                OWNGatewayCommand.set_datetime_to_now(timezone)
+            )
+        else:
+            LOGGER.error(
+                "Gateway `%s` not found, could not send time synchronisation message.",
+                gateway,
+            )
+            return False
 
     hass.services.async_register(DOMAIN, "sync_time", handle_sync_time)
 
     async def handle_send_message(call):
+        gateway = call.data.get(ATTR_GATEWAY, None)
         message = call.data.get(ATTR_MESSAGE, None)
-        LOGGER.debug("message to be sent: %s", message)
-        if message is not None:
-            own_message = OWNCommand.parse(message)
-            if own_message is not None:
-                LOGGER.debug("OWN Message: %s", own_message)
-                if own_message.is_valid:
-                    LOGGER.debug("message valid")
-                    await hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].send(
-                        own_message
-                    )
+        if gateway is None:
+            gateway = list(hass.data[DOMAIN].keys())[0]
+        else:
+            mac = format_mac(gateway)
+            if mac is None:
+                LOGGER.error(
+                    "Invalid gateway mac `%s`, could not send message `%s`.",
+                    gateway,
+                    message,
+                )
+                return False
             else:
-                LOGGER.error("Could not parse message %s, not sending it.", message)
+                gateway = mac
+        LOGGER.debug("Handling message `%s` to be sent to `%s`", message, gateway)
+        if gateway in hass.data[DOMAIN]:
+            if message is not None:
+                own_message = OWNCommand.parse(message)
+                if own_message is not None:
+                    if own_message.is_valid:
+                        LOGGER.debug(
+                            "%s Sending valid OpenWebNet Message: `%s`",
+                            hass.data[DOMAIN][gateway][CONF_ENTITY].log_id,
+                            own_message,
+                        )
+                        await hass.data[DOMAIN][gateway][CONF_ENTITY].send(own_message)
+                else:
+                    LOGGER.error(
+                        "Could not parse message `%s`, not sending it.", message
+                    )
+                    return False
+        else:
+            LOGGER.error(
+                "Gateway `%s` not found, could not send message `%s`.", gateway, message
+            )
+            return False
 
     hass.services.async_register(DOMAIN, "send_message", handle_send_message)
 

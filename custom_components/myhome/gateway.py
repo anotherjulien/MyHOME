@@ -30,6 +30,7 @@ from homeassistant.components.climate import DOMAIN as CLIMATE
 
 from OWNd.connection import OWNSession, OWNEventSession, OWNCommandSession, OWNGateway
 from OWNd.message import (
+    OWNMessage,
     OWNLightingEvent,
     OWNLightingCommand,
     OWNEnergyEvent,
@@ -140,7 +141,7 @@ class MyHOMEGatewayHandler:
         while not self._terminate_listener:
             message = await _event_session.get_next()
             LOGGER.debug("%s Message received: `%s`", self.log_id, message)
-            if not message:
+            if not isinstance(message, OWNMessage):
                 LOGGER.warning(
                     "%s Data received is not a message: `%s`",
                     self.log_id,

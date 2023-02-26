@@ -4,6 +4,7 @@ import logging
 LOGGER = logging.getLogger(__package__)
 DOMAIN = "myhome"
 
+ATTR_GATEWAY = "gateway"
 ATTR_MESSAGE = "message"
 
 CONF = "config"

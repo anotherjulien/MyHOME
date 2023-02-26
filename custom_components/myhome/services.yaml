@@ -1,11 +1,18 @@
 sync_time:
   name: Syncronize time
   description: Syncronize gateway's time to HA local time.
+  fields:
+    gateway:
+      description: The gateway's MAC address, as present in the config.
+      example: 00:03:50:00:00:00
 
 send_message:
   name: Send message
   description: Send an arbitrary (but valid) OpenWebNet message to the gateway.
   fields:
+    gateway:
+      description: The gateway's MAC address, as present in the config.
+      example: 00:03:50:00:00:00
     message:
       description: Valid OpenWebNet message.
       example: "*1*0*0##"

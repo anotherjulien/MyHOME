@@ -11,7 +11,7 @@ from voluptuous import (
     In,
     Invalid,
 )
-from homeassistant.helpers.device_registry import format_mac
+from homeassistant.helpers.device_registry import format_mac as ha_format_mac
 from homeassistant.components.light import DOMAIN as LIGHT
 from homeassistant.components.switch import (
     SwitchDeviceClass,
@@ -51,14 +51,21 @@ from .const import (
 )
 
 
+def format_mac(address: str) -> str:
+    mac = re.sub("[.:-]", "", address).upper()
+    mac = "".join(mac.split())
+    if len(mac) != 12 or not mac.isalnum() or re.search("[G-Z]", mac) is not None:
+        return None
+    return ha_format_mac(mac)
+
+
 class MacAddress(object):
     def __init__(self, msg=None):
         self.msg = msg
 
     def __call__(self, v):
-        v = re.sub("[.:-]", "", v).upper()
-        v = "".join(v.split())
-        if len(v) != 12 or not v.isalnum() or re.search("[G-Z]", v) is not None:
+        v = format_mac(v)
+        if v is None:
             raise Invalid("Invalid MAC address")
         return format_mac(v)
 
