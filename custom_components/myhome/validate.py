@@ -81,15 +81,11 @@ class Where(object):
         if type(v) == str and v.isdigit():
             _length = len(v)
             if _length != 2 and _length != 4:
-                raise Invalid(
-                    f"Invalid WHERE {v} length, it must be a string of 2 or 4 digits."
-                )
+                raise Invalid(f"Invalid WHERE {v} length, it must be a string of 2 or 4 digits.")
             _a = v[0 : _length // 2]
             _pl = v[_length // 2 :]
             if int(_a) > 15 or int(_pl) > 15:
-                raise Invalid(
-                    f"Invalid WHERE {v}, both A and PL must be between 0 and 15."
-                )
+                raise Invalid(f"Invalid WHERE {v}, both A and PL must be between 0 and 15.")
         else:
             raise Invalid(f"Invalid WHERE {v}, it must be a string of 2 or 4 digits.")
         return v
@@ -119,13 +115,9 @@ class BusInterface(object):
     def __call__(self, v):
         if type(v) == str and v.isdigit() and len(v) == 2:
             if int(v) > 15:
-                raise Invalid(
-                    f"Invalid Bus Interface number {v}, it must be between 00 and 15."
-                )
+                raise Invalid(f"Invalid Bus Interface number {v}, it must be between 00 and 15.")
         elif v is not None:
-            raise Invalid(
-                f"Invalid Bus Interface number {v}, it must be a string of 2 digits."
-            )
+            raise Invalid(f"Invalid Bus Interface number {v}, it must be a string of 2 digits.")
         return v
 
     def __repr__(self):
@@ -141,9 +133,7 @@ class MyHomeConfigSchema(Schema):
             _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS] = {}
             for platform in data[gateway]:
                 if platform != CONF_MAC:
-                    _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][
-                        platform
-                    ] = data[gateway][platform]
+                    _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][platform] = data[gateway][platform]
 
             if (
                 (LIGHT in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS])
@@ -152,26 +142,14 @@ class MyHomeConfigSchema(Schema):
             ):
                 _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON] = {}
                 if LIGHT in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS]:
-                    for key, value in _rekeyed_data[data[gateway][CONF_MAC]][
-                        CONF_PLATFORMS
-                    ][LIGHT].items():
-                        _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON][
-                            key
-                        ] = value
+                    for key, value in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][LIGHT].items():
+                        _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON][key] = value
                 if SWITCH in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS]:
-                    for key, value in _rekeyed_data[data[gateway][CONF_MAC]][
-                        CONF_PLATFORMS
-                    ][SWITCH].items():
-                        _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON][
-                            key
-                        ] = value
+                    for key, value in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][SWITCH].items():
+                        _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON][key] = value
                 if COVER in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS]:
-                    for key, value in _rekeyed_data[data[gateway][CONF_MAC]][
-                        CONF_PLATFORMS
-                    ][COVER].items():
-                        _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON][
-                            key
-                        ] = value
+                    for key, value in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][COVER].items():
+                        _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON][key] = value
 
         return _rekeyed_data
 
@@ -195,15 +173,9 @@ class MyHomeDeviceSchema(Schema):
                             "invalid sensor class for selected who",
                             path=[device][CONF_WHO],
                         )
-                    data[device][CONF_ENTITIES][
-                        f"daily-{SensorDeviceClass.ENERGY}"
-                    ] = {}
-                    data[device][CONF_ENTITIES][
-                        f"monthly-{SensorDeviceClass.ENERGY}"
-                    ] = {}
-                    data[device][CONF_ENTITIES][
-                        f"total-{SensorDeviceClass.ENERGY}"
-                    ] = {}
+                    data[device][CONF_ENTITIES][f"daily-{SensorDeviceClass.ENERGY}"] = {}
+                    data[device][CONF_ENTITIES][f"monthly-{SensorDeviceClass.ENERGY}"] = {}
+                    data[device][CONF_ENTITIES][f"total-{SensorDeviceClass.ENERGY}"] = {}
                     if data[device][CONF_DEVICE_CLASS] in [SensorDeviceClass.POWER]:
                         data[device][CONF_ENTITIES][f"{SensorDeviceClass.POWER}"] = {}
                 elif data[device][CONF_DEVICE_CLASS] in [SensorDeviceClass.TEMPERATURE]:
@@ -225,23 +197,14 @@ class MyHomeDeviceSchema(Schema):
             if CONF_WHERE in data[device]:
                 _new_key = (
                     f"{data[device][CONF_WHO]}-{data[device][CONF_WHERE]}#4#{data[device][CONF_BUS_INTERFACE]}"
-                    if CONF_BUS_INTERFACE in data[device]
-                    and data[device][CONF_BUS_INTERFACE] is not None
+                    if CONF_BUS_INTERFACE in data[device] and data[device][CONF_BUS_INTERFACE] is not None
                     else f"{data[device][CONF_WHO]}-{data[device][CONF_WHERE]}"
                 )
                 _rekeyed_data[_new_key] = data[device]
             elif CONF_ZONE in data[device]:
-                data[device][CONF_ZONE] = (
-                    f"#0#{data[device][CONF_ZONE]}"
-                    if data[device][CONF_CENTRAL] and data[device][CONF_ZONE] != "#0"
-                    else data[device][CONF_ZONE]
-                )
+                data[device][CONF_ZONE] = f"#0#{data[device][CONF_ZONE]}" if data[device][CONF_CENTRAL] and data[device][CONF_ZONE] != "#0" else data[device][CONF_ZONE]
                 data[device][CONF_NAME] = (
-                    data[device][CONF_NAME]
-                    if CONF_NAME in data[device]
-                    else "Central unit"
-                    if data[device][CONF_ZONE].startswith("#0")
-                    else f"Zone {data[device][CONF_ZONE]}"
+                    data[device][CONF_NAME] if CONF_NAME in data[device] else "Central unit" if data[device][CONF_ZONE].startswith("#0") else f"Zone {data[device][CONF_ZONE]}"
                 )
                 _new_key = f"{data[device][CONF_WHO]}-{data[device][CONF_ZONE]}"
                 _rekeyed_data[_new_key] = data[device]

@@ -148,23 +148,13 @@ class MyHOMEGatewayHandler:
                     message,
                 )
             elif isinstance(message, OWNEnergyEvent):
-                if (
-                    SENSOR in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS]
-                    and message.entity
-                    in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][SENSOR]
-                ):
-                    for _entity in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][
-                        SENSOR
-                    ][message.entity][CONF_ENTITIES]:
+                if SENSOR in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS] and message.entity in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][SENSOR]:
+                    for _entity in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][SENSOR][message.entity][CONF_ENTITIES]:
                         if isinstance(
-                            self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][SENSOR][
-                                message.entity
-                            ][CONF_ENTITIES][_entity],
+                            self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][SENSOR][message.entity][CONF_ENTITIES][_entity],
                             MyHOMEEntity,
                         ):
-                            self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][SENSOR][
-                                message.entity
-                            ][CONF_ENTITIES][_entity].handle_event(message)
+                            self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][SENSOR][message.entity][CONF_ENTITIES][_entity].handle_event(message)
                 else:
                     continue
             elif (
@@ -185,9 +175,7 @@ class MyHOMEGatewayHandler:
                                 {"message": str(message), "event": event},
                             )
                             await asyncio.sleep(0.1)
-                            await self.send_status_request(
-                                OWNLightingCommand.status("0")
-                            )
+                            await self.send_status_request(OWNLightingCommand.status("0"))
                         elif message.is_area:
                             is_event = True
                             event = "on" if message.is_on else "off"
@@ -200,9 +188,7 @@ class MyHOMEGatewayHandler:
                                 },
                             )
                             await asyncio.sleep(0.1)
-                            await self.send_status_request(
-                                OWNLightingCommand.status(message.area)
-                            )
+                            await self.send_status_request(OWNLightingCommand.status(message.area))
                         elif message.is_group:
                             is_event = True
                             event = "on" if message.is_on else "off"
@@ -260,72 +246,31 @@ class MyHOMEGatewayHandler:
                                 },
                             )
                     if not is_event:
-                        if (
-                            isinstance(message, OWNLightingEvent)
-                            and message.brightness_preset
-                        ):
+                        if isinstance(message, OWNLightingEvent) and message.brightness_preset:
                             if isinstance(
-                                self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][LIGHT][
-                                    message.entity
-                                ][CONF_ENTITIES][LIGHT],
+                                self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][LIGHT][message.entity][CONF_ENTITIES][LIGHT],
                                 MyHOMEEntity,
                             ):
-                                await self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][
-                                    LIGHT
-                                ][message.entity][CONF_ENTITIES][LIGHT].async_update()
+                                await self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][LIGHT][message.entity][CONF_ENTITIES][LIGHT].async_update()
                         else:
-                            for _platform in self.hass.data[DOMAIN][self.mac][
-                                CONF_PLATFORMS
-                            ]:
-                                if (
-                                    _platform != BUTTON
-                                    and message.entity
-                                    in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][
-                                        _platform
-                                    ]
-                                ):
-                                    for _entity in self.hass.data[DOMAIN][self.mac][
-                                        CONF_PLATFORMS
-                                    ][_platform][message.entity][CONF_ENTITIES]:
+                            for _platform in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS]:
+                                if _platform != BUTTON and message.entity in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][_platform]:
+                                    for _entity in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][_platform][message.entity][CONF_ENTITIES]:
                                         if (
                                             isinstance(
-                                                self.hass.data[DOMAIN][self.mac][
-                                                    CONF_PLATFORMS
-                                                ][_platform][message.entity][
-                                                    CONF_ENTITIES
-                                                ][
-                                                    _entity
-                                                ],
+                                                self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][_platform][message.entity][CONF_ENTITIES][_entity],
                                                 MyHOMEEntity,
                                             )
                                             and not isinstance(
-                                                self.hass.data[DOMAIN][self.mac][
-                                                    CONF_PLATFORMS
-                                                ][_platform][message.entity][
-                                                    CONF_ENTITIES
-                                                ][
-                                                    _entity
-                                                ],
+                                                self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][_platform][message.entity][CONF_ENTITIES][_entity],
                                                 DisableCommandButtonEntity,
                                             )
                                             and not isinstance(
-                                                self.hass.data[DOMAIN][self.mac][
-                                                    CONF_PLATFORMS
-                                                ][_platform][message.entity][
-                                                    CONF_ENTITIES
-                                                ][
-                                                    _entity
-                                                ],
+                                                self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][_platform][message.entity][CONF_ENTITIES][_entity],
                                                 EnableCommandButtonEntity,
                                             )
                                         ):
-                                            self.hass.data[DOMAIN][self.mac][
-                                                CONF_PLATFORMS
-                                            ][_platform][message.entity][CONF_ENTITIES][
-                                                _entity
-                                            ].handle_event(
-                                                message
-                                            )
+                                            self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][_platform][message.entity][CONF_ENTITIES][_entity].handle_event(message)
 
                 else:
                     LOGGER.debug(
@@ -333,16 +278,8 @@ class MyHOMEGatewayHandler:
                         self.log_id,
                         message,
                     )
-            elif (
-                isinstance(message, OWNHeatingCommand)
-                and message.dimension is not None
-                and message.dimension == 14
-            ):
-                where = (
-                    message.where[1:]
-                    if message.where.startswith("#")
-                    else message.where
-                )
+            elif isinstance(message, OWNHeatingCommand) and message.dimension is not None and message.dimension == 14:
+                where = message.where[1:] if message.where.startswith("#") else message.where
                 LOGGER.debug(
                     "%s Received heating command, sending query to zone %s",
                     self.log_id,
@@ -397,9 +334,7 @@ class MyHOMEGatewayHandler:
                     self.log_id,
                     message.human_readable_log,
                 )
-            elif isinstance(message, OWNGatewayEvent) or isinstance(
-                message, OWNGatewayCommand
-            ):
+            elif isinstance(message, OWNGatewayEvent) or isinstance(message, OWNGatewayCommand):
                 LOGGER.info(
                     "%s %s",
                     self.log_id,
@@ -439,9 +374,7 @@ class MyHOMEGatewayHandler:
                 task["message"],
                 worker_id,
             )
-            await _command_session.send(
-                message=task["message"], is_status_request=task["is_status_request"]
-            )
+            await _command_session.send(message=task["message"], is_status_request=task["is_status_request"])
             self.send_buffer.task_done()
 
         await _command_session.close()

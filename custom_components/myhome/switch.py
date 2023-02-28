@@ -35,9 +35,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         return True
 
     _switches = []
-    _configured_switches = hass.data[DOMAIN][config_entry.data[CONF_MAC]][
-        CONF_PLATFORMS
-    ][PLATFORM]
+    _configured_switches = hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][PLATFORM]
 
     for _switch in _configured_switches.keys():
         _switch = MyHOMESwitch(
@@ -45,9 +43,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_id=_switch,
             who=_configured_switches[_switch][CONF_WHO],
             where=_configured_switches[_switch][CONF_WHERE],
-            interface=_configured_switches[_switch][CONF_BUS_INTERFACE]
-            if CONF_BUS_INTERFACE in _configured_switches[_switch]
-            else None,
+            interface=_configured_switches[_switch][CONF_BUS_INTERFACE] if CONF_BUS_INTERFACE in _configured_switches[_switch] else None,
             name=_configured_switches[_switch][CONF_NAME],
             device_class=_configured_switches[_switch][CONF_DEVICE_CLASS],
             manufacturer=_configured_switches[_switch][CONF_MANUFACTURER],
@@ -63,14 +59,10 @@ async def async_unload_entry(hass, config_entry):
     if PLATFORM not in hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS]:
         return True
 
-    _configured_switches = hass.data[DOMAIN][config_entry.data[CONF_MAC]][
-        CONF_PLATFORMS
-    ][PLATFORM]
+    _configured_switches = hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][PLATFORM]
 
     for _switch in _configured_switches.keys():
-        del hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][PLATFORM][
-            _switch
-        ]
+        del hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][PLATFORM][_switch]
 
 
 class MyHOMESwitch(MyHOMEEntity, SwitchEntity):
@@ -100,11 +92,7 @@ class MyHOMESwitch(MyHOMEEntity, SwitchEntity):
         )
 
         self._interface = interface
-        self._full_where = (
-            f"{self._where}#4#{self._interface}"
-            if self._interface is not None
-            else self._where
-        )
+        self._full_where = f"{self._where}#4#{self._interface}" if self._interface is not None else self._where
 
         self._attr_extra_state_attributes = {
             "A": where[: len(where) // 2],
@@ -113,11 +101,7 @@ class MyHOMESwitch(MyHOMEEntity, SwitchEntity):
         if self._interface is not None:
             self._attr_extra_state_attributes["Int"] = self._interface
 
-        self._attr_device_class = (
-            SwitchDeviceClass.OUTLET
-            if device_class.lower() == "outlet"
-            else SwitchDeviceClass.SWITCH
-        )
+        self._attr_device_class = SwitchDeviceClass.OUTLET if device_class.lower() == "outlet" else SwitchDeviceClass.SWITCH
 
         self._attr_is_on = None
 
@@ -126,9 +110,7 @@ class MyHOMESwitch(MyHOMEEntity, SwitchEntity):
 
         Only used by the generic entity update service.
         """
-        await self._gateway_handler.send_status_request(
-            OWNLightingCommand.status(self._where)
-        )
+        await self._gateway_handler.send_status_request(OWNLightingCommand.status(self._where))
 
     async def async_turn_on(self, **kwargs):  # pylint: disable=unused-argument
         """Turn the device on."""
@@ -136,16 +118,27 @@ class MyHOMESwitch(MyHOMEEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs):  # pylint: disable=unused-argument
         """Turn the device off."""
-        await self._gateway_handler.send(
-            OWNLightingCommand.switch_off(self._full_where)
-        )
+        await self._gateway_handler.send(OWNLightingCommand.switch_off(self._full_where))
 
     def handle_event(self, message: OWNLightingEvent):
         """Handle an event message."""
-        LOGGER.info(
-            "%s %s",
-            self._gateway_handler.log_id,
-            message.human_readable_log,
-        )
+        if self._attr_device_class == SwitchDeviceClass.SWITCH:
+            LOGGER.info(
+                "%s %s",
+                self._gateway_handler.log_id,
+                message.human_readable_log.replace("Light", "Switch"),
+            )
+        elif self._attr_device_class == SwitchDeviceClass.OUTLET:
+            LOGGER.info(
+                "%s %s",
+                self._gateway_handler.log_id,
+                message.human_readable_log.replace("Light", "Outlet"),
+            )
+        else:
+            LOGGER.info(
+                "%s %s",
+                self._gateway_handler.log_id,
+                message.human_readable_log,
+            )
         self._attr_is_on = message.is_on
         self.async_schedule_update_ha_state()

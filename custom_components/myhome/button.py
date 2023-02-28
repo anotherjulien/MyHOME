@@ -41,9 +41,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         return True
 
     _buttons = []
-    _configured_buttons = hass.data[DOMAIN][config_entry.data[CONF_MAC]][
-        CONF_PLATFORMS
-    ][PLATFORM]
+    _configured_buttons = hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][PLATFORM]
 
     for _button in _configured_buttons.keys():
         _disable_button = DisableCommandButtonEntity(
@@ -52,9 +50,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_id=_button,
             who=_configured_buttons[_button][CONF_WHO],
             where=_configured_buttons[_button][CONF_WHERE],
-            interface=_configured_buttons[_button][CONF_BUS_INTERFACE]
-            if CONF_BUS_INTERFACE in _configured_buttons[_button]
-            else None,
+            interface=_configured_buttons[_button][CONF_BUS_INTERFACE] if CONF_BUS_INTERFACE in _configured_buttons[_button] else None,
             name=_configured_buttons[_button][CONF_NAME],
             manufacturer=_configured_buttons[_button][CONF_MANUFACTURER],
             model=_configured_buttons[_button][CONF_DEVICE_MODEL],
@@ -68,9 +64,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_id=_button,
             who=_configured_buttons[_button][CONF_WHO],
             where=_configured_buttons[_button][CONF_WHERE],
-            interface=_configured_buttons[_button][CONF_BUS_INTERFACE]
-            if CONF_BUS_INTERFACE in _configured_buttons[_button]
-            else None,
+            interface=_configured_buttons[_button][CONF_BUS_INTERFACE] if CONF_BUS_INTERFACE in _configured_buttons[_button] else None,
             name=_configured_buttons[_button][CONF_NAME],
             manufacturer=_configured_buttons[_button][CONF_MANUFACTURER],
             model=_configured_buttons[_button][CONF_DEVICE_MODEL],
@@ -85,14 +79,10 @@ async def async_unload_entry(hass, config_entry):
     if PLATFORM not in hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS]:
         return True
 
-    _configured_buttons = hass.data[DOMAIN][config_entry.data[CONF_MAC]][
-        CONF_PLATFORMS
-    ][PLATFORM]
+    _configured_buttons = hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][PLATFORM]
 
     for _button in _configured_buttons.keys():
-        del hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][PLATFORM][
-            _button
-        ]
+        del hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][PLATFORM][_button]
 
 
 class DisableCommandButtonEntity(ButtonEntity, MyHOMEEntity):
@@ -126,11 +116,7 @@ class DisableCommandButtonEntity(ButtonEntity, MyHOMEEntity):
 
         self._attr_unique_id = f"{gateway.mac}-{self._device_id}-disable"
         self._interface = interface
-        self._full_where = (
-            f"{self._where}#4#{self._interface}"
-            if self._interface is not None
-            else self._where
-        )
+        self._full_where = f"{self._where}#4#{self._interface}" if self._interface is not None else self._where
 
         self._attr_extra_state_attributes = {
             "A": where[: len(where) // 2],
@@ -141,21 +127,12 @@ class DisableCommandButtonEntity(ButtonEntity, MyHOMEEntity):
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""
-        self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][
-            self._platform
-        ][self._device_id][CONF_ENTITIES]["disable"] = self
+        self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id][CONF_ENTITIES]["disable"] = self
 
     async def async_will_remove_from_hass(self):
         """When entity is removed from hass."""
-        if (
-            "disable"
-            in self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][
-                self._platform
-            ][self._device_id][CONF_ENTITIES]
-        ):
-            del self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][
-                self._platform
-            ][self._device_id][CONF_ENTITIES]["disable"]
+        if "disable" in self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id][CONF_ENTITIES]:
+            del self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id][CONF_ENTITIES]["disable"]
 
     async def async_press(self) -> None:
         """Press the button."""
@@ -193,11 +170,7 @@ class EnableCommandButtonEntity(ButtonEntity, MyHOMEEntity):
 
         self._attr_unique_id = f"{gateway.mac}-{self._device_id}-enable"
         self._interface = interface
-        self._full_where = (
-            f"{self._where}#4#{self._interface}"
-            if self._interface is not None
-            else self._where
-        )
+        self._full_where = f"{self._where}#4#{self._interface}" if self._interface is not None else self._where
 
         self._attr_extra_state_attributes = {
             "A": where[: len(where) // 2],
@@ -208,21 +181,12 @@ class EnableCommandButtonEntity(ButtonEntity, MyHOMEEntity):
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""
-        self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][
-            self._platform
-        ][self._device_id][CONF_ENTITIES]["enable"] = self
+        self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id][CONF_ENTITIES]["enable"] = self
 
     async def async_will_remove_from_hass(self):
         """When entity is removed from hass."""
-        if (
-            "enable"
-            in self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][
-                self._platform
-            ][self._device_id][CONF_ENTITIES]
-        ):
-            del self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][
-                self._platform
-            ][self._device_id][CONF_ENTITIES]["enable"]
+        if "enable" in self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id][CONF_ENTITIES]:
+            del self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id][CONF_ENTITIES]["enable"]
 
     async def async_press(self) -> None:
         """Press the button."""

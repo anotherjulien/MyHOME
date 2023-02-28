@@ -7,7 +7,7 @@
   "documentation": "https://github.com/anotherjulien/MyHOME",
   "issue_tracker": "https://github.com/anotherjulien/MyHOME/issues",
   "requirements": [
-    "OWNd==0.7.44"
+    "OWNd==0.7.46"
   ],
   "ssdp": [
     {

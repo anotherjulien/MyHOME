@@ -70,31 +70,21 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         return True
 
     _sensors = []
-    _configured_sensors = hass.data[DOMAIN][config_entry.data[CONF_MAC]][
-        CONF_PLATFORMS
-    ][PLATFORM]
+    _configured_sensors = hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][PLATFORM]
     _power_devices_configured = False
 
     for _sensor in _configured_sensors.keys():
         if (
             _configured_sensors[_sensor][CONF_DEVICE_CLASS] == SensorDeviceClass.POWER
-            or _configured_sensors[_sensor][CONF_DEVICE_CLASS]
-            == SensorDeviceClass.ENERGY
+            or _configured_sensors[_sensor][CONF_DEVICE_CLASS] == SensorDeviceClass.ENERGY
         ):
-            _required_entities = list(
-                _configured_sensors[_sensor][CONF_ENTITIES].keys()
-            )
+            _required_entities = list(_configured_sensors[_sensor][CONF_ENTITIES].keys())
 
-            if (
-                _configured_sensors[_sensor][CONF_DEVICE_CLASS]
-                == SensorDeviceClass.POWER
-            ):
+            if _configured_sensors[_sensor][CONF_DEVICE_CLASS] == SensorDeviceClass.POWER:
                 _power_devices_configured = True
 
                 ent_reg = er.async_get(hass)
-                existing_entity_id = ent_reg.async_get_entity_id(
-                    "sensor", DOMAIN, _sensor
-                )
+                existing_entity_id = ent_reg.async_get_entity_id("sensor", DOMAIN, _sensor)
                 if existing_entity_id is not None:
                     LOGGER.warning(
                         "Sensor %s: %s will be migrated to %s-%s",
@@ -118,9 +108,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                         device_class=_configured_sensors[_sensor][CONF_DEVICE_CLASS],
                         manufacturer=_configured_sensors[_sensor][CONF_MANUFACTURER],
                         model=_configured_sensors[_sensor][CONF_DEVICE_MODEL],
-                        gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][
-                            CONF_ENTITY
-                        ],
+                        gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_ENTITY],
                     )
                 )
                 _required_entities.remove(SensorDeviceClass.POWER)
@@ -137,16 +125,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                         device_class=SensorDeviceClass.ENERGY,
                         manufacturer=_configured_sensors[_sensor][CONF_MANUFACTURER],
                         model=_configured_sensors[_sensor][CONF_DEVICE_MODEL],
-                        gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][
-                            CONF_ENTITY
-                        ],
+                        gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_ENTITY],
                     )
                 )
 
-        elif (
-            _configured_sensors[_sensor][CONF_DEVICE_CLASS]
-            == SensorDeviceClass.TEMPERATURE
-        ):
+        elif _configured_sensors[_sensor][CONF_DEVICE_CLASS] == SensorDeviceClass.TEMPERATURE:
             _sensors.append(
                 MyHOMETemperatureSensor(
                     hass=hass,
@@ -161,10 +144,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                 )
             )
 
-        elif (
-            _configured_sensors[_sensor][CONF_DEVICE_CLASS]
-            == SensorDeviceClass.ILLUMINANCE
-        ):
+        elif _configured_sensors[_sensor][CONF_DEVICE_CLASS] == SensorDeviceClass.ILLUMINANCE:
             _sensors.append(
                 MyHOMEIlluminanceSensor(
                     hass=hass,
@@ -195,14 +175,10 @@ async def async_unload_entry(hass, config_entry):
     if PLATFORM not in hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS]:
         return True
 
-    _configured_sensors = hass.data[DOMAIN][config_entry.data[CONF_MAC]][
-        CONF_PLATFORMS
-    ][PLATFORM]
+    _configured_sensors = hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][PLATFORM]
 
     for _sensor in _configured_sensors.keys():
-        del hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][PLATFORM][
-            _sensor
-        ]
+        del hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][PLATFORM][_sensor]
 
 
 class MyHOMEPowerSensor(MyHOMEEntity, SensorEntity):
@@ -235,35 +211,22 @@ class MyHOMEPowerSensor(MyHOMEEntity, SensorEntity):
         self._attr_name = f"{name} {self._entity_specific_name}"
 
         self._attr_device_class = device_class
-        self._attr_unique_id = (
-            f"{gateway.mac}-{self._device_id}-{self._attr_device_class}"
-        )
+        self._attr_unique_id = f"{gateway.mac}-{self._device_id}-{self._attr_device_class}"
         self._attr_native_unit_of_measurement = POWER_WATT
         self._attr_state_class = SensorStateClass.MEASUREMENT
 
         self._attr_native_value = None
-        self._attr_extra_state_attributes = {
-            "Sensor": f"({self._where[0]}){self._where[1:]}"
-        }
+        self._attr_extra_state_attributes = {"Sensor": f"({self._where[0]}){self._where[1:]}"}
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""
-        self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][
-            self._platform
-        ][self._device_id][CONF_ENTITIES][self._attr_device_class] = self
+        self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id][CONF_ENTITIES][self._attr_device_class] = self
         await self.async_update()
 
     async def async_will_remove_from_hass(self):
         """When entity is removed from hass."""
-        if (
-            self._attr_device_class
-            in self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][
-                self._platform
-            ][self._device_id][CONF_ENTITIES]
-        ):
-            del self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][
-                self._platform
-            ][self._device_id][CONF_ENTITIES][self._attr_device_class]
+        if self._attr_device_class in self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id][CONF_ENTITIES]:
+            del self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id][CONF_ENTITIES][self._attr_device_class]
 
     async def async_update(self):
         """Update the entity.
@@ -287,9 +250,7 @@ class MyHOMEPowerSensor(MyHOMEEntity, SensorEntity):
 
     async def start_sending_instant_power(self, duration):
         """Request automatic instant power."""
-        await self._gateway_handler.send(
-            OWNEnergyCommand.start_sending_instant_power(self._where, duration)
-        )
+        await self._gateway_handler.send(OWNEnergyCommand.start_sending_instant_power(self._where, duration))
 
 
 class MyHOMEEnergySensor(MyHOMEEntity, SensorEntity):
@@ -330,36 +291,23 @@ class MyHOMEEnergySensor(MyHOMEEntity, SensorEntity):
             self._attr_entity_registry_enabled_default = True
 
         self._attr_name = f"{name} {self._entity_specific_name}"
-        self._attr_unique_id = (
-            f"{gateway.mac}-{self._device_id}-{self._entity_specific_id}"
-        )
+        self._attr_unique_id = f"{gateway.mac}-{self._device_id}-{self._entity_specific_id}"
         self._attr_device_class = device_class
         self._attr_native_unit_of_measurement = ENERGY_WATT_HOUR
         self._attr_state_class = SensorStateClass.TOTAL_INCREASING
         self._attr_should_poll = True
         self._attr_native_value = None
-        self._attr_extra_state_attributes = {
-            "Sensor": f"({self._where[0]}){self._where[1:]}"
-        }
+        self._attr_extra_state_attributes = {"Sensor": f"({self._where[0]}){self._where[1:]}"}
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""
-        self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][
-            self._platform
-        ][self._device_id][CONF_ENTITIES][self._entity_specific_id] = self
+        self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id][CONF_ENTITIES][self._entity_specific_id] = self
         await self.async_update()
 
     async def async_will_remove_from_hass(self):
         """When entity is removed from hass."""
-        if (
-            self._entity_specific_id
-            in self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][
-                self._platform
-            ][self._device_id][CONF_ENTITIES]
-        ):
-            del self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][
-                self._platform
-            ][self._device_id][CONF_ENTITIES][self._entity_specific_id]
+        if self._entity_specific_id in self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id][CONF_ENTITIES]:
+            del self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id][CONF_ENTITIES][self._entity_specific_id]
 
     async def async_update(self):
         """Update the entity.
@@ -367,17 +315,11 @@ class MyHOMEEnergySensor(MyHOMEEntity, SensorEntity):
         Only used by the generic entity update service.
         """
         if self._entity_specific_id == "total-energy":
-            await self._gateway_handler.send_status_request(
-                OWNEnergyCommand.get_total_consumption(self._where)
-            )
+            await self._gateway_handler.send_status_request(OWNEnergyCommand.get_total_consumption(self._where))
         elif self._entity_specific_id == "monthly-energy":
-            await self._gateway_handler.send_status_request(
-                OWNEnergyCommand.get_partial_monthly_consumption(self._where)
-            )
+            await self._gateway_handler.send_status_request(OWNEnergyCommand.get_partial_monthly_consumption(self._where))
         elif self._entity_specific_id == "daily-energy":
-            await self._gateway_handler.send_status_request(
-                OWNEnergyCommand.get_partial_daily_consumption(self._where)
-            )
+            await self._gateway_handler.send_status_request(OWNEnergyCommand.get_partial_daily_consumption(self._where))
 
     def handle_event(self, message: OWNEnergyEvent):
         """Handle an event message."""
@@ -388,30 +330,21 @@ class MyHOMEEnergySensor(MyHOMEEntity, SensorEntity):
         ]:
             return True
 
-        if (
-            self._entity_specific_id == "total-energy"
-            and message.message_type == MESSAGE_TYPE_ENERGY_TOTALIZER
-        ):
+        if self._entity_specific_id == "total-energy" and message.message_type == MESSAGE_TYPE_ENERGY_TOTALIZER:
             LOGGER.info(
                 "%s %s",
                 self._gateway_handler.log_id,
                 message.human_readable_log,
             )
             self._attr_native_value = message.total_consumption
-        elif (
-            self._entity_specific_id == "monthly-energy"
-            and message.message_type == MESSAGE_TYPE_CURRENT_MONTH_CONSUMPTION
-        ):
+        elif self._entity_specific_id == "monthly-energy" and message.message_type == MESSAGE_TYPE_CURRENT_MONTH_CONSUMPTION:
             LOGGER.info(
                 "%s %s",
                 self._gateway_handler.log_id,
                 message.human_readable_log,
             )
             self._attr_native_value = message.current_month_partial_consumption
-        elif (
-            self._entity_specific_id == "daily-energy"
-            and message.message_type == MESSAGE_TYPE_CURRENT_DAY_CONSUMPTION
-        ):
+        elif self._entity_specific_id == "daily-energy" and message.message_type == MESSAGE_TYPE_CURRENT_DAY_CONSUMPTION:
             LOGGER.info(
                 "%s %s",
                 self._gateway_handler.log_id,
@@ -447,44 +380,29 @@ class MyHOMETemperatureSensor(MyHOMEEntity, SensorEntity):
         )
 
         self._attr_device_class = device_class
-        self._attr_unique_id = (
-            f"{gateway.mac}-{self._device_id}-{self._attr_device_class}"
-        )
+        self._attr_unique_id = f"{gateway.mac}-{self._device_id}-{self._attr_device_class}"
         self._attr_native_unit_of_measurement = TEMP_CELSIUS
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_should_poll = True
         self._attr_native_value = None
-        self._attr_extra_state_attributes = {
-            "Sensor": f"({self._where[0]}){self._where[1:]}"
-        }
+        self._attr_extra_state_attributes = {"Sensor": f"({self._where[0]}){self._where[1:]}"}
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""
-        self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][
-            self._platform
-        ][self._device_id][CONF_ENTITIES][self._attr_device_class] = self
+        self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id][CONF_ENTITIES][self._attr_device_class] = self
         await self.async_update()
 
     async def async_will_remove_from_hass(self):
         """When entity is removed from hass."""
-        if (
-            self._attr_device_class
-            in self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][
-                self._platform
-            ][self._device_id][CONF_ENTITIES]
-        ):
-            del self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][
-                self._platform
-            ][self._device_id][CONF_ENTITIES][self._attr_device_class]
+        if self._attr_device_class in self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id][CONF_ENTITIES]:
+            del self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id][CONF_ENTITIES][self._attr_device_class]
 
     async def async_update(self):
         """Update the entity.
 
         Only used by the generic entity update service.
         """
-        await self._gateway_handler.send_status_request(
-            OWNHeatingCommand.get_temperature(self._where)
-        )
+        await self._gateway_handler.send_status_request(OWNHeatingCommand.get_temperature(self._where))
 
     def handle_event(self, message: OWNHeatingEvent):
         """Handle an event message."""
@@ -538,9 +456,7 @@ class MyHOMEIlluminanceSensor(MyHOMEEntity, SensorEntity):
         )
 
         self._attr_device_class = device_class
-        self._attr_unique_id = (
-            f"{gateway.mac}-{self._device_id}-{self._attr_device_class}"
-        )
+        self._attr_unique_id = f"{gateway.mac}-{self._device_id}-{self._attr_device_class}"
         self._attr_native_unit_of_measurement = LIGHT_LUX
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_native_value = None
@@ -551,31 +467,20 @@ class MyHOMEIlluminanceSensor(MyHOMEEntity, SensorEntity):
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""
-        self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][
-            self._platform
-        ][self._device_id][CONF_ENTITIES][self._attr_device_class] = self
+        self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id][CONF_ENTITIES][self._attr_device_class] = self
         await self.async_update()
 
     async def async_will_remove_from_hass(self):
         """When entity is removed from hass."""
-        if (
-            self._attr_device_class
-            in self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][
-                self._platform
-            ][self._device_id][CONF_ENTITIES]
-        ):
-            del self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][
-                self._platform
-            ][self._device_id][CONF_ENTITIES][self._attr_device_class]
+        if self._attr_device_class in self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id][CONF_ENTITIES]:
+            del self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id][CONF_ENTITIES][self._attr_device_class]
 
     async def async_update(self):
         """Update the entity.
 
         Only used by the generic entity update service.
         """
-        await self._gateway_handler.send_status_request(
-            OWNLightingCommand.get_illuminance(self._where)
-        )
+        await self._gateway_handler.send_status_request(OWNLightingCommand.get_illuminance(self._where))
 
     def handle_event(self, message: OWNLightingEvent):
         """Handle an event message."""
