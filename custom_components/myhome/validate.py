@@ -7,6 +7,7 @@ from voluptuous import (
     Required,
     Coerce,
     Boolean,
+    Any,
     All,
     In,
     Invalid,
@@ -73,22 +74,66 @@ class MacAddress(object):
         return "MacAddress(%s, msg=%r)" % ("String", self.msg)
 
 
-class Where(object):
+class General(object):
+    def __init__(self, msg=None):
+        self.msg = msg
+
+    def __call__(self, v):
+        if type(v) == str and v == "0":
+            return v
+        else:
+            raise Invalid(f"Invalid General WHERE {v}, it must be 0.")
+
+    def __repr__(self):
+        return "Where(%s, msg=%r)" % ("String", self.msg)
+
+
+class Area(object):
+    def __init__(self, msg=None):
+        self.msg = msg
+
+    def __call__(self, v):
+        if type(v) == str and v in ["00", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]:
+            return v
+        else:
+            raise Invalid(f"Invalid Area WHERE {v}, it must be a string in [00, 1-9, 10].")
+
+    def __repr__(self):
+        return "Where(%s, msg=%r)" % ("String", self.msg)
+
+
+class Group(object):
+    def __init__(self, msg=None):
+        self.msg = msg
+
+    def __call__(self, v):
+        if type(v) == str and v.startswith("#") and v[1:].isdigit() and int(v[1:]) >= 1 and int(v[1:]) <= 255:
+            return f"#{int(v[1:])}"
+        else:
+            raise Invalid(f"Invalid Group WHERE {v}, it must be a string like '#[1-255]'.")
+
+    def __repr__(self):
+        return "Where(%s, msg=%r)" % ("String", self.msg)
+
+
+class PointToPoint(object):
     def __init__(self, msg=None):
         self.msg = msg
 
     def __call__(self, v):
         if type(v) == str and v.isdigit():
             _length = len(v)
-            if _length != 2 and _length != 4:
+            if _length == 2 or _length == 4:
+                _a = v[0 : _length // 2]
+                _pl = v[_length // 2 :]
+                if int(_a) >= 0 and int(_a) <= 10 and int(_pl) >= 0 and int(_pl) <= 15:
+                    return f"{_a}{_pl}"
+                else:
+                    raise Invalid(f"Invalid WHERE {v}, A must be [0-10] and PL must be [0-15].")
+            else:
                 raise Invalid(f"Invalid WHERE {v} length, it must be a string of 2 or 4 digits.")
-            _a = v[0 : _length // 2]
-            _pl = v[_length // 2 :]
-            if int(_a) > 15 or int(_pl) > 15:
-                raise Invalid(f"Invalid WHERE {v}, both A and PL must be between 0 and 15.")
         else:
             raise Invalid(f"Invalid WHERE {v}, it must be a string of 2 or 4 digits.")
-        return v
 
     def __repr__(self):
         return "Where(%s, msg=%r)" % ("String", self.msg)
@@ -143,13 +188,16 @@ class MyHomeConfigSchema(Schema):
                 _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON] = {}
                 if LIGHT in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS]:
                     for key, value in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][LIGHT].items():
-                        _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON][key] = value
+                        if not value[CONF_WHERE].startswith("#"):
+                            _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON][key] = value
                 if SWITCH in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS]:
                     for key, value in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][SWITCH].items():
-                        _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON][key] = value
+                        if not value[CONF_WHERE].startswith("#"):
+                            _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON][key] = value
                 if COVER in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS]:
                     for key, value in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][COVER].items():
-                        _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON][key] = value
+                        if not value[CONF_WHERE].startswith("#"):
+                            _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON][key] = value
 
         return _rekeyed_data
 
@@ -218,7 +266,9 @@ light_schema = MyHomeDeviceSchema(
     {
         Required(str): {
             Optional(CONF_WHO, default="1"): "1",
-            Required(CONF_WHERE): All(Coerce(str), Where()),
+            Required(CONF_WHERE): All(
+                Coerce(str), Any(General(), Area(), Group(), PointToPoint(), msg="Invalid <WHERE>, expecting a valid General, Area, Group or Point-to-Point <WHERE>")
+            ),
             Optional(CONF_BUS_INTERFACE): All(Coerce(str), BusInterface()),
             Required(CONF_NAME): str,
             Optional(CONF_DIMMABLE, default=False): Boolean(),
@@ -232,7 +282,9 @@ switch_schema = MyHomeDeviceSchema(
     {
         Required(str): {
             Optional(CONF_WHO, default="1"): "1",
-            Required(CONF_WHERE): All(Coerce(str), Where()),
+            Required(CONF_WHERE): All(
+                Coerce(str), Any(General(), Area(), Group(), PointToPoint(), msg="Invalid <WHERE>, expecting a valid General, Area, Group or Point-to-Point <WHERE>")
+            ),
             Optional(CONF_BUS_INTERFACE): All(Coerce(str), BusInterface()),
             Required(CONF_NAME): str,
             Optional(CONF_DEVICE_CLASS, default=SwitchDeviceClass.SWITCH): In(
@@ -251,7 +303,9 @@ cover_schema = MyHomeDeviceSchema(
     {
         Required(str): {
             Optional(CONF_WHO, default="2"): "2",
-            Required(CONF_WHERE): All(Coerce(str), Where()),
+            Required(CONF_WHERE): All(
+                Coerce(str), Any(General(), Area(), Group(), PointToPoint(), msg="Invalid <WHERE>, expecting a valid General, Area, Group or Point-to-Point <WHERE>")
+            ),
             Optional(CONF_BUS_INTERFACE): All(Coerce(str), BusInterface()),
             Required(CONF_NAME): str,
             Optional(CONF_ADVANCED_SHUTTER, default=False): Boolean(),
