@@ -110,7 +110,9 @@ class DisableCommandButtonEntity(ButtonEntity, MyHOMEEntity):
             model=model,
             gateway=gateway,
         )
-        self._attr_name = "Disable command"
+        self._attr_name = "Lock"
+        self._attr_has_entity_name = True
+        self._attr_icon = "mdi:lock-alert"
 
         self._attr_entity_category = EntityCategory(ENTITY_CATEGORY_CONFIG)
 
@@ -164,7 +166,9 @@ class EnableCommandButtonEntity(ButtonEntity, MyHOMEEntity):
             model=model,
             gateway=gateway,
         )
-        self._attr_name = "Enable command"
+        self._attr_name = "Unlock"
+        self._attr_has_entity_name = True
+        self._attr_icon = "mdi:lock-open-variant-outline"
 
         self._attr_entity_category = EntityCategory(ENTITY_CATEGORY_CONFIG)
 
