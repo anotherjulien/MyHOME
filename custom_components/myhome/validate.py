@@ -209,39 +209,6 @@ class MyHomeDeviceSchema(Schema):
 
         for device in data:
             data[device][CONF_ENTITIES] = {}
-            if CONF_DEVICE_CLASS in data[device]:
-                if data[device][CONF_DEVICE_CLASS] in [
-                    SensorDeviceClass.POWER,
-                    SensorDeviceClass.ENERGY,
-                ]:
-                    if CONF_WHO not in data[device]:
-                        data[device][CONF_WHO] = "18"
-                    elif data[device][CONF_WHO] != "18":
-                        raise Invalid(
-                            "invalid sensor class for selected who",
-                            path=[device][CONF_WHO],
-                        )
-                    data[device][CONF_ENTITIES][f"daily-{SensorDeviceClass.ENERGY}"] = {}
-                    data[device][CONF_ENTITIES][f"monthly-{SensorDeviceClass.ENERGY}"] = {}
-                    data[device][CONF_ENTITIES][f"total-{SensorDeviceClass.ENERGY}"] = {}
-                    if data[device][CONF_DEVICE_CLASS] in [SensorDeviceClass.POWER]:
-                        data[device][CONF_ENTITIES][f"{SensorDeviceClass.POWER}"] = {}
-                elif data[device][CONF_DEVICE_CLASS] in [SensorDeviceClass.TEMPERATURE]:
-                    if CONF_WHO not in data[device]:
-                        data[device][CONF_WHO] = "4"
-                    elif data[device][CONF_WHO] != "4":
-                        raise Invalid(
-                            "invalid sensor class for selected who",
-                            path=[device][CONF_WHO],
-                        )
-                elif data[device][CONF_DEVICE_CLASS] in [SensorDeviceClass.ILLUMINANCE]:
-                    if CONF_WHO not in data[device]:
-                        data[device][CONF_WHO] = "1"
-                    elif data[device][CONF_WHO] != "1":
-                        raise Invalid(
-                            "invalid sensor class for selected who",
-                            path=[device][CONF_WHO],
-                        )
             if CONF_WHERE in data[device]:
                 _new_key = (
                     f"{data[device][CONF_WHO]}-{data[device][CONF_WHERE]}#4#{data[device][CONF_BUS_INTERFACE]}"
@@ -255,6 +222,50 @@ class MyHomeDeviceSchema(Schema):
                     data[device][CONF_NAME] if CONF_NAME in data[device] else "Central unit" if data[device][CONF_ZONE].startswith("#0") else f"Zone {data[device][CONF_ZONE]}"
                 )
                 _new_key = f"{data[device][CONF_WHO]}-{data[device][CONF_ZONE]}"
+                _rekeyed_data[_new_key] = data[device]
+            if CONF_DEVICE_MODEL not in data[device]:
+                data[device][CONF_DEVICE_MODEL] = None
+
+        return _rekeyed_data
+
+
+class MyHomeSensorSchema(Schema):
+    def __call__(self, data):
+        data = super().__call__(data)
+        _rekeyed_data = {}
+
+        for device in data:
+            data[device][CONF_ENTITIES] = {}
+            if CONF_DEVICE_CLASS in data[device]:
+                if data[device][CONF_DEVICE_CLASS] in [
+                    SensorDeviceClass.POWER,
+                    SensorDeviceClass.ENERGY,
+                ]:
+                    if CONF_WHO not in data[device]:
+                        data[device][CONF_WHO] = "18"
+                    elif data[device][CONF_WHO] != "18":
+                        raise Invalid("invalid sensor class for selected who")
+                    data[device][CONF_ENTITIES][f"daily-{SensorDeviceClass.ENERGY}"] = {}
+                    data[device][CONF_ENTITIES][f"monthly-{SensorDeviceClass.ENERGY}"] = {}
+                    data[device][CONF_ENTITIES][f"total-{SensorDeviceClass.ENERGY}"] = {}
+                    if data[device][CONF_DEVICE_CLASS] in [SensorDeviceClass.POWER]:
+                        data[device][CONF_ENTITIES][f"{SensorDeviceClass.POWER}"] = {}
+                elif data[device][CONF_DEVICE_CLASS] in [SensorDeviceClass.TEMPERATURE]:
+                    if CONF_WHO not in data[device]:
+                        data[device][CONF_WHO] = "4"
+                    elif data[device][CONF_WHO] != "4":
+                        raise Invalid("invalid sensor class for selected who")
+                elif data[device][CONF_DEVICE_CLASS] in [SensorDeviceClass.ILLUMINANCE]:
+                    if CONF_WHO not in data[device]:
+                        data[device][CONF_WHO] = "1"
+                    elif data[device][CONF_WHO] != "1":
+                        raise Invalid("invalid sensor class for selected who")
+            if CONF_WHERE in data[device]:
+                _new_key = (
+                    f"{data[device][CONF_WHO]}-{data[device][CONF_WHERE]}#4#{data[device][CONF_BUS_INTERFACE]}"
+                    if CONF_BUS_INTERFACE in data[device] and data[device][CONF_BUS_INTERFACE] is not None
+                    else f"{data[device][CONF_WHO]}-{data[device][CONF_WHERE]}"
+                )
                 _rekeyed_data[_new_key] = data[device]
             if CONF_DEVICE_MODEL not in data[device]:
                 data[device][CONF_DEVICE_MODEL] = None
@@ -357,7 +368,7 @@ binary_sensor_schema = MyHomeDeviceSchema(
     }
 )
 
-sensor_schema = MyHomeDeviceSchema(
+sensor_schema = MyHomeSensorSchema(
     {
         Required(str): {
             Optional(CONF_WHO): In(["1", "4", "18"]),
