@@ -217,11 +217,11 @@ class MyHomeDeviceSchema(Schema):
                 )
                 _rekeyed_data[_new_key] = data[device]
             elif CONF_ZONE in data[device]:
+                _new_key = f"{data[device][CONF_WHO]}-{data[device][CONF_ZONE]}"
                 data[device][CONF_ZONE] = f"#0#{data[device][CONF_ZONE]}" if data[device][CONF_CENTRAL] and data[device][CONF_ZONE] != "#0" else data[device][CONF_ZONE]
                 data[device][CONF_NAME] = (
                     data[device][CONF_NAME] if CONF_NAME in data[device] else "Central unit" if data[device][CONF_ZONE].startswith("#0") else f"Zone {data[device][CONF_ZONE]}"
                 )
-                _new_key = f"{data[device][CONF_WHO]}-{data[device][CONF_ZONE]}"
                 _rekeyed_data[_new_key] = data[device]
             if CONF_DEVICE_MODEL not in data[device]:
                 data[device][CONF_DEVICE_MODEL] = None
@@ -325,7 +325,6 @@ cover_schema = MyHomeDeviceSchema(
         }
     }
 )
-
 
 binary_sensor_schema = MyHomeDeviceSchema(
     {
