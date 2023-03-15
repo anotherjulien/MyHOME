@@ -137,6 +137,9 @@ class MyHOMEDryContact(MyHOMEEntity, BinarySensorEntity):
         self._inverted = inverted
 
         self._attr_device_class = device_class
+        self._entity_specific_name = self._attr_device_class.replace("_", " ").capitalize()
+        self._attr_name = f"{name} {self._entity_specific_name}"
+
         self._attr_unique_id = f"{gateway.mac}-{self._device_id}-{self._attr_device_class}"
 
         self._attr_is_on = False
@@ -199,6 +202,9 @@ class MyHOMEAuxiliary(MyHOMEEntity, BinarySensorEntity):
         self._inverted = inverted
 
         self._attr_device_class = device_class
+        self._entity_specific_name = self._attr_device_class.replace("_", " ").capitalize()
+        self._attr_name = f"{name} {self._entity_specific_name}"
+
         self._attr_unique_id = f"{gateway.mac}-{self._device_id}-{self._attr_device_class}"
 
         self._attr_is_on = False
@@ -260,6 +266,9 @@ class MyHOMEMotionSensor(MyHOMEEntity, BinarySensorEntity, RestoreEntity):
         self._timeout = timedelta(seconds=315)
 
         self._attr_device_class = device_class
+        self._entity_specific_name = self._attr_device_class.replace("_", " ").capitalize()
+        self._attr_name = f"{name} {self._entity_specific_name}"
+
         self._attr_unique_id = f"{gateway.mac}-{self._device_id}-{self._attr_device_class}"
         self._attr_should_poll = True
         self._attr_is_on = None

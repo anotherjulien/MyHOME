@@ -74,10 +74,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     _power_devices_configured = False
 
     for _sensor in _configured_sensors.keys():
-        if (
-            _configured_sensors[_sensor][CONF_DEVICE_CLASS] == SensorDeviceClass.POWER
-            or _configured_sensors[_sensor][CONF_DEVICE_CLASS] == SensorDeviceClass.ENERGY
-        ):
+        if _configured_sensors[_sensor][CONF_DEVICE_CLASS] == SensorDeviceClass.POWER or _configured_sensors[_sensor][CONF_DEVICE_CLASS] == SensorDeviceClass.ENERGY:
             _required_entities = list(_configured_sensors[_sensor][CONF_ENTITIES].keys())
 
             if _configured_sensors[_sensor][CONF_DEVICE_CLASS] == SensorDeviceClass.POWER:
@@ -207,7 +204,6 @@ class MyHOMEPowerSensor(MyHOMEEntity, SensorEntity):
         )
 
         self._entity_specific_name = "Power"
-
         self._attr_name = f"{name} {self._entity_specific_name}"
 
         self._attr_device_class = device_class
@@ -289,8 +285,8 @@ class MyHOMEEnergySensor(MyHOMEEntity, SensorEntity):
         elif self._entity_specific_id == "total-energy":
             self._entity_specific_name = "Energy"
             self._attr_entity_registry_enabled_default = True
-
         self._attr_name = f"{name} {self._entity_specific_name}"
+
         self._attr_unique_id = f"{gateway.mac}-{self._device_id}-{self._entity_specific_id}"
         self._attr_device_class = device_class
         self._attr_native_unit_of_measurement = ENERGY_WATT_HOUR
@@ -379,6 +375,9 @@ class MyHOMETemperatureSensor(MyHOMEEntity, SensorEntity):
             gateway=gateway,
         )
 
+        self._entity_specific_name = "Temperature"
+        self._attr_name = f"{name} {self._entity_specific_name}"
+
         self._attr_device_class = device_class
         self._attr_unique_id = f"{gateway.mac}-{self._device_id}-{self._attr_device_class}"
         self._attr_native_unit_of_measurement = TEMP_CELSIUS
@@ -454,6 +453,9 @@ class MyHOMEIlluminanceSensor(MyHOMEEntity, SensorEntity):
             model=model,
             gateway=gateway,
         )
+
+        self._entity_specific_name = "Illuminance"
+        self._attr_name = f"{name} {self._entity_specific_name}"
 
         self._attr_device_class = device_class
         self._attr_unique_id = f"{gateway.mac}-{self._device_id}-{self._attr_device_class}"
