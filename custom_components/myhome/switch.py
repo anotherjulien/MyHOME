@@ -17,6 +17,8 @@ from OWNd.message import (
 from .const import (
     CONF_PLATFORMS,
     CONF_ENTITY,
+    CONF_ICON,
+    CONF_ICON_ON,
     CONF_WHO,
     CONF_WHERE,
     CONF_BUS_INTERFACE,
@@ -43,6 +45,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_id=_switch,
             who=_configured_switches[_switch][CONF_WHO],
             where=_configured_switches[_switch][CONF_WHERE],
+            icon=_configured_switches[_switch][CONF_ICON],
+            icon_on=_configured_switches[_switch][CONF_ICON_ON],
             interface=_configured_switches[_switch][CONF_BUS_INTERFACE] if CONF_BUS_INTERFACE in _configured_switches[_switch] else None,
             name=_configured_switches[_switch][CONF_NAME],
             device_class=_configured_switches[_switch][CONF_DEVICE_CLASS],
@@ -70,6 +74,8 @@ class MyHOMESwitch(MyHOMEEntity, SwitchEntity):
         self,
         hass,
         name: str,
+        icon: str,
+        icon_on: str,
         device_id: str,
         who: str,
         where: str,
@@ -102,6 +108,12 @@ class MyHOMESwitch(MyHOMEEntity, SwitchEntity):
             self._attr_extra_state_attributes["Int"] = self._interface
 
         self._attr_device_class = SwitchDeviceClass.OUTLET if device_class.lower() == "outlet" else SwitchDeviceClass.SWITCH
+
+        self._on_icon = icon_on
+        self._off_icon = icon
+
+        if self._off_icon is not None:
+            self._attr_icon = self._off_icon
 
         self._attr_is_on = None
 
@@ -141,4 +153,6 @@ class MyHOMESwitch(MyHOMEEntity, SwitchEntity):
                 message.human_readable_log,
             )
         self._attr_is_on = message.is_on
+        if self._off_icon is not None and self._on_icon is not None:
+            self._attr_icon = self._on_icon if self._attr_is_on else self._off_icon
         self.async_schedule_update_ha_state()

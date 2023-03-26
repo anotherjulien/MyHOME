@@ -24,6 +24,8 @@ from OWNd.message import (
 from .const import (
     CONF_PLATFORMS,
     CONF_ENTITY,
+    CONF_ICON,
+    CONF_ICON_ON,
     CONF_WHO,
     CONF_WHERE,
     CONF_BUS_INTERFACE,
@@ -50,6 +52,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_id=_light,
             who=_configured_lights[_light][CONF_WHO],
             where=_configured_lights[_light][CONF_WHERE],
+            icon=_configured_lights[_light][CONF_ICON],
+            icon_on=_configured_lights[_light][CONF_ICON_ON],
             interface=_configured_lights[_light][CONF_BUS_INTERFACE] if CONF_BUS_INTERFACE in _configured_lights[_light] else None,
             name=_configured_lights[_light][CONF_NAME],
             dimmable=_configured_lights[_light][CONF_DIMMABLE],
@@ -85,6 +89,8 @@ class MyHOMELight(MyHOMEEntity, LightEntity):
         self,
         hass,
         name: str,
+        icon: str,
+        icon_on: str,
         device_id: str,
         who: str,
         where: str,
@@ -127,6 +133,12 @@ class MyHOMELight(MyHOMEEntity, LightEntity):
         }
         if self._interface is not None:
             self._attr_extra_state_attributes["Int"] = self._interface
+
+        self._on_icon = icon_on
+        self._off_icon = icon
+
+        if self._off_icon is not None:
+            self._attr_icon = self._off_icon
 
         self._attr_is_on = None
         self._attr_brightness = None
@@ -204,4 +216,8 @@ class MyHOMELight(MyHOMEEntity, LightEntity):
         if ColorMode.BRIGHTNESS in self._attr_supported_color_modes and message.brightness is not None:
             self._attr_brightness_pct = message.brightness
             self._attr_brightness = percent_to_eight_bits(message.brightness)
+
+        if self._off_icon is not None and self._on_icon is not None:
+            self._attr_icon = self._on_icon if self._attr_is_on else self._off_icon
+
         self.async_schedule_update_ha_state()

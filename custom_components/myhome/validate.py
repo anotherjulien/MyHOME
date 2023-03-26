@@ -37,6 +37,8 @@ from .const import (
     CONF_WHERE,
     CONF_BUS_INTERFACE,
     CONF_ENTITIES,
+    CONF_ICON,
+    CONF_ICON_ON,
     CONF_ZONE,
     CONF_FAN_SUPPORT,
     CONF_MANUFACTURER,
@@ -225,6 +227,10 @@ class MyHomeDeviceSchema(Schema):
                 _rekeyed_data[_new_key] = data[device]
             if CONF_DEVICE_MODEL not in data[device]:
                 data[device][CONF_DEVICE_MODEL] = None
+            if CONF_ICON not in data[device]:
+                data[device][CONF_ICON] = None
+            if CONF_ICON_ON not in data[device]:
+                data[device][CONF_ICON_ON] = None
 
         return _rekeyed_data
 
@@ -282,6 +288,8 @@ light_schema = MyHomeDeviceSchema(
             ),
             Optional(CONF_BUS_INTERFACE): All(Coerce(str), BusInterface()),
             Required(CONF_NAME): str,
+            Optional(CONF_ICON): str,
+            Optional(CONF_ICON_ON): str,
             Optional(CONF_DIMMABLE, default=False): Boolean(),
             Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
             Optional(CONF_DEVICE_MODEL): Coerce(str),
@@ -298,6 +306,8 @@ switch_schema = MyHomeDeviceSchema(
             ),
             Optional(CONF_BUS_INTERFACE): All(Coerce(str), BusInterface()),
             Required(CONF_NAME): str,
+            Optional(CONF_ICON): str,
+            Optional(CONF_ICON_ON): str,
             Optional(CONF_DEVICE_CLASS, default=SwitchDeviceClass.SWITCH): In(
                 [
                     SwitchDeviceClass.OUTLET,
