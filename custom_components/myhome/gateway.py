@@ -72,7 +72,7 @@ from .button import (
 class MyHOMEGatewayHandler:
     """Manages a single MyHOME Gateway."""
 
-    def __init__(self, hass, config_entry):
+    def __init__(self, hass, config_entry, generate_events=False):
         build_info = {
             "address": config_entry.data[CONF_HOST],
             "port": config_entry.data[CONF_PORT],
@@ -90,6 +90,7 @@ class MyHOMEGatewayHandler:
         }
         self.hass = hass
         self.config_entry = config_entry
+        self.generate_events = generate_events
         self.gateway = OWNGateway(build_info)
         self._terminate_listener = False
         self._terminate_sender = False
@@ -142,13 +143,13 @@ class MyHOMEGatewayHandler:
             message = await _event_session.get_next()
             LOGGER.debug("%s Message received: `%s`", self.log_id, message)
 
-            ## Scaffolding for message event generation
-            if isinstance(message, OWNMessage):
-                _event_content = {"gateway": str(self.gateway.host)}
-                _event_content.update(message.event_content)
-                self.hass.bus.async_fire("myhome_message_event", _event_content)
-            else:
-                self.hass.bus.async_fire("myhome_message_event", {"gateway": str(self.gateway.host), "message": str(message)})
+            if self.generate_events:
+                if isinstance(message, OWNMessage):
+                    _event_content = {"gateway": str(self.gateway.host)}
+                    _event_content.update(message.event_content)
+                    self.hass.bus.async_fire("myhome_message_event", _event_content)
+                else:
+                    self.hass.bus.async_fire("myhome_message_event", {"gateway": str(self.gateway.host), "message": str(message)})
 
             if not isinstance(message, OWNMessage):
                 LOGGER.warning(

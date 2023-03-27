@@ -47,6 +47,7 @@ from .const import (
     CONF_UDN,
     CONF_WORKER_COUNT,
     CONF_FILE_PATH,
+    CONF_GENERATE_EVENTS,
     DOMAIN,
     LOGGER,
 )
@@ -382,6 +383,8 @@ class MyhomeOptionsFlowHandler(OptionsFlow):
             self.options[CONF_WORKER_COUNT] = 1
         if CONF_FILE_PATH not in self.options:
             self.options[CONF_FILE_PATH] = "/config/myhome.yaml"
+        if CONF_GENERATE_EVENTS not in self.options:
+            self.options[CONF_GENERATE_EVENTS] = False
 
     async def async_step_init(self, user_input=None):  # pylint: disable=unused-argument
         """Manage the MyHome options."""
@@ -398,6 +401,7 @@ class MyhomeOptionsFlowHandler(OptionsFlow):
 
             self.options.update({CONF_WORKER_COUNT: user_input[CONF_WORKER_COUNT]})
             self.options.update({CONF_FILE_PATH: user_input[CONF_FILE_PATH]})
+            self.options.update({CONF_GENERATE_EVENTS: user_input[CONF_GENERATE_EVENTS]})
 
             _data_update = not (self.data[CONF_HOST] == user_input[CONF_ADDRESS] and self.data[CONF_OWN_PASSWORD] == user_input[CONF_OWN_PASSWORD])
             self.data.update({CONF_HOST: user_input[CONF_ADDRESS]})
@@ -435,6 +439,10 @@ class MyhomeOptionsFlowHandler(OptionsFlow):
                         CONF_WORKER_COUNT,
                         description={"suggested_value": self.options[CONF_WORKER_COUNT]},
                     ): All(Coerce(int), Range(min=1, max=10)),
+                    Required(
+                        CONF_GENERATE_EVENTS,
+                        description={"suggested_value": self.options[CONF_GENERATE_EVENTS]},
+                    ): bool,
                 }
             ),
             errors=errors,

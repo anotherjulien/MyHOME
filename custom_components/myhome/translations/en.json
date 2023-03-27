@@ -62,7 +62,8 @@
           "address": "IP address",
           "password": "Password",
           "config_file_path": "Configuration file path",
-          "command_worker_count": "Number of concurrent command sessions"
+          "command_worker_count": "Number of concurrent command sessions",
+          "generate_events": "Generate events in Home Assistant for each message received"
         }
       }
     },

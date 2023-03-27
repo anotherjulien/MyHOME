@@ -19,6 +19,7 @@ from .const import (
     CONF_GATEWAY,
     CONF_WORKER_COUNT,
     CONF_FILE_PATH,
+    CONF_GENERATE_EVENTS,
     DOMAIN,
     LOGGER,
 )
@@ -45,6 +46,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         hass.data[DOMAIN][entry.data[CONF_MAC]] = {}
 
     _config_file_path = str(entry.options[CONF_FILE_PATH]) if CONF_FILE_PATH in entry.options else "/config/myhome.yaml"
+    _generate_events = entry.options[CONF_GENERATE_EVENTS] if CONF_GENERATE_EVENTS in entry.options else False
 
     try:
         async with aiofiles.open(_config_file_path, mode="r") as yaml_file:
@@ -63,7 +65,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         hass.config_entries.async_update_entry(entry, unique_id=dr.format_mac(entry.unique_id))
         LOGGER.warning("Migrating config entry unique_id to %s", entry.unique_id)
 
-    hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY] = MyHOMEGatewayHandler(hass=hass, config_entry=entry)
+    hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY] = MyHOMEGatewayHandler(hass=hass, config_entry=entry, generate_events=_generate_events)
 
     try:
         tests_results = await hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].test()

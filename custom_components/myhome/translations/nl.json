@@ -62,7 +62,8 @@
           "address": "IP address",
           "password": "Wachtwoord",
           "config_file_path": "Path onfiguratie bestand",
-          "command_worker_count": "Aantal open command sessies"
+          "command_worker_count": "Aantal open command sessies",
+          "generate_events": "Genereer gebeurtenissen in Home Assistant voor elk ontvangen bericht"
         }
       }
     },
