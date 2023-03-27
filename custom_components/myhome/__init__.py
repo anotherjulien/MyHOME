@@ -119,6 +119,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             )
         },
     )
+    # TODO investigate why sometimes = None at startup
     if gateway_entry.id in devices_to_be_removed:
         devices_to_be_removed.remove(gateway_entry.id)
 
