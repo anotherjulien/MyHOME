@@ -143,38 +143,12 @@ class MyHOMEGatewayHandler:
             LOGGER.debug("%s Message received: `%s`", self.log_id, message)
 
             ## Scaffolding for message event generation
-            # if isinstance(message, OWNMessage):
-            #     if message._type == "STATUS":
-            #         self.hass.bus.async_fire(
-            #             "myhome_message_event",
-            #             {
-            #                 "gateway": str(self.gateway.host),
-            #                 "message": str(message),
-            #                 "type": str(message._type),
-            #                 "who": str(message.who),
-            #                 "where": str(message.where),
-            #                 "what": str(message._what),
-            #             },
-            #         )
-            #     elif message._type.startswith("DIMENSION"):
-            #         self.hass.bus.async_fire(
-            #             "myhome_message_event",
-            #             {
-            #                 "gateway": str(self.gateway.host),
-            #                 "message": str(message),
-            #                 "type": str(message._type),
-            #                 "who": str(message.who),
-            #                 "where": str(message.where),
-            #                 "dimension": str(message.dimension),
-            #             },
-            #         )
-            #     else:
-            #         self.hass.bus.async_fire(
-            #             "myhome_message_event",
-            #             {"gateway": str(self.gateway.host), "message": str(message), "type": str(message._type), "who": str(message.who), "where": str(message.where)},
-            #         )
-            # else:
-            #     self.hass.bus.async_fire("myhome_message_event", {"gateway": str(self.gateway.host), "message": str(message)})
+            if isinstance(message, OWNMessage):
+                _event_content = {"gateway": str(self.gateway.host)}
+                _event_content.update(message.event_content)
+                self.hass.bus.async_fire("myhome_message_event", _event_content)
+            else:
+                self.hass.bus.async_fire("myhome_message_event", {"gateway": str(self.gateway.host), "message": str(message)})
 
             if not isinstance(message, OWNMessage):
                 LOGGER.warning(
