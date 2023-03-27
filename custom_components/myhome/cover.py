@@ -20,6 +20,7 @@ from OWNd.message import (
 from .const import (
     CONF_PLATFORMS,
     CONF_ENTITY,
+    CONF_ENTITY_NAME,
     CONF_WHO,
     CONF_WHERE,
     CONF_BUS_INTERFACE,
@@ -48,6 +49,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             where=_configured_covers[_cover][CONF_WHERE],
             interface=_configured_covers[_cover][CONF_BUS_INTERFACE] if CONF_BUS_INTERFACE in _configured_covers[_cover] else None,
             name=_configured_covers[_cover][CONF_NAME],
+            entity_name=_configured_covers[_cover][CONF_ENTITY_NAME],
             advanced=_configured_covers[_cover][CONF_ADVANCED_SHUTTER],
             manufacturer=_configured_covers[_cover][CONF_MANUFACTURER],
             model=_configured_covers[_cover][CONF_DEVICE_MODEL],
@@ -75,6 +77,7 @@ class MyHOMECover(MyHOMEEntity, CoverEntity):
         self,
         hass,
         name: str,
+        entity_name: str,
         device_id: str,
         who: str,
         where: str,
@@ -95,6 +98,8 @@ class MyHOMECover(MyHOMEEntity, CoverEntity):
             model=model,
             gateway=gateway,
         )
+
+        self._attr_name = entity_name
 
         self._interface = interface
         self._full_where = f"{self._where}#4#{self._interface}" if self._interface is not None else self._where

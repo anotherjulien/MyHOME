@@ -26,6 +26,7 @@ from OWNd.message import (
 from .const import (
     CONF_PLATFORMS,
     CONF_ENTITY,
+    CONF_ENTITY_NAME,
     CONF_WHO,
     CONF_WHERE,
     CONF_MANUFACTURER,
@@ -59,6 +60,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                 who=_configured_binary_sensors[_binary_sensor][CONF_WHO],
                 where=_configured_binary_sensors[_binary_sensor][CONF_WHERE],
                 name=_configured_binary_sensors[_binary_sensor][CONF_NAME],
+                entity_name=_configured_binary_sensors[_binary_sensor][CONF_ENTITY_NAME],
                 inverted=_configured_binary_sensors[_binary_sensor][CONF_INVERTED],
                 device_class=_device_class,
                 manufacturer=_configured_binary_sensors[_binary_sensor][CONF_MANUFACTURER],
@@ -73,6 +75,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                 who=_configured_binary_sensors[_binary_sensor][CONF_WHO],
                 where=_configured_binary_sensors[_binary_sensor][CONF_WHERE],
                 name=_configured_binary_sensors[_binary_sensor][CONF_NAME],
+                entity_name=_configured_binary_sensors[_binary_sensor][CONF_ENTITY_NAME],
                 inverted=_configured_binary_sensors[_binary_sensor][CONF_INVERTED],
                 device_class=_device_class,
                 manufacturer=_configured_binary_sensors[_binary_sensor][CONF_MANUFACTURER],
@@ -87,6 +90,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                 who=_configured_binary_sensors[_binary_sensor][CONF_WHO],
                 where=_configured_binary_sensors[_binary_sensor][CONF_WHERE],
                 name=_configured_binary_sensors[_binary_sensor][CONF_NAME],
+                entity_name=_configured_binary_sensors[_binary_sensor][CONF_ENTITY_NAME],
                 inverted=_configured_binary_sensors[_binary_sensor][CONF_INVERTED],
                 device_class=_device_class,
                 manufacturer=_configured_binary_sensors[_binary_sensor][CONF_MANUFACTURER],
@@ -113,6 +117,7 @@ class MyHOMEDryContact(MyHOMEEntity, BinarySensorEntity):
         self,
         hass,
         name: str,
+        entity_name: str,
         device_id: str,
         who: str,
         where: str,
@@ -137,8 +142,7 @@ class MyHOMEDryContact(MyHOMEEntity, BinarySensorEntity):
         self._inverted = inverted
 
         self._attr_device_class = device_class
-        self._entity_specific_name = self._attr_device_class.replace("_", " ").capitalize()
-        self._attr_name = f"{name} {self._entity_specific_name}"
+        self._attr_name = entity_name if entity_name else self._attr_device_class.replace("_", " ").capitalize()
 
         self._attr_unique_id = f"{gateway.mac}-{self._device_id}-{self._attr_device_class}"
 
@@ -178,6 +182,7 @@ class MyHOMEAuxiliary(MyHOMEEntity, BinarySensorEntity):
         self,
         hass,
         name: str,
+        entity_name: str,
         device_id: str,
         who: str,
         where: str,
@@ -202,8 +207,7 @@ class MyHOMEAuxiliary(MyHOMEEntity, BinarySensorEntity):
         self._inverted = inverted
 
         self._attr_device_class = device_class
-        self._entity_specific_name = self._attr_device_class.replace("_", " ").capitalize()
-        self._attr_name = f"{name} {self._entity_specific_name}"
+        self._attr_name = entity_name if entity_name else self._attr_device_class.replace("_", " ").capitalize()
 
         self._attr_unique_id = f"{gateway.mac}-{self._device_id}-{self._attr_device_class}"
 
@@ -239,6 +243,7 @@ class MyHOMEMotionSensor(MyHOMEEntity, BinarySensorEntity, RestoreEntity):
         self,
         hass,
         name: str,
+        entity_name: str,
         device_id: str,
         who: str,
         where: str,
@@ -266,8 +271,7 @@ class MyHOMEMotionSensor(MyHOMEEntity, BinarySensorEntity, RestoreEntity):
         self._timeout = timedelta(seconds=315)
 
         self._attr_device_class = device_class
-        self._entity_specific_name = self._attr_device_class.replace("_", " ").capitalize()
-        self._attr_name = f"{name} {self._entity_specific_name}"
+        self._attr_name = entity_name if entity_name else self._attr_device_class.replace("_", " ").capitalize()
 
         self._attr_unique_id = f"{gateway.mac}-{self._device_id}-{self._attr_device_class}"
         self._attr_should_poll = True

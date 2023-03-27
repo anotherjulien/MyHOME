@@ -24,6 +24,7 @@ from OWNd.message import (
 from .const import (
     CONF_PLATFORMS,
     CONF_ENTITY,
+    CONF_ENTITY_NAME,
     CONF_ICON,
     CONF_ICON_ON,
     CONF_WHO,
@@ -56,6 +57,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             icon_on=_configured_lights[_light][CONF_ICON_ON],
             interface=_configured_lights[_light][CONF_BUS_INTERFACE] if CONF_BUS_INTERFACE in _configured_lights[_light] else None,
             name=_configured_lights[_light][CONF_NAME],
+            entity_name=_configured_lights[_light][CONF_ENTITY_NAME],
             dimmable=_configured_lights[_light][CONF_DIMMABLE],
             manufacturer=_configured_lights[_light][CONF_MANUFACTURER],
             model=_configured_lights[_light][CONF_DEVICE_MODEL],
@@ -89,6 +91,7 @@ class MyHOMELight(MyHOMEEntity, LightEntity):
         self,
         hass,
         name: str,
+        entity_name: str,
         icon: str,
         icon_on: str,
         device_id: str,
@@ -111,6 +114,8 @@ class MyHOMELight(MyHOMEEntity, LightEntity):
             model=model,
             gateway=gateway,
         )
+
+        self._attr_name = entity_name
 
         self._interface = interface
         self._full_where = f"{self._where}#4#{self._interface}" if self._interface is not None else self._where
