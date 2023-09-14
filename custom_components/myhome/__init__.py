@@ -91,7 +91,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     entity_registry = er.async_get(hass)
     device_registry = dr.async_get(hass)
 
-    device_registry.async_get_or_create(
+    gateway_entry = device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
         connections={(dr.CONNECTION_NETWORK_MAC, entry.data[CONF_MAC])},
         identifiers={(DOMAIN, hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].unique_id)},
@@ -112,16 +112,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     entities_to_be_removed = []
     devices_to_be_removed = [device_entry.id for device_entry in device_registry.devices.values() if entry.entry_id in device_entry.config_entries]
-    gateway_entry = device_registry.async_get_device(
-        identifiers={(DOMAIN, hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].unique_id)},
-        connections={
-            (
-                dr.CONNECTION_NETWORK_MAC,
-                hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].mac,
-            )
-        },
-    )
-    # TODO investigate why sometimes = None at startup
+
     if gateway_entry.id in devices_to_be_removed:
         devices_to_be_removed.remove(gateway_entry.id)
 
