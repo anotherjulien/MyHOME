@@ -36,18 +36,25 @@ from .gateway import MyHOMEGatewayHandler
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     if PLATFORM not in hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS]:
+        LOGGER.info("TODO: write message as to why we skip setup here")
         return True
 
     _covers = []
-    _configured_covers = hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][PLATFORM]
+    _configured_covers = hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][
+        PLATFORM
+    ]
 
+    LOGGER.info("Found %d configured covers", len(_configured_covers))
     for _cover in _configured_covers.keys():
+        LOGGER.info("Registering cover '%s'", _configured_covers[_cover][CONF_NAME])
         _cover = MyHOMECover(
             hass=hass,
             device_id=_cover,
             who=_configured_covers[_cover][CONF_WHO],
             where=_configured_covers[_cover][CONF_WHERE],
-            interface=_configured_covers[_cover][CONF_BUS_INTERFACE] if CONF_BUS_INTERFACE in _configured_covers[_cover] else None,
+            interface=_configured_covers[_cover][CONF_BUS_INTERFACE]
+            if CONF_BUS_INTERFACE in _configured_covers[_cover]
+            else None,
             name=_configured_covers[_cover][CONF_NAME],
             entity_name=_configured_covers[_cover][CONF_ENTITY_NAME],
             advanced=_configured_covers[_cover][CONF_ADVANCED_SHUTTER],
@@ -64,10 +71,14 @@ async def async_unload_entry(hass, config_entry):  # pylint: disable=unused-argu
     if PLATFORM not in hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS]:
         return True
 
-    _configured_covers = hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][PLATFORM]
+    _configured_covers = hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][
+        PLATFORM
+    ]
 
     for _cover in _configured_covers.keys():
-        del hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][PLATFORM][_cover]
+        del hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][PLATFORM][
+            _cover
+        ]
 
 
 class MyHOMECover(MyHOMEEntity, CoverEntity):
@@ -102,9 +113,15 @@ class MyHOMECover(MyHOMEEntity, CoverEntity):
         self._attr_name = entity_name
 
         self._interface = interface
-        self._full_where = f"{self._where}#4#{self._interface}" if self._interface is not None else self._where
+        self._full_where = (
+            f"{self._where}#4#{self._interface}"
+            if self._interface is not None
+            else self._where
+        )
 
-        self._attr_supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.STOP
+        self._attr_supported_features = (
+            CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.STOP
+        )
         if advanced:
             self._attr_supported_features |= CoverEntityFeature.SET_POSITION
         self._gateway_handler = gateway
@@ -126,25 +143,35 @@ class MyHOMECover(MyHOMEEntity, CoverEntity):
 
         Only used by the generic entity update service.
         """
-        await self._gateway_handler.send_status_request(OWNAutomationCommand.status(self._full_where))
+        await self._gateway_handler.send_status_request(
+            OWNAutomationCommand.status(self._full_where)
+        )
 
     async def async_open_cover(self, **kwargs):  # pylint: disable=unused-argument
         """Open the cover."""
-        await self._gateway_handler.send(OWNAutomationCommand.raise_shutter(self._full_where))
+        await self._gateway_handler.send(
+            OWNAutomationCommand.raise_shutter(self._full_where)
+        )
 
     async def async_close_cover(self, **kwargs):  # pylint: disable=unused-argument
         """Close cover."""
-        await self._gateway_handler.send(OWNAutomationCommand.lower_shutter(self._full_where))
+        await self._gateway_handler.send(
+            OWNAutomationCommand.lower_shutter(self._full_where)
+        )
 
     async def async_set_cover_position(self, **kwargs):
         """Move the cover to a specific position."""
         if ATTR_POSITION in kwargs:
             position = kwargs[ATTR_POSITION]
-            await self._gateway_handler.send(OWNAutomationCommand.set_shutter_level(self._full_where, position))
+            await self._gateway_handler.send(
+                OWNAutomationCommand.set_shutter_level(self._full_where, position)
+            )
 
     async def async_stop_cover(self, **kwargs):  # pylint: disable=unused-argument
         """Stop the cover."""
-        await self._gateway_handler.send(OWNAutomationCommand.stop_shutter(self._full_where))
+        await self._gateway_handler.send(
+            OWNAutomationCommand.stop_shutter(self._full_where)
+        )
 
     def handle_event(self, message: OWNAutomationEvent):
         """Handle an event message."""
