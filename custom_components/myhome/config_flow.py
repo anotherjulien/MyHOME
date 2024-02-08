@@ -101,11 +101,10 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
                 raise_on_progress=False,
             )
             # We pass user input to link so it will attempt to link right away
-            LOGGER.info("fmon debug test conn PRE")
             return await self.async_step_test_connection()
 
         try:
-            LOGGER.info("fmon discovery with 5 sec timeout")
+            LOGGER.info("Launching gateway discovery with 5 sec timeout")
             with async_timeout.timeout(5):
                 local_gateways = await find_gateways()
         except asyncio.TimeoutError:
@@ -118,7 +117,7 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
 
         # if not local_gateways:
         #     return self.async_abort(reason="all_configured")
-        LOGGER.info("fmon local gateways are: %s", local_gateways)
+        LOGGER.info("Local gateways are: %s", local_gateways)
         self.discovered_gateways = {gateway["serialNumber"]: gateway for gateway in local_gateways}
 
         return self.async_show_form(

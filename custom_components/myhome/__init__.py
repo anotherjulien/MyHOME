@@ -61,7 +61,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             _validated_config = config_schema(yaml.safe_load(await yaml_file.read()))
     except FileNotFoundError as e:
         LOGGER.error(f"Configuration file '{_config_file_path}' is not present: %s", e)
-        LOGGER.info("fmon false loc0")
         return False
 
     if entry.data[CONF_MAC] in _validated_config:
@@ -69,10 +68,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             entry.data[CONF_MAC]
         ]
     else:
-        LOGGER.info("fmon false loc1: %s %s", entry.data[CONF_MAC], _validated_config)
+        LOGGER.error("Configuration file '%s' does not contain any configuration for the gateway with MAC address '%s'. Failing the configuration.", 
+                     _config_file_path, entry.data[CONF_MAC])
         return False
 
-    # Migrating the config entry's unique_id if it was not formated to the recommended hass standard
+    # Migrating the config entry's unique_id if it was not formatted to the recommended hass standard
     if entry.unique_id != dr.format_mac(entry.unique_id):
         hass.config_entries.async_update_entry(
             entry, unique_id=dr.format_mac(entry.unique_id)
@@ -90,7 +90,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     except OSError as ose:
         _gateway_handler = hass.data[DOMAIN].pop(CONF_GATEWAY)
         _host = _gateway_handler.gateway.host
-        LOGGER.info("fmon false loc2")
         raise ConfigEntryNotReady(
             f"Gateway cannot be reached at {_host}, make sure its address is correct."
         ) from ose
@@ -108,7 +107,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
                 )
             )
         del hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY]
-        LOGGER.info("fmon false loc3")
+        LOGGER.error("Failed configuration of gateway with MAC address '%s': %s", entry.data[CONF_MAC], tests_results["Message"])
         return False
 
     _command_worker_count = (
@@ -121,8 +120,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     device_registry = dr.async_get(hass)
 
     LOGGER.info(
-        "fmon registering device %s",
+        "Registering gateway with name '%s' and MAC address '%s'",
         hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].name,
+        entry.data[CONF_MAC]
     )
     gateway_entry = device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
@@ -174,7 +174,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             for _entity_name in hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_PLATFORMS][
                 _platform
             ][_device][CONF_ENTITIES]:
-                LOGGER.info("fmon entity %s", _entity_name)
+                LOGGER.info("Registering entity %s", _entity_name)
 
                 if _entity_name != _platform:
                     configured_entities.append(

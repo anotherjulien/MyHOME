@@ -36,17 +36,17 @@ from .gateway import MyHOMEGatewayHandler
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     if PLATFORM not in hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS]:
-        LOGGER.info("fmon invalid yaml ???")
+        LOGGER.info("TODO: write message as to why we skip setup here")
         return True
 
-    LOGGER.info("fmon cover entry point")
     _covers = []
     _configured_covers = hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][
         PLATFORM
     ]
 
+    LOGGER.info("Found %d configured covers", len(_configured_covers))
     for _cover in _configured_covers.keys():
-        LOGGER.info("fmon adding cover %s", _configured_covers[_cover][CONF_NAME])
+        LOGGER.info("Registering cover '%s'", _configured_covers[_cover][CONF_NAME])
         _cover = MyHOMECover(
             hass=hass,
             device_id=_cover,
