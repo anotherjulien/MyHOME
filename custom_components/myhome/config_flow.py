@@ -101,9 +101,11 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
                 raise_on_progress=False,
             )
             # We pass user input to link so it will attempt to link right away
+            LOGGER.info("fmon debug test conn PRE")
             return await self.async_step_test_connection()
 
         try:
+            LOGGER.info("fmon discovery with 5 sec timeout")
             with async_timeout.timeout(5):
                 local_gateways = await find_gateways()
         except asyncio.TimeoutError:
@@ -116,7 +118,7 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
 
         # if not local_gateways:
         #     return self.async_abort(reason="all_configured")
-
+        LOGGER.info("fmon local gateways are: %s", local_gateways)
         self.discovered_gateways = {gateway["serialNumber"]: gateway for gateway in local_gateways}
 
         return self.async_show_form(
@@ -160,10 +162,10 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(user_input["serialNumber"], raise_on_progress=False)
                 return await self.async_step_test_connection()
 
-        address_suggestion = user_input["address"] if user_input is not None and user_input["address"] is not None else "192.168.1.135"
+        address_suggestion = user_input["address"] if user_input is not None and user_input["address"] is not None else "192.168.1.6"
         port_suggestion = user_input["port"] if user_input is not None and user_input["port"] is not None else 20000
-        serial_number_suggestion = user_input["serialNumber"] if user_input is not None and user_input["serialNumber"] is not None else "00:03:50:00:00:00"
-        model_name_suggestion = user_input["modelName"] if user_input is not None and user_input["modelName"] is not None else "F454"
+        serial_number_suggestion = user_input["serialNumber"] if user_input is not None and user_input["serialNumber"] is not None else "00:03:50:CA:37:A1"
+        model_name_suggestion = user_input["modelName"] if user_input is not None and user_input["modelName"] is not None else "MyHomeServer1"
 
         return self.async_show_form(
             step_id="custom",
@@ -315,7 +317,7 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
             if self.gateway_handler.password is not None:
                 _suggested_password = self.gateway_handler.password
             else:
-                _suggested_password = 12345
+                _suggested_password = "willy111"
 
         return self.async_show_form(
             step_id="password",
