@@ -42,8 +42,10 @@ async def async_setup(hass, config):
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    if entry.data[CONF_MAC] not in hass.data[DOMAIN]:
-        hass.data[DOMAIN][entry.data[CONF_MAC]] = {}
+
+    mac = entry.data[CONF_MAC]
+    if mac not in hass.data[DOMAIN]:
+        hass.data[DOMAIN][mac] = {}
 
     _config_file_path = (
         str(entry.options[CONF_FILE_PATH])
@@ -63,13 +65,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         LOGGER.error(f"Configuration file '{_config_file_path}' is not present: %s", e)
         return False
 
-    if entry.data[CONF_MAC] in _validated_config:
-        hass.data[DOMAIN][entry.data[CONF_MAC]] = _validated_config[
-            entry.data[CONF_MAC]
-        ]
+    if mac in _validated_config:
+        hass.data[DOMAIN][mac] = _validated_config[mac]
     else:
         LOGGER.error("Configuration file '%s' does not contain any configuration for the gateway with MAC address '%s'. Failing the configuration.", 
-                     _config_file_path, entry.data[CONF_MAC])
+                     _config_file_path, mac)
         return False
 
     # Migrating the config entry's unique_id if it was not formatted to the recommended hass standard
@@ -79,14 +79,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         )
         LOGGER.warning("Migrating config entry unique_id to %s", entry.unique_id)
 
-    hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY] = MyHOMEGatewayHandler(
+    hass.data[DOMAIN][mac][CONF_ENTITY] = MyHOMEGatewayHandler(
         hass=hass, config_entry=entry, generate_events=_generate_events
     )
 
     try:
-        tests_results = await hass.data[DOMAIN][entry.data[CONF_MAC]][
-            CONF_ENTITY
-        ].test()
+        tests_results = await hass.data[DOMAIN][mac][CONF_ENTITY].test()
     except OSError as ose:
         _gateway_handler = hass.data[DOMAIN].pop(CONF_GATEWAY)
         _host = _gateway_handler.gateway.host
@@ -106,8 +104,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
                     data=entry.data,
                 )
             )
-        del hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY]
-        LOGGER.error("Failed configuration of gateway with MAC address '%s': %s", entry.data[CONF_MAC], tests_results["Message"])
+        del hass.data[DOMAIN][mac][CONF_ENTITY]
+        LOGGER.error("Failed configuration of gateway with MAC address '%s': %s", mac, tests_results["Message"])
         return False
 
     _command_worker_count = (
@@ -121,34 +119,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     LOGGER.info(
         "Registering gateway with name '%s' and MAC address '%s'",
-        hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].name,
-        entry.data[CONF_MAC]
+        hass.data[DOMAIN][mac][CONF_ENTITY].name, mac
     )
     gateway_entry = device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
-        connections={(dr.CONNECTION_NETWORK_MAC, entry.data[CONF_MAC])},
+        connections={(dr.CONNECTION_NETWORK_MAC, mac)},
         identifiers={
-            (DOMAIN, hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].unique_id)
+            (DOMAIN, hass.data[DOMAIN][mac][CONF_ENTITY].unique_id)
         },
-        manufacturer=hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].manufacturer,
-        name=hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].name,
-        model=hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].model,
-        sw_version=hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].firmware,
+        manufacturer=hass.data[DOMAIN][mac][CONF_ENTITY].manufacturer,
+        name=hass.data[DOMAIN][mac][CONF_ENTITY].name,
+        model=hass.data[DOMAIN][mac][CONF_ENTITY].model,
+        sw_version=hass.data[DOMAIN][mac][CONF_ENTITY].firmware,
     )
 
-    await hass.config_entries.async_forward_entry_setups(
-        entry, hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_PLATFORMS].keys()
-    )
+    await hass.config_entries.async_forward_entry_setups(entry, hass.data[DOMAIN][mac][CONF_PLATFORMS].keys())
 
-    hass.data[DOMAIN][entry.data[CONF_MAC]][
-        CONF_ENTITY
-    ].listening_worker = hass.loop.create_task(
-        hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].listening_loop()
+    hass.data[DOMAIN][mac][CONF_ENTITY].listening_worker = hass.loop.create_task(
+        hass.data[DOMAIN][mac][CONF_ENTITY].listening_loop()
     )
     for i in range(_command_worker_count):
-        hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].sending_workers.append(
+        hass.data[DOMAIN][mac][CONF_ENTITY].sending_workers.append(
             hass.loop.create_task(
-                hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].sending_loop(i)
+                hass.data[DOMAIN][mac][CONF_ENTITY].sending_loop(i)
             )
         )
 
@@ -167,22 +160,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     configured_entities = []
 
-    for _platform in hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_PLATFORMS].keys():
-        for _device in hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_PLATFORMS][
-            _platform
-        ].keys():
-            for _entity_name in hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_PLATFORMS][
-                _platform
-            ][_device][CONF_ENTITIES]:
+    for _platform in hass.data[DOMAIN][mac][CONF_PLATFORMS].keys():
+        for _device in hass.data[DOMAIN][mac][CONF_PLATFORMS][_platform].keys():
+            for _entity_name in hass.data[DOMAIN][mac][CONF_PLATFORMS][_platform][_device][CONF_ENTITIES]:
                 LOGGER.info("Registering entity %s", _entity_name)
 
                 if _entity_name != _platform:
                     configured_entities.append(
-                        f"{entry.data[CONF_MAC]}-{_device}-{_entity_name}"
+                        f"{mac}-{_device}-{_entity_name}"
                     )  # extrapolating _attr_unique_id out of the entity's place in the config data structure
                 else:
                     configured_entities.append(
-                        f"{entry.data[CONF_MAC]}-{_device}"
+                        f"{mac}-{_device}"
                     )  # extrapolating _attr_unique_id out of the entity's place in the config data structure
 
     for entity_entry in entity_entries:
