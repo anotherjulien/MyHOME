@@ -18,10 +18,10 @@ from homeassistant.const import (
     CONF_ENTITIES,
     CONF_NAME,
     CONF_MAC,
-    ENERGY_WATT_HOUR,
+    UnitOfEnergy,
+    UnitOfPower,
     LIGHT_LUX,
-    POWER_WATT,
-    TEMP_CELSIUS,
+    UnitOfTemperature
 )
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers import entity_registry as er
@@ -208,7 +208,7 @@ class MyHOMEPowerSensor(MyHOMEEntity, SensorEntity):
 
         self._attr_device_class = device_class
         self._attr_unique_id = f"{gateway.mac}-{self._device_id}-{self._attr_device_class}"
-        self._attr_native_unit_of_measurement = POWER_WATT
+        self._attr_native_unit_of_measurement = UnitOfPower.WATT
         self._attr_state_class = SensorStateClass.MEASUREMENT
 
         self._attr_native_value = None
@@ -289,7 +289,7 @@ class MyHOMEEnergySensor(MyHOMEEntity, SensorEntity):
 
         self._attr_unique_id = f"{gateway.mac}-{self._device_id}-{self._entity_specific_id}"
         self._attr_device_class = device_class
-        self._attr_native_unit_of_measurement = ENERGY_WATT_HOUR
+        self._attr_native_unit_of_measurement = UnitOfEnergy.WATT_HOUR
         self._attr_state_class = SensorStateClass.TOTAL_INCREASING
         self._attr_should_poll = True
         self._attr_native_value = None
@@ -380,7 +380,7 @@ class MyHOMETemperatureSensor(MyHOMEEntity, SensorEntity):
 
         self._attr_device_class = device_class
         self._attr_unique_id = f"{gateway.mac}-{self._device_id}-{self._attr_device_class}"
-        self._attr_native_unit_of_measurement = TEMP_CELSIUS
+        self._attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_should_poll = True
         self._attr_native_value = None
