@@ -11,16 +11,11 @@ from homeassistant.components.button import (
     ButtonEntity,
 )
 
-try:
-    from homeassistant.const import EntityCategory
-except ImportError:
-    from homeassistant.helpers.entity import EntityCategory
-
-
 from homeassistant.const import (
     CONF_NAME,
     CONF_MAC,
     CONF_ENTITIES,
+    EntityCategory,
 )
 
 from .const import (
