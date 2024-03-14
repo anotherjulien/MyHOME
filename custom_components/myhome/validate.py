@@ -161,7 +161,7 @@ class BusInterface(object):
         self.msg = msg
 
     def __call__(self, v):
-        if type(v) == str and v.isdigit() and len(v) == 2:
+        if type(v) == str and v.isdigit() and len(v) == 1:
             if int(v) > 15:
                 raise Invalid(f"Invalid Bus Interface number {v}, it must be between 00 and 15.")
         elif v is not None:
