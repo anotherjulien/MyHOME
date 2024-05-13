@@ -350,6 +350,8 @@ binary_sensor_schema = MyHomeDeviceSchema(
             Required(CONF_NAME): str,
             Optional(CONF_ENTITY_NAME): str,
             Optional(CONF_INVERTED, default=False): Boolean(),
+            Optional(CONF_ICON): str,
+            Optional(CONF_ICON_ON): str,
             Optional(CONF_DEVICE_CLASS): In(
                 [
                     BinarySensorDeviceClass.BATTERY,
