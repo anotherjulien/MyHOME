@@ -460,7 +460,7 @@ class MyHOMEActuator(MyHOMEEntity, BinarySensorEntity):
         if self._who == 1:
             await self._gateway_handler.send_status_request(OWNLightingCommand.status(self._full_where))
         elif self._who == 4:
-            await self._gateway_handler.send_status_request(OWNHeatingCommand.actuator_status(self._where))
+            await self._gateway_handler.send_status_request(OWNHeatingCommand(f"*#4*{self._where}*20##"))
 
     def handle_event(self, message: OWNEvent):
         """Handle an event message."""
