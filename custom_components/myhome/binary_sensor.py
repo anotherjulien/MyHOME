@@ -416,7 +416,7 @@ class MyHOMEActuator(MyHOMEEntity, BinarySensorEntity):
 
         self._interface = interface
 
-        if self._who == 1:
+        if self._who == "1":
             if self._interface is not None:
                 self._attr_extra_state_attributes["Int"] = self._interface
                 self._full_where = f"{self._where}#4#{self._interface}"
@@ -426,7 +426,7 @@ class MyHOMEActuator(MyHOMEEntity, BinarySensorEntity):
                 "A": where[: len(where) // 2],
                 "PL": where[len(where) // 2 :],
             }
-        elif self._who == 4:
+        elif self._who == "4":
             if self._interface is not None:
                 raise ValueError("Interface cannot be set with WHO=4")
             self._attr_extra_state_attributes = {
@@ -457,9 +457,9 @@ class MyHOMEActuator(MyHOMEEntity, BinarySensorEntity):
 
         Only used by the generic entity update service.
         """
-        if self._who == 1:
+        if self._who == "1":
             await self._gateway_handler.send_status_request(OWNLightingCommand.status(self._full_where))
-        elif self._who == 4:
+        elif self._who == "4":
             await self._gateway_handler.send_status_request(OWNHeatingCommand(f"*#4*{self._where}*20##"))
 
     def handle_event(self, message: OWNEvent):
@@ -470,9 +470,9 @@ class MyHOMEActuator(MyHOMEEntity, BinarySensorEntity):
             message.human_readable_log,
         )
 
-        if self._who == 1:
+        if self._who == "1":
             self._attr_is_on = message.is_on != self._inverted
-        elif self._who == 4:
+        elif self._who == "4":
             self._attr_is_on = message.is_active != self._inverted
 
         if self._off_icon is not None and self._on_icon is not None:
