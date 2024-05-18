@@ -345,7 +345,7 @@ cover_schema = MyHomeDeviceSchema(
 binary_sensor_schema = MyHomeDeviceSchema(
     {
         Required(str): {
-            Optional(CONF_WHO, default="25"): In(["1", "9", "25"]),
+            Optional(CONF_WHO, default="25"): In(["1", "4", "9", "25"]),
             Required(CONF_WHERE): All(Coerce(str), SpecialWhere()),
             Required(CONF_NAME): str,
             Optional(CONF_ENTITY_NAME): str,
