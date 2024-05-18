@@ -147,10 +147,10 @@ class SpecialWhere(object):
         self.msg = msg
 
     def __call__(self, v):
-        if type(v) == str and v.isdigit():
+        if type(v) == str and re.match(r"^[0-9#]+$", v):
             return v
         else:
-            raise Invalid(f"Invalid WHERE {v}, it must be a string of digits.")
+            raise Invalid(f"Invalid WHERE {v}, it must be a string of [0-9#]+.")
 
     def __repr__(self):
         return "Where(%s, msg=%r)" % ("String", self.msg)
