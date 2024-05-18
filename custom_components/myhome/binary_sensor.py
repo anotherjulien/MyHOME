@@ -14,9 +14,11 @@ from homeassistant.const import (
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from OWNd.message import (
+    OWNEvent,
     OWNDryContactEvent,
     OWNDryContactCommand,
     OWNLightingCommand,
+    OWNHeatingCommand,
     MESSAGE_TYPE_MOTION,
     MESSAGE_TYPE_PIR_SENSITIVITY,
     MESSAGE_TYPE_MOTION_TIMEOUT,
@@ -102,6 +104,24 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             )
             _binary_sensors.append(_binary_sensor)
         elif _who == 1 and _device_class == BinarySensorDeviceClass.POWER:
+            _binary_sensor = MyHOMEActuator(
+                hass=hass,
+                device_id=_binary_sensor,
+                who=_configured_binary_sensors[_binary_sensor][CONF_WHO],
+                where=_configured_binary_sensors[_binary_sensor][CONF_WHERE],
+                icon=_configured_binary_sensors[_binary_sensor][CONF_ICON],
+                icon_on=_configured_binary_sensors[_binary_sensor][CONF_ICON_ON],
+                name=_configured_binary_sensors[_binary_sensor][CONF_NAME],
+                entity_name=_configured_binary_sensors[_binary_sensor][CONF_ENTITY_NAME],
+                inverted=_configured_binary_sensors[_binary_sensor][CONF_INVERTED],
+                interface=_configured_binary_sensors[_binary_sensor][CONF_BUS_INTERFACE] if CONF_BUS_INTERFACE in _configured_binary_sensors[_binary_sensor] else None,
+                device_class=_device_class,
+                manufacturer=_configured_binary_sensors[_binary_sensor][CONF_MANUFACTURER],
+                model=_configured_binary_sensors[_binary_sensor][CONF_DEVICE_MODEL],
+                gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_ENTITY],
+            )
+            _binary_sensors.append(_binary_sensor)
+        elif _who == 4 and _device_class == BinarySensorDeviceClass.POWER:
             _binary_sensor = MyHOMEActuator(
                 hass=hass,
                 device_id=_binary_sensor,
@@ -395,15 +415,24 @@ class MyHOMEActuator(MyHOMEEntity, BinarySensorEntity):
         self._attr_unique_id = f"{gateway.mac}-{self._device_id}-{self._attr_device_class}"
 
         self._interface = interface
-        self._full_where = f"{self._where}#4#{self._interface}" if self._interface is not None else self._where
 
-        self._attr_extra_state_attributes = {
-            "A": where[: len(where) // 2],
-            "PL": where[len(where) // 2 :],
-        }
-
-        if self._interface is not None:
-            self._attr_extra_state_attributes["Int"] = self._interface
+        if self._who == 1:
+            if self._interface is not None:
+                self._attr_extra_state_attributes["Int"] = self._interface
+                self._full_where = f"{self._where}#4#{self._interface}"
+            else:
+                self._full_where = self._where
+            self._attr_extra_state_attributes = {
+                "A": where[: len(where) // 2],
+                "PL": where[len(where) // 2 :],
+            }
+        elif self._who == 4:
+            if self._interface is not None:
+                raise ValueError("Interface cannot be set with WHO=4")
+            self._attr_extra_state_attributes = {
+                "Z": where.split("#")[0],
+                "N": where.split("#")[1],
+            }
 
         self._on_icon = icon_on
         self._off_icon = icon
@@ -428,14 +457,25 @@ class MyHOMEActuator(MyHOMEEntity, BinarySensorEntity):
 
         Only used by the generic entity update service.
         """
-        await self._gateway_handler.send_status_request(OWNLightingCommand.status(self._full_where))
+        if self._who == 1:
+            await self._gateway_handler.send_status_request(OWNLightingCommand.status(self._full_where))
+        elif self._who == 4:
+            await self._gateway_handler.send_status_request(OWNHeatingCommand.actuator_status(self._where))
 
-    def handle_event(self, message: OWNLightingEvent):
+    def handle_event(self, message: OWNEvent):
         """Handle an event message."""
         LOGGER.info(
             "%s %s",
             self._gateway_handler.log_id,
             message.human_readable_log,
         )
-        self._attr_is_on = message.is_on != self._inverted
+
+        if self._who == 1:
+            self._attr_is_on = message.is_on != self._inverted
+        elif self._who == 4:
+            self._attr_is_on = message.is_active != self._inverted
+
+        if self._off_icon is not None and self._on_icon is not None:
+            self._attr_icon = self._on_icon if self._attr_is_on else self._off_icon
+
         self.async_schedule_update_ha_state()
