@@ -471,8 +471,8 @@ class MyHOMEActuator(MyHOMEEntity, BinarySensorEntity):
 
         if self._who == "1":
             self._attr_is_on = message.is_on != self._inverted
-        elif self._who == "4":
-            self._attr_is_on = message.is_active != self._inverted
+        elif self._who == "4" and message.dimension == 20:
+            self._attr_is_on = message.is_active() != self._inverted
 
         if self._off_icon is not None and self._on_icon is not None:
             self._attr_icon = self._on_icon if self._attr_is_on else self._off_icon
