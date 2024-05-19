@@ -143,6 +143,11 @@ class MyHOMEGatewayHandler:
             message = await _event_session.get_next()
             LOGGER.debug("%s Message received: `%s`", self.log_id, message)
 
+            # Workaround due to how the OWNd library creates the entity ID,
+            # replacing zone=0 with zone=where_param
+            if isinstance(message, OWNHeatingEvent) and message.where == "0":
+                message._zone = 0
+
             if self.generate_events:
                 if isinstance(message, OWNMessage):
                     _event_content = {"gateway": str(self.gateway.host)}
