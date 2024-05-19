@@ -19,6 +19,7 @@ from OWNd.message import (
     OWNDryContactCommand,
     OWNLightingCommand,
     OWNHeatingCommand,
+    OWNEnergyCommand,
     MESSAGE_TYPE_MOTION,
     MESSAGE_TYPE_PIR_SENSITIVITY,
     MESSAGE_TYPE_MOTION_TIMEOUT,
@@ -31,6 +32,7 @@ from .const import (
     CONF_ENTITY_NAME,
     CONF_WHO,
     CONF_WHERE,
+    CONF_PHASE,
     CONF_MANUFACTURER,
     CONF_DEVICE_MODEL,
     CONF_DEVICE_CLASS,
@@ -109,6 +111,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                 device_id=_binary_sensor,
                 who=_configured_binary_sensors[_binary_sensor][CONF_WHO],
                 where=_configured_binary_sensors[_binary_sensor][CONF_WHERE],
+                phase=_configured_binary_sensors[_binary_sensor][CONF_PHASE] if CONF_PHASE in _configured_binary_sensors[_binary_sensor] else None,
                 icon=_configured_binary_sensors[_binary_sensor][CONF_ICON],
                 icon_on=_configured_binary_sensors[_binary_sensor][CONF_ICON_ON],
                 name=_configured_binary_sensors[_binary_sensor][CONF_NAME],
@@ -127,6 +130,26 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                 device_id=_binary_sensor,
                 who=_configured_binary_sensors[_binary_sensor][CONF_WHO],
                 where=_configured_binary_sensors[_binary_sensor][CONF_WHERE],
+                phase=_configured_binary_sensors[_binary_sensor][CONF_PHASE] if CONF_PHASE in _configured_binary_sensors[_binary_sensor] else None,
+                icon=_configured_binary_sensors[_binary_sensor][CONF_ICON],
+                icon_on=_configured_binary_sensors[_binary_sensor][CONF_ICON_ON],
+                name=_configured_binary_sensors[_binary_sensor][CONF_NAME],
+                entity_name=_configured_binary_sensors[_binary_sensor][CONF_ENTITY_NAME],
+                inverted=_configured_binary_sensors[_binary_sensor][CONF_INVERTED],
+                interface=_configured_binary_sensors[_binary_sensor][CONF_BUS_INTERFACE] if CONF_BUS_INTERFACE in _configured_binary_sensors[_binary_sensor] else None,
+                device_class=_device_class,
+                manufacturer=_configured_binary_sensors[_binary_sensor][CONF_MANUFACTURER],
+                model=_configured_binary_sensors[_binary_sensor][CONF_DEVICE_MODEL],
+                gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_ENTITY],
+            )
+            _binary_sensors.append(_binary_sensor)
+        elif _who == 18 and _device_class == BinarySensorDeviceClass.POWER:
+            _binary_sensor = MyHOMEActuator(
+                hass=hass,
+                device_id=_binary_sensor,
+                who=_configured_binary_sensors[_binary_sensor][CONF_WHO],
+                where=_configured_binary_sensors[_binary_sensor][CONF_WHERE],
+                phase=_configured_binary_sensors[_binary_sensor][CONF_PHASE] if CONF_PHASE in _configured_binary_sensors[_binary_sensor] else None,
                 icon=_configured_binary_sensors[_binary_sensor][CONF_ICON],
                 icon_on=_configured_binary_sensors[_binary_sensor][CONF_ICON_ON],
                 name=_configured_binary_sensors[_binary_sensor][CONF_NAME],
@@ -388,6 +411,7 @@ class MyHOMEActuator(MyHOMEEntity, BinarySensorEntity):
         device_id: str,
         who: str,
         where: str,
+        phase: str,
         inverted: bool,
         interface: str,
         device_class: str,
@@ -408,6 +432,7 @@ class MyHOMEActuator(MyHOMEEntity, BinarySensorEntity):
         )
 
         self._inverted = inverted
+        self._phase = phase
 
         self._attr_device_class = device_class
         self._attr_name = entity_name if entity_name else self._attr_device_class.replace("_", " ").capitalize()
@@ -431,6 +456,12 @@ class MyHOMEActuator(MyHOMEEntity, BinarySensorEntity):
                 raise ValueError("Interface cannot be set with WHO=4")
             self._attr_extra_state_attributes = {
                 "Z": where
+            }
+        elif self._who == "18":
+            if self._interface is not None:
+                raise ValueError("Interface cannot be set with WHO=18")
+            self._attr_extra_state_attributes = {
+                "P": str(int(where) - 70)
             }
 
         self._on_icon = icon_on
@@ -460,6 +491,8 @@ class MyHOMEActuator(MyHOMEEntity, BinarySensorEntity):
             await self._gateway_handler.send_status_request(OWNLightingCommand.status(self._full_where))
         elif self._who == "4":
             await self._gateway_handler.send_status_request(OWNHeatingCommand(f"*#4*{self._where}*20##"))
+        elif self._who == "18":
+            await self._gateway_handler.send_status_request(OWNEnergyCommand(f"*#18*{self._where}#{self._phase}*71##"))
 
     def handle_event(self, message: OWNEvent):
         """Handle an event message."""
@@ -473,6 +506,8 @@ class MyHOMEActuator(MyHOMEEntity, BinarySensorEntity):
             self._attr_is_on = message.is_on != self._inverted
         elif self._who == "4" and message.dimension == 20:
             self._attr_is_on = message.is_active() != self._inverted
+        elif self._who == "18" and message.dimension == 71:
+            self._attr_is_on = bool(int(message._dimension_value[0])) != self._inverted
 
         if self._off_icon is not None and self._on_icon is not None:
             self._attr_icon = self._on_icon if self._attr_is_on else self._off_icon

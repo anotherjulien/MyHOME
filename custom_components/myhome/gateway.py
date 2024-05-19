@@ -170,6 +170,13 @@ class MyHOMEGatewayHandler:
                             MyHOMEEntity,
                         ):
                             self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][SENSOR][message.entity][CONF_ENTITIES][_entity].handle_event(message)
+                elif BINARY_SENSOR in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS] and message.entity in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][BINARY_SENSOR]:
+                    for _entity in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][BINARY_SENSOR][message.entity][CONF_ENTITIES]:
+                        if isinstance(
+                            self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][BINARY_SENSOR][message.entity][CONF_ENTITIES][_entity],
+                            MyHOMEEntity,
+                        ):
+                            self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][BINARY_SENSOR][message.entity][CONF_ENTITIES][_entity].handle_event(message)
                 else:
                     continue
             elif (

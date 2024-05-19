@@ -35,6 +35,7 @@ from .const import (
     CONF_PLATFORMS,
     CONF_WHO,
     CONF_WHERE,
+    CONF_PHASE,
     CONF_BUS_INTERFACE,
     CONF_ENTITIES,
     CONF_ENTITY_NAME,
@@ -345,8 +346,9 @@ cover_schema = MyHomeDeviceSchema(
 binary_sensor_schema = MyHomeDeviceSchema(
     {
         Required(str): {
-            Optional(CONF_WHO, default="25"): In(["1", "4", "9", "25"]),
+            Optional(CONF_WHO, default="25"): In(["1", "4", "9", "18", "25"]),
             Required(CONF_WHERE): All(Coerce(str), SpecialWhere()),
+            Optional(CONF_PHASE): str,
             Required(CONF_NAME): str,
             Optional(CONF_ENTITY_NAME): str,
             Optional(CONF_INVERTED, default=False): Boolean(),
