@@ -430,8 +430,7 @@ class MyHOMEActuator(MyHOMEEntity, BinarySensorEntity):
             if self._interface is not None:
                 raise ValueError("Interface cannot be set with WHO=4")
             self._attr_extra_state_attributes = {
-                "Z": where.split("#")[0],
-                "N": where.split("#")[1],
+                "Z": where
             }
 
         self._on_icon = icon_on
