@@ -257,7 +257,7 @@ class MyHOMEGatewayHandler:
                             )
                     if not is_event:
                         if isinstance(message, OWNLightingEvent) and message.brightness_preset:
-                            if isinstance(
+                            if message.entity in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][LIGHT] and isinstance(
                                 self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][LIGHT][message.entity][CONF_ENTITIES][LIGHT],
                                 MyHOMEEntity,
                             ):
