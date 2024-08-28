@@ -53,6 +53,8 @@ from .const import (
     CONF_COOLING_SUPPORT,
     CONF_STANDALONE,
     CONF_CENTRAL,
+    CONF_SHUTTER_OPENING_TIME,
+    CONF_SHUTTER_CLOSING_TIME,
 )
 
 
@@ -337,6 +339,8 @@ cover_schema = MyHomeDeviceSchema(
             Required(CONF_NAME): str,
             Optional(CONF_ENTITY_NAME): str,
             Optional(CONF_ADVANCED_SHUTTER, default=False): Boolean(),
+            Optional(CONF_SHUTTER_OPENING_TIME, default=0): int,
+            Optional(CONF_SHUTTER_CLOSING_TIME, default=0): int,
             Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
             Optional(CONF_DEVICE_MODEL): Coerce(str),
         }
