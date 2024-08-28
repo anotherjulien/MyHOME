@@ -35,6 +35,7 @@ from .const import (
     CONF_PLATFORMS,
     CONF_WHO,
     CONF_WHERE,
+    CONF_PHASE,
     CONF_BUS_INTERFACE,
     CONF_ENTITIES,
     CONF_ENTITY_NAME,
@@ -147,10 +148,10 @@ class SpecialWhere(object):
         self.msg = msg
 
     def __call__(self, v):
-        if type(v) == str and v.isdigit():
+        if type(v) == str and re.match(r"^[0-9#]+$", v):
             return v
         else:
-            raise Invalid(f"Invalid WHERE {v}, it must be a string of digits.")
+            raise Invalid(f"Invalid WHERE {v}, it must be a string of [0-9#]+.")
 
     def __repr__(self):
         return "Where(%s, msg=%r)" % ("String", self.msg)
@@ -345,11 +346,14 @@ cover_schema = MyHomeDeviceSchema(
 binary_sensor_schema = MyHomeDeviceSchema(
     {
         Required(str): {
-            Optional(CONF_WHO, default="25"): In(["1", "9", "25"]),
+            Optional(CONF_WHO, default="25"): In(["1", "4", "9", "18", "25"]),
             Required(CONF_WHERE): All(Coerce(str), SpecialWhere()),
+            Optional(CONF_PHASE): str,
             Required(CONF_NAME): str,
             Optional(CONF_ENTITY_NAME): str,
             Optional(CONF_INVERTED, default=False): Boolean(),
+            Optional(CONF_ICON): str,
+            Optional(CONF_ICON_ON): str,
             Optional(CONF_DEVICE_CLASS): In(
                 [
                     BinarySensorDeviceClass.BATTERY,
