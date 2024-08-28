@@ -147,7 +147,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
         self._attr_min_temp = 5
         self._attr_max_temp = 40
 
-        self._attr_supported_features = 0
+        self._attr_supported_features = ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
         self._attr_hvac_modes = [HVACMode.OFF]
         self._heating = heating
         self._cooling = cooling
