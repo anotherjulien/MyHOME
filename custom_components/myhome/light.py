@@ -217,12 +217,16 @@ class MyHOMELight(MyHOMEEntity, LightEntity):
             self._gateway_handler.log_id,
             message.human_readable_log,
         )
-        self._attr_is_on = message.is_on
-        if ColorMode.BRIGHTNESS in self._attr_supported_color_modes and message.brightness is not None:
-            self._attr_brightness_pct = message.brightness
-            self._attr_brightness = percent_to_eight_bits(message.brightness)
+        #This should be in try block as message.is_on can throw error for unsupported message types (like for some dimensions)
+        try:
+            self._attr_is_on = message.is_on
+            if ColorMode.BRIGHTNESS in self._attr_supported_color_modes and message.brightness is not None:
+                self._attr_brightness_pct = message.brightness
+                self._attr_brightness = percent_to_eight_bits(message.brightness)
 
-        if self._off_icon is not None and self._on_icon is not None:
-            self._attr_icon = self._on_icon if self._attr_is_on else self._off_icon
+            if self._off_icon is not None and self._on_icon is not None:
+                self._attr_icon = self._on_icon if self._attr_is_on else self._off_icon
 
-        self.async_schedule_update_ha_state()
+            self.async_schedule_update_ha_state()
+        except TypeError:
+            pass
