@@ -172,7 +172,6 @@ class MyHOMEGatewayHandler:
                                     self.log_id,
                                     message,
                                 )
-                                pass
                 else:
                     continue
             elif (
@@ -296,7 +295,6 @@ class MyHOMEGatewayHandler:
                                                     self.log_id,
                                                     message,
                                                 )
-                                                pass
 
                 else:
                     LOGGER.debug(
