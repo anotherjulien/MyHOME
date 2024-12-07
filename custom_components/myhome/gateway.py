@@ -164,7 +164,15 @@ class MyHOMEGatewayHandler:
                             self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][SENSOR][message.entity][CONF_ENTITIES][_entity],
                             MyHOMEEntity,
                         ):
-                            self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][SENSOR][message.entity][CONF_ENTITIES][_entity].handle_event(message)
+                            try:
+                                self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][SENSOR][message.entity][CONF_ENTITIES][_entity].handle_event(message)
+                            except TypeError:
+                                LOGGER.debug(
+                                    "%s Error handling event `%s`",
+                                    self.log_id,
+                                    message,
+                                )
+                                pass
                 else:
                     continue
             elif (
@@ -280,7 +288,15 @@ class MyHOMEGatewayHandler:
                                                 EnableCommandButtonEntity,
                                             )
                                         ):
-                                            self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][_platform][message.entity][CONF_ENTITIES][_entity].handle_event(message)
+                                            try:
+                                                self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][_platform][message.entity][CONF_ENTITIES][_entity].handle_event(message)
+                                            except TypeError:
+                                                LOGGER.debug(
+                                                    "%s Error handling event `%s`",
+                                                    self.log_id,
+                                                    message,
+                                                )
+                                                pass
 
                 else:
                     LOGGER.debug(
