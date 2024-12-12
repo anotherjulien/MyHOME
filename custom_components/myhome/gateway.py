@@ -166,8 +166,8 @@ class MyHOMEGatewayHandler:
                         ):
                             try:
                                 self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][SENSOR][message.entity][CONF_ENTITIES][_entity].handle_event(message)
-                            except TypeError:
-                                LOGGER.debug(
+                            except:
+                                LOGGER.error(
                                     "%s Error handling event `%s`",
                                     self.log_id,
                                     message,
@@ -264,7 +264,7 @@ class MyHOMEGatewayHandler:
                             )
                     if not is_event:
                         if isinstance(message, OWNLightingEvent) and message.brightness_preset:
-                            if isinstance(
+                            if message.entity in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][LIGHT] and isinstance(
                                 self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][LIGHT][message.entity][CONF_ENTITIES][LIGHT],
                                 MyHOMEEntity,
                             ):
@@ -289,8 +289,8 @@ class MyHOMEGatewayHandler:
                                         ):
                                             try:
                                                 self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][_platform][message.entity][CONF_ENTITIES][_entity].handle_event(message)
-                                            except TypeError:
-                                                LOGGER.debug(
+                                            except:
+                                                LOGGER.error(
                                                     "%s Error handling event `%s`",
                                                     self.log_id,
                                                     message,
