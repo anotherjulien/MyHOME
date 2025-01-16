@@ -2,7 +2,7 @@
   "domain": "myhome",
   "integration_type": "hub",
   "name": "MyHOME",
-  "version": "0.9.3",
+  "version": "0.9.4-michnovka",
   "config_flow": true,
   "documentation": "https://github.com/anotherjulien/MyHOME",
   "issue_tracker": "https://github.com/anotherjulien/MyHOME/issues",
