@@ -147,7 +147,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
         self._attr_min_temp = 5
         self._attr_max_temp = 40
 
-        self._attr_supported_features = 0
+        self._attr_supported_features = ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
         self._attr_hvac_modes = [HVACMode.OFF]
         self._heating = heating
         self._cooling = cooling
@@ -191,7 +191,10 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
         if self._local_target_temperature is not None:
             return self._local_target_temperature
         else:
-            return self._target_temperature
+            return (
+                (self._target_temperature - self._local_offset)
+                if self._target_temperature is not None else None
+            )
 
     async def async_set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
@@ -293,9 +296,6 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                 message.human_readable_log,
             )
             self._target_temperature = message.set_temperature
-            self._local_target_temperature = (
-                self._target_temperature + self._local_offset
-            )
         elif message.message_type == MESSAGE_TYPE_LOCAL_OFFSET:
             LOGGER.info(
                 "%s %s",
@@ -303,10 +303,6 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                 message.human_readable_log,
             )
             self._local_offset = message.local_offset
-            if self._target_temperature is not None:
-                self._local_target_temperature = (
-                    self._target_temperature + self._local_offset
-                )
         elif message.message_type == MESSAGE_TYPE_LOCAL_TARGET_TEMPERATURE:
             LOGGER.info(
                 "%s %s",
@@ -314,9 +310,6 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                 message.human_readable_log,
             )
             self._local_target_temperature = message.local_set_temperature
-            self._target_temperature = (
-                self._local_target_temperature - self._local_offset
-            )
         elif message.message_type == MESSAGE_TYPE_MODE:
             if (
                 message.mode == CLIMATE_MODE_AUTO
@@ -408,9 +401,6 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                 self._attr_hvac_mode = HVACMode.OFF
                 self._attr_hvac_action = HVACAction.OFF
             self._target_temperature = message.set_temperature
-            self._local_target_temperature = (
-                self._target_temperature + self._local_offset
-            )
         elif message.message_type == MESSAGE_TYPE_ACTION:
             LOGGER.info(
                 "%s %s",
@@ -418,14 +408,9 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                 message.human_readable_log,
             )
             if message.is_active():
-                if self._heating and self._cooling:
-                    if message.is_heating():
-                        self._attr_hvac_action = HVACAction.HEATING
-                    elif message.is_cooling():
-                        self._attr_hvac_action = HVACAction.COOLING
-                elif self._heating:
+                if self._attr_hvac_mode == HVACMode.HEAT:
                     self._attr_hvac_action = HVACAction.HEATING
-                elif self._cooling:
+                if self._attr_hvac_mode == HVACMode.COOL:
                     self._attr_hvac_action = HVACAction.COOLING
             elif self._attr_hvac_mode == HVACMode.OFF:
                 self._attr_hvac_action = HVACAction.OFF

@@ -143,6 +143,11 @@ class MyHOMEGatewayHandler:
             message = await _event_session.get_next()
             LOGGER.debug("%s Message received: `%s`", self.log_id, message)
 
+            # Workaround due to how the OWNd library creates the entity ID,
+            # replacing zone=0 with zone=where_param
+            if isinstance(message, OWNHeatingEvent) and message.where == "0":
+                message._zone = 0
+
             if self.generate_events:
                 if isinstance(message, OWNMessage):
                     _event_content = {"gateway": str(self.gateway.host)}
@@ -168,7 +173,21 @@ class MyHOMEGatewayHandler:
                                 self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][SENSOR][message.entity][CONF_ENTITIES][_entity].handle_event(message)
                             except:
                                 LOGGER.error(
-                                    "%s Error handling event `%s`",
+                                    "%s Error handling sensor event `%s`",
+                                    self.log_id,
+                                    message,
+                                )
+                elif BINARY_SENSOR in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS] and message.entity in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][BINARY_SENSOR]:
+                    for _entity in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][BINARY_SENSOR][message.entity][CONF_ENTITIES]:
+                        if isinstance(
+                            self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][BINARY_SENSOR][message.entity][CONF_ENTITIES][_entity],
+                            MyHOMEEntity,
+                        ):
+                            try:
+                                self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][BINARY_SENSOR][message.entity][CONF_ENTITIES][_entity].handle_event(message)
+                            except:
+                                LOGGER.error(
+                                    "%s Error handling binary sensor event `%s`",
                                     self.log_id,
                                     message,
                                 )
@@ -392,7 +411,7 @@ class MyHOMEGatewayHandler:
         while not self._terminate_sender:
             task = await self.send_buffer.get()
             LOGGER.debug(
-                "%s Message `%s` was successfully unqueued by worker %s.",
+                "%s (%s) Message `%s` was successfully unqueued by worker %s.",
                 self.name,
                 self.gateway.host,
                 task["message"],
