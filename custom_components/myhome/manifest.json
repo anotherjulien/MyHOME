@@ -1,11 +1,13 @@
 {
   "domain": "myhome",
-  "integration_type": "hub",
-  "iot_class": "local_polling",
   "name": "MyHOME",
-  "version": "0.9.3",
+  "codeowners": [
+    "@anotherjulien"
+  ],
   "config_flow": true,
   "documentation": "https://github.com/anotherjulien/MyHOME",
+  "integration_type": "hub",
+  "iot_class": "local_polling",
   "issue_tracker": "https://github.com/anotherjulien/MyHOME/issues",
   "requirements": [
     "OWNd==0.7.48"
@@ -67,7 +69,5 @@
       "modelName": "MH201"
     }
   ],
-  "codeowners": [
-    "@anotherjulien"
-  ]
+  "version": "0.9.3"
 }
