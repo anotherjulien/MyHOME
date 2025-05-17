@@ -2,7 +2,6 @@
   "name": "MyHome",
   "zip_release": true,
   "filename": "myhome.zip",
-  "render_readme": true,
   "country": [
     "GB",
     "FR",
