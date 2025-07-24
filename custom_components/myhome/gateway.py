@@ -360,9 +360,6 @@ class MyHOMEGatewayHandler:
         await _event_session.close()
         self.is_connected = False
 
-        LOGGER.debug("%s Destroying listening worker.", self.log_id)
-        self.listening_worker.cancel()
-
     async def sending_loop(self, worker_id: int):
         self._terminate_sender = False
 
@@ -378,23 +375,16 @@ class MyHOMEGatewayHandler:
         while not self._terminate_sender:
             task = await self.send_buffer.get()
             LOGGER.debug(
-                "%s Message `%s` was successfully unqueued by worker %s.",
+                "%s Message `%s` was successfully unqueued by worker %s. Task %s",
                 self.name,
                 self.gateway.host,
-                task["message"],
                 worker_id,
+                task["message"],
             )
             await _command_session.send(message=task["message"], is_status_request=task["is_status_request"])
             self.send_buffer.task_done()
 
         await _command_session.close()
-
-        LOGGER.debug(
-            "%s Destroying sending worker %s",
-            self.log_id,
-            worker_id,
-        )
-        self.sending_workers[worker_id].cancel()
 
     async def close_listener(self) -> bool:
         LOGGER.info("%s Closing event listener", self.log_id)
@@ -418,3 +408,30 @@ class MyHOMEGatewayHandler:
             self.log_id,
             message,
         )
+    
+    async def stop(self):
+        """Properly stop all background asyncio workers."""
+        LOGGER.debug("%s Stopping gateway workers...", self.log_id)
+
+        self._terminate_listener = True
+        self._terminate_sender = True
+
+        if self.listening_worker:
+            LOGGER.debug("%s Cancelling listening worker...", self.log_id)
+            self.listening_worker.cancel()
+            try:
+                await self.listening_worker
+                LOGGER.debug("%s Listening worker stopped cleanly.", self.log_id)
+            except asyncio.CancelledError:
+                LOGGER.debug("%s Listening worker was cancelled.", self.log_id)
+
+        for idx, task in enumerate(self.sending_workers):
+            LOGGER.debug("%s Cancelling sending worker %d...", self.log_id, idx)
+            task.cancel()
+            try:
+                await task
+                LOGGER.debug("%s Sending worker %d stopped cleanly.", self.log_id, idx)
+            except asyncio.CancelledError:
+                LOGGER.debug("%s Sending worker %d was cancelled.", self.log_id, idx)
+
+        LOGGER.debug("%s All gateway workers stopped.", self.log_id)

@@ -279,10 +279,14 @@ async def async_unload_entry(hass, entry):
     for platform in hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_PLATFORMS].keys():
         await hass.config_entries.async_forward_entry_unload(entry, platform)
 
-    hass.services.async_remove(DOMAIN, "sync_time")
-    hass.services.async_remove(DOMAIN, "send_message")
+    if hass.services.has_service(DOMAIN, "sync_time"):
+        hass.services.async_remove(DOMAIN, "sync_time")
+
+    if hass.services.has_service(DOMAIN, "send_message"):
+        hass.services.async_remove(DOMAIN, "send_message")
 
     gateway_handler = hass.data[DOMAIN][entry.data[CONF_MAC]].pop(CONF_ENTITY)
     del hass.data[DOMAIN][entry.data[CONF_MAC]]
 
-    return await gateway_handler.close_listener()
+    await gateway_handler.stop()  # Stop all asyncio tasks
+    return True
