@@ -1,3 +1,13 @@
+# What's up?
+
+I'm afraid it's time to be blunt, I cannot maintain this integration any longer, not in any meaningful way at least.
+
+I'm open for someone to take over this and OWNd's repositories.  
+I'd strongly prefer someone who has extensive experience with a proper development workflow, since I feel that's something that has been missing from this project.  
+I'd love for this to become a core integration one day but I have no idea how much work would be needed to achieve that.
+
+Anyway, If you think you can take over code ownership for this, let me know.
+
 # MyHOME
 MyHOME integration for Home-Assistant
 
