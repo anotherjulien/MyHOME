@@ -281,6 +281,9 @@ class MyHOMEGatewayHandler:
                                             )
                                         ):
                                             self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][_platform][message.entity][CONF_ENTITIES][_entity].handle_event(message)
+                    if isinstance(message, OWNHeatingEvent) and message.dimension == 20:
+                        self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][CLIMATE][message.entity][CONF_ENTITIES][_entity].handle_event(message)
+                        self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][CLIMATE][message.entity][CONF_ENTITIES][_entity].async_schedule_update_ha_state()
 
                 else:
                     LOGGER.debug(
