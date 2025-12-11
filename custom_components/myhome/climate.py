@@ -419,13 +419,13 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
             )
             if message.is_active():
                 if self._heating and self._cooling:
-                    if message.is_heating():
+                    if message.is_heating() or self._attr_hvac_mode == HVACMode.HEAT:
                         self._attr_hvac_action = HVACAction.HEATING
-                    elif message.is_cooling():
+                    elif message.is_cooling() or self._attr_hvac_mode == HVACMode.COOL:
                         self._attr_hvac_action = HVACAction.COOLING
-                elif self._heating:
+                elif self._heating or self._attr_hvac_mode == HVACMode.HEAT:
                     self._attr_hvac_action = HVACAction.HEATING
-                elif self._cooling:
+                elif self._cooling or self._attr_hvac_mode == HVACMode.COOL:
                     self._attr_hvac_action = HVACAction.COOLING
             elif self._attr_hvac_mode == HVACMode.OFF:
                 self._attr_hvac_action = HVACAction.OFF
