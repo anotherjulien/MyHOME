@@ -170,6 +170,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
         self._attr_current_humidity = None
         self._target_temperature = None
         self._local_offset = 0
+        self._knob_pos = "0"
         self._local_target_temperature = None
 
         self._attr_hvac_mode = None
@@ -192,6 +193,16 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
             return self._local_target_temperature
         else:
             return self._target_temperature
+
+    def extra_state_attributes(self):
+        """Restituisce attributi aggiuntivi per il termostato."""
+        attributes = {}
+
+        attributes["local_offset"] = self._local_offset
+        attributes["local_target_temperature"] = self._local_target_temperature
+        attributes["knob_pos"] = self._knob_pos
+
+        return attributes
 
     async def async_set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
@@ -303,6 +314,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                 message.human_readable_log,
             )
             self._local_offset = message.local_offset
+            self._knob_pos = message.knob_pos
             if self._target_temperature is not None:
                 self._local_target_temperature = (
                     self._target_temperature + self._local_offset
