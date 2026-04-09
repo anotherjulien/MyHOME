@@ -1,0 +1,63 @@
+title: MyHOME Climate
+views:
+  - title: Climate
+    path: myhome-climate
+    icon: mdi:thermometer-lines
+    cards:
+      - type: markdown
+        content: |
+          # MyHOME Thermoregulation
+          Example dashboard for central thermoregulation, zone readbacks and split control.
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: thermostat
+            entity: climate.central_unit
+          - type: thermostat
+            entity: climate.living_area
+          - type: thermostat
+            entity: climate.living_room_split
+          - type: entities
+            title: Thermoregulation actions
+            show_header_toggle: false
+            entities:
+              - entity: climate.central_unit
+                name: Central unit
+              - entity: climate.living_area
+                name: Living area
+              - entity: climate.living_room_split
+                name: Split unit
+
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: button
+            name: Query zone status
+            icon: mdi:home-thermometer-outline
+            tap_action:
+              action: call-service
+              service: myhome.thermo_request
+              data:
+                entity_id: climate.living_area
+                request: zone_complete_status
+          - type: button
+            name: Query central mode
+            icon: mdi:thermostat-auto
+            tap_action:
+              action: call-service
+              service: myhome.thermo_request
+              data:
+                entity_id: climate.central_unit
+                request: central_mode
+          - type: button
+            name: Query split control
+            icon: mdi:air-conditioner
+            tap_action:
+              action: call-service
+              service: myhome.thermo_request
+              data:
+                entity_id: climate.living_room_split
+                request: split_control

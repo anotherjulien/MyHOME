@@ -1,0 +1,114 @@
+title: MyHOME Audio
+views:
+  - title: Audio
+    path: myhome-audio
+    icon: mdi:speaker-multiple
+    cards:
+      - type: markdown
+        content: |
+          # MyHOME Audio
+          Example dashboard using the native audio, radio and media entities exposed by the integration.
+
+      - type: vertical-stack
+        cards:
+          - type: entities
+            title: Radio
+            show_header_toggle: false
+            state_color: true
+            entities:
+              - entity: sensor.audio_radio_radio_band
+                name: Band
+              - entity: sensor.audio_radio_radio_frequency
+                name: Frequency
+              - entity: sensor.audio_radio_radio_station
+                name: Station
+              - entity: sensor.audio_radio_radio_rds
+                name: RDS
+              - entity: binary_sensor.audio_radio_in_use
+                name: Radio in use
+
+          - type: grid
+            columns: 3
+            square: false
+            cards:
+              - type: button
+                name: Refresh
+                icon: mdi:radio-tower
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.audio_radio_radio_query_status
+              - type: button
+                name: RDS
+                icon: mdi:text-box-search-outline
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.audio_radio_radio_query_rds
+              - type: button
+                name: Search -
+                icon: mdi:magnify-minus-outline
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.audio_radio_radio_frequency_down
+              - type: button
+                name: Search +
+                icon: mdi:magnify-plus-outline
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.audio_radio_radio_frequency_up
+              - type: button
+                name: Station -
+                icon: mdi:skip-previous
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.audio_radio_radio_previous_station
+              - type: button
+                name: Station +
+                icon: mdi:skip-next
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.audio_radio_radio_next_station
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: media-control
+            entity: media_player.audio_area_1_point_1
+          - type: media-control
+            entity: media_player.audio_area_1_point_2
+          - type: entities
+            title: Kitchen advanced controls
+            show_header_toggle: false
+            entities:
+              - entity: number.audio_area_1_point_1_high_tones
+                name: High tones
+              - entity: number.audio_area_1_point_1_mid_tones
+                name: Mid tones
+              - entity: number.audio_area_1_point_1_low_tones
+                name: Low tones
+              - entity: switch.audio_area_1_point_1_loudness
+                name: Loudness
+              - entity: text.audio_area_1_point_1_equalization_1_bands
+                name: Equalization 1
+          - type: entities
+            title: Living room advanced controls
+            show_header_toggle: false
+            entities:
+              - entity: number.audio_area_1_point_2_balance
+                name: Balance
+              - entity: number.audio_area_1_point_2_3d
+                name: 3D
+              - entity: sensor.audio_area_1_point_2_equalization_1
+                name: Equalization preset 1

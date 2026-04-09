@@ -1,0 +1,27 @@
+default_config:
+
+homeassistant:
+  packages: !include_dir_named packages
+
+myhome: !include myhome.yaml
+
+lovelace:
+  mode: storage
+  dashboards:
+    myhome_audio:
+      mode: yaml
+      title: MyHOME Audio
+      icon: mdi:speaker-multiple
+      show_in_sidebar: true
+      require_admin: false
+      filename: lovelace/dashboard_audio.example.yaml
+    myhome_climate:
+      mode: yaml
+      title: MyHOME Climate
+      icon: mdi:thermometer-lines
+      show_in_sidebar: true
+      require_admin: false
+      filename: lovelace/dashboard_climate.example.yaml
+
+google_assistant:
+  entity_config: !include google_assistant/google_assistant_entity_config.example.yaml

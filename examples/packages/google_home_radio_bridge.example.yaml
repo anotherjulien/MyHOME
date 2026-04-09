@@ -1,0 +1,49 @@
+template:
+  - button:
+      - name: "Radio query status"
+        unique_id: "example_google_home_radio_query_status"
+        icon: mdi:radio-tower
+        press:
+          action: button.press
+          target:
+            entity_id: button.audio_radio_radio_query_status
+
+      - name: "Radio query RDS"
+        unique_id: "example_google_home_radio_query_rds"
+        icon: mdi:text-box-search-outline
+        press:
+          action: button.press
+          target:
+            entity_id: button.audio_radio_radio_query_rds
+
+      - name: "Radio frequency up"
+        unique_id: "example_google_home_radio_frequency_up"
+        icon: mdi:magnify-plus-outline
+        press:
+          action: button.press
+          target:
+            entity_id: button.audio_radio_radio_frequency_up
+
+      - name: "Radio frequency down"
+        unique_id: "example_google_home_radio_frequency_down"
+        icon: mdi:magnify-minus-outline
+        press:
+          action: button.press
+          target:
+            entity_id: button.audio_radio_radio_frequency_down
+
+      - name: "Radio next station"
+        unique_id: "example_google_home_radio_next_station"
+        icon: mdi:skip-next
+        press:
+          action: button.press
+          target:
+            entity_id: button.audio_radio_radio_next_station
+
+      - name: "Radio previous station"
+        unique_id: "example_google_home_radio_previous_station"
+        icon: mdi:skip-previous
+        press:
+          action: button.press
+          target:
+            entity_id: button.audio_radio_radio_previous_station

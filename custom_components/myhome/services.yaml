@@ -1,9 +1,8 @@
 sync_time:
-  name: Syncronize time
-  description: Syncronize gateway's time to HA local time.
+  name: Synchronize time
+  description: Synchronize gateway's time to HA local time.
   fields:
     gateway:
-      name: Gateway
       description: The gateway's MAC address, as present in the config.
       example: 00:03:50:00:00:00
 
@@ -12,23 +11,507 @@ send_message:
   description: Send an arbitrary (but valid) OpenWebNet message to the gateway.
   fields:
     gateway:
-      name: Gateway
       description: The gateway's MAC address, as present in the config.
       example: 00:03:50:00:00:00
     message:
-      name: Message
       description: Valid OpenWebNet message.
       example: "*1*0*0##"
+
+gateway_request:
+  name: Gateway request
+  description: Issue a read-only WHO=13 gateway request and return structured gateway data.
+  fields:
+    gateway:
+      description: The gateway MAC address. Optional; read-only queries default to the primary listening gateway.
+      example: "00:03:50:00:00:00"
+    request:
+      description: time, date, ip_address, netmask, mac_address, device_type, firmware_version, uptime, datetime, kernel_version, distribution_version or all.
+      example: "all"
+
+gateway_command:
+  name: Gateway command
+  description: Send a WHO=13 gateway date/time command.
+  fields:
+    gateway:
+      description: The gateway MAC address.
+      example: "00:03:50:00:00:00"
+    operation:
+      description: set_datetime_now, set_date_today or set_time_now.
+      example: "set_datetime_now"
+    time_zone:
+      description: Optional IANA time zone. Defaults to the current HA time zone.
+      example: "Europe/Berlin"
+
+scenario_command:
+  name: Scenario command
+  description: Send a WHO=0 scenario command to a scenario module.
+  fields:
+    gateway:
+      description: The gateway MAC address.
+      example: "00:03:50:00:00:00"
+    where:
+      description: Scenario module address 01..99 or 01..99#4#I for a local-bus interface.
+      example: "01"
+    operation:
+      description: activate, start_recording, stop_recording, erase_all, erase_scenario, lock or unlock.
+      example: "activate"
+    scenario:
+      description: Scenario id 1..20 when required by the selected operation.
+      example: 1
+
+cen_command:
+  name: CEN command
+  description: Send a WHO=15 virtual CEN button action.
+  fields:
+    gateway:
+      description: The gateway MAC address.
+      example: "00:03:50:00:00:00"
+    where:
+      description: CEN object address, including optional #4#I interface suffix when needed.
+      example: "0001"
+    pushbutton:
+      description: Virtual pushbutton 0..31.
+      example: 1
+    operation:
+      description: press, short_release, long_release or hold.
+      example: "press"
+
+cenplus_command:
+  name: CEN Plus command
+  description: Send a WHO=25 virtual CEN Plus action.
+  fields:
+    gateway:
+      description: The gateway MAC address.
+      example: "00:03:50:00:00:00"
+    where:
+      description: CEN Plus object id 0..2047 or the full WHERE prefixed with 2.
+      example: 33
+    pushbutton:
+      description: Virtual pushbutton 0..31.
+      example: 1
+    operation:
+      description: short_press, start_hold, hold, long_release, slow_clockwise, fast_clockwise, slow_counterclockwise or fast_counterclockwise.
+      example: "short_press"
+
+alarm_request:
+  name: Alarm request
+  description: Issue a read-only burglar alarm request and return structured alarm or auxiliary state data.
+  fields:
+    gateway:
+      description: The gateway MAC address. Optional; read-only queries default to the primary listening gateway.
+      example: "00:03:50:00:00:00"
+    request:
+      description: central, central_direct, zone or auxiliaries.
+      example: "central"
+    zone:
+      description: Zone 1..8 when request is zone.
+      example: 1
+
+aux_command:
+  name: Auxiliary command
+  description: Send a WHO=9 auxiliary command, useful for alarm key scenarios and generic AUX channels.
+  fields:
+    gateway:
+      description: The gateway MAC address.
+      example: "00:03:50:00:00:00"
+    channel:
+      description: Auxiliary channel 1..255.
+      example: 1
+    operation:
+      description: off, on, toggle, stop, up, down, enable, disable, reset_general, reset_burglar or reset_tamper.
+      example: "on"
+
+audio_zone_command:
+  name: Audio zone command
+  description: Send a WHO=22 speaker-zone command or query and optionally return the cached zone state.
+  fields:
+    gateway:
+      description: The gateway MAC address. Optional; read-only queries default to the primary listening gateway.
+      example: "00:03:50:00:00:00"
+    area:
+      description: Speaker area.
+      example: 1
+    point:
+      description: Speaker point inside the area.
+      example: 1
+    operation:
+      description: on, set_source, follow_me, off, set_volume, volume_up, volume_down, query_state, query_device_state, query_volume, query_high_tones, query_mid_tones, query_low_tones, query_balance, query_3d, query_preset, query_loudness, query_equalization_1, query_equalization_2, query_equalization_3, set_equalization_1, set_equalization_2, set_equalization_3, set_high_tones, set_mid_tones, set_low_tones, set_device_state, set_balance, set_3d, set_preset, set_loudness, low_tones_up, low_tones_down, mid_tones_up, mid_tones_down, high_tones_up, high_tones_down, balance_left, balance_right, next_preset or previous_preset.
+      example: "query_state"
+    source_id:
+      description: Audio source id 1..4 for set_source.
+      example: 1
+    source:
+      description: Alternative source name Radio, Touch, RCA stereo or RCA TV.
+      example: "Radio"
+    volume:
+      description: UI volume 1..32 for set_volume.
+      example: 18
+    step:
+      description: Step 1..31 for volume_up or volume_down.
+      example: 1
+    value:
+      description: Generic WHO=22 value for tone, balance, preset, loudness or preset-step commands.
+      example: 10
+    bands:
+      description: Equalization bands for set_equalization_1/2/3. Accepts comma, semicolon or * separated integers.
+      example: "0, 0, 0"
+    mmtype:
+      description: Optional mmtype for off, follow_me or set_device_state commands.
+      example: 4
+    query_after:
+      description: When true, perform a readback after a write and return the cached zone state.
+      example: true
+
+audio_general_command:
+  name: Audio general command
+  description: Send a general WHO=22 audio command for all zones.
+  fields:
+    gateway:
+      description: The gateway MAC address.
+      example: "00:03:50:00:00:00"
+    operation:
+      description: on, set_source, off, volume_up or volume_down.
+      example: "set_source"
+    source_id:
+      description: Audio source id 1..4 for on or set_source.
+      example: 1
+    source:
+      description: Alternative source name Radio, Touch, RCA stereo or RCA TV.
+      example: "Touch"
+    step:
+      description: Step 1..31 for volume_up or volume_down.
+      example: 1
+
+audio_source_command:
+  name: Audio source command
+  description: Send a WHO=22 source command or query and optionally return the cached source state.
+  fields:
+    gateway:
+      description: The gateway MAC address. Optional; read-only queries default to the primary listening gateway.
+      example: "00:03:50:00:00:00"
+    source_id:
+      description: Source id 1..4.
+      example: 1
+    operation:
+      description: on, off, goto_area, frequency_up, frequency_down, next_station, previous_station, next_track, previous_track, start_rds, stop_rds, store_station, query_state, query_frequency, query_station, query_memorized_station, query_device_state, query_rds or query_status.
+      example: "query_status"
+    area:
+      description: Required for on, off or goto_area.
+      example: 5
+    mmtype:
+      description: Optional mmtype for on, off or goto_area.
+      example: 4
+    step:
+      description: Optional step 1..31 for frequency or track navigation.
+      example: 1
+    station:
+      description: Memorized station number for store_station.
+      example: 3
+    query_after:
+      description: When true, perform a readback after a write and return the cached source state.
+      example: true
+
+audio_radio_command:
+  name: Audio radio command
+  description: Convenience wrapper for source 1 radio commands and status queries.
+  fields:
+    gateway:
+      description: The gateway MAC address. Optional; read-only queries default to the primary listening gateway.
+      example: "00:03:50:00:00:00"
+    operation:
+      description: query_status, query_rds, frequency_up, frequency_down, next_station or previous_station.
+      example: "query_status"
+    query_after:
+      description: When true, perform a radio status readback after a write.
+      example: true
+
+scene_programmer_command:
+  name: Scene programmer command
+  description: Send a WHO=17 scene command or query scene status from a scenario module such as MH200N.
+  fields:
+    gateway:
+      description: The gateway MAC address. Strongly recommended when multiple MyHOME gateways are configured.
+      example: "00:03:50:00:00:01"
+    where:
+      description: Scene number or 0 for the general scene programmer state.
+      example: 1
+    operation:
+      description: start, stop, enable, disable or query_status.
+      example: "query_status"
+
+video_command:
+  name: Video command
+  description: Send a WHO=7 multimedia/video door entry command.
+  fields:
+    gateway:
+      description: The gateway MAC address.
+      example: "00:03:50:00:00:00"
+    operation:
+      description: receive_video, close_video, zoom_in, zoom_out, x_up, x_down, y_up, y_down, brightness_up, brightness_down, contrast_up, contrast_down, color_up, color_down, quality_up, quality_down or dial.
+      example: "receive_video"
+    where:
+      description: Camera address 0..99 or 4000..4999 for receive_video.
+      example: 4001
+    dial_row:
+      description: Dial row 1..4 when operation is dial.
+      example: 1
+    dial_col:
+      description: Dial column 1..4 when operation is dial.
+      example: 2
+
+light_management_request:
+  name: Light management request
+  description: Issue a read-only WHO=24 lighting-management request and return structured zone data.
+  fields:
+    gateway:
+      description: The gateway MAC address. Optional; read-only queries default to the primary listening gateway.
+      example: "00:03:50:00:00:00"
+    where:
+      description: WHO=24 lighting-management WHERE string.
+      example: "1000#4#00#0#8"
+    request:
+      description: switch_on_value, max_lux, maintained_lux, auto_switch_on, switch_on_delay, auto_switch_off, switch_off_delay, delay_timer, standby_timer, standby_value, off_value, slave_offset, state, centralized_lux or all.
+      example: "state"
+    sensor_address:
+      description: Sensor address required for centralized_lux and optional for all.
+      example: "65"
+
+light_management_command:
+  name: Light management command
+  description: Send a WHO=24 lighting-management command and optionally perform a readback.
+  fields:
+    gateway:
+      description: The gateway MAC address. Optional; query_after readbacks default to the primary listening gateway.
+      example: "00:03:50:00:00:00"
+    where:
+      description: WHO=24 lighting-management WHERE string.
+      example: "1000#4#00#0#8"
+    operation:
+      description: set_switch_on_value, set_max_lux, set_maintained_lux, set_auto_switch_on, set_switch_on_delay, set_auto_switch_off, set_switch_off_delay, set_delay_timer, set_standby_timer, set_standby_value, set_off_value, set_slave_offset, set_state, set_centralized_lux, activate_profile, enable_slave_offset or disable_slave_offset.
+      example: "set_state"
+    value:
+      description: Generic numeric value for scalar WHO=24 setup commands.
+      example: 50
+    enabled:
+      description: Alternative boolean for set_auto_switch_on or set_auto_switch_off.
+      example: true
+    profile:
+      description: Profile id for activate_profile.
+      example: 2
+    mode:
+      description: State mode for set_state. 0 stop, 1 automatic, 2 manual.
+      example: 1
+    exit_condition:
+      description: State exit condition for set_state. 1 time, 2 for, 3 profile, 4 normal, 5 never.
+      example: 3
+    hours:
+      description: Hours component for set_state.
+      example: 1
+    minutes:
+      description: Minutes component for set_state.
+      example: 30
+    seconds:
+      description: Seconds component for set_state.
+      example: 0
+    sensor_address:
+      description: Sensor address for centralized_lux readback or set_centralized_lux.
+      example: "65"
+    lux:
+      description: Lux value for set_centralized_lux.
+      example: 297
+    error:
+      description: Error code for set_centralized_lux. 0 ok, 1 sensor_not_configured, 2 sensor_parameters_missing.
+      example: 0
+    query_after:
+      description: When true, perform a readback for commands that have a matching WHO=24 request.
+      example: true
 
 start_sending_instant_power:
   name: Start sending instant power
   description: Get automatic instant power draw updates for a sensor.
   fields:
     entity_id:
-      name: Entity
       description: Name(s) of entities that will start sending instant power information.
       example: "sensor.general_power"
     duration:
-      name: Duration
       description: For how long the instant power information will be sent.
       example: "60"
+
+energy_request:
+  name: Energy request
+  description: Issue a read-only WHO=18 request and return structured history or meter data.
+  fields:
+    entity_id:
+      description: One or more MyHOME WHO=18 entities to query.
+      example: "sensor.main_power_energy"
+    gateway:
+      description: The gateway MAC address, required when no entity_id is provided.
+      example: "00:03:50:00:00:00"
+    where:
+      description: WHO=18 address when no entity_id is provided.
+      example: "51"
+    request:
+      description: active_power, total, partial_daily, partial_monthly, hourly_history, daily_history, monthly_history or monthly_average_hourly.
+      example: "hourly_history"
+    date:
+      description: ISO date YYYY-MM-DD for hourly_history. Defaults to today.
+      example: "2026-04-08"
+    year:
+      description: Target year for daily_history or monthly_history.
+      example: 2026
+    month:
+      description: Target month 1..12 for daily_history, monthly_history or monthly_average_hourly.
+      example: 4
+
+load_enable_actuator:
+  name: Load enable actuator
+  description: Enable one or more MyHOME load-control actuators (WHO=18, F522/F523).
+  fields:
+    entity_id:
+      description: Load switch entity or entities.
+      example: "switch.dishwasher_load"
+
+load_force_default_time:
+  name: Load force default time
+  description: Force one or more MyHOME load-control actuators for their default configured time.
+  fields:
+    entity_id:
+      description: Load switch entity or entities.
+      example: "switch.dishwasher_load"
+
+load_force_for_duration:
+  name: Load force for duration
+  description: Force one or more MyHOME load-control actuators for an explicit duration.
+  fields:
+    entity_id:
+      description: Load switch entity or entities.
+      example: "switch.dishwasher_load"
+    duration_minutes:
+      description: Force duration in minutes, multiple of 10.
+      example: 10
+
+load_end_forced:
+  name: Load end forced mode
+  description: End forced mode on one or more MyHOME load-control actuators.
+  fields:
+    entity_id:
+      description: Load switch entity or entities.
+      example: "switch.dishwasher_load"
+
+load_reset_totalizer:
+  name: Load reset totalizer
+  description: Reset totalizer 1 or 2 on one or more MyHOME load-control actuators.
+  fields:
+    entity_id:
+      description: Load switch entity or entities.
+      example: "switch.dishwasher_load"
+    totalizer:
+      description: Totalizer number, 1 or 2.
+      example: 2
+
+thermo_zone_command:
+  name: Thermo zone command
+  description: Send an advanced WHO=4 command to a thermoregulation zone.
+  fields:
+    entity_id:
+      description: Climate entity or entities to target instead of an explicit zone.
+      example: "climate.living_area"
+    gateway:
+      description: The gateway MAC address, required when no entity_id is provided.
+      example: "00:03:50:00:00:00"
+    where:
+      description: Zone address when no entity_id is provided.
+      example: "2"
+    operation:
+      description: One of manual, auto, off, antifreeze, thermal_protection, generic_protection, release_local_adjustment.
+      example: "manual"
+    mode_family:
+      description: heat, cool or generic. Used by manual, auto and off.
+      example: "heat"
+    temperature:
+      description: Target temperature for manual commands.
+      example: 20.5
+
+thermo_central_command:
+  name: Thermo central command
+  description: Send an advanced WHO=4 command to the central thermoregulation unit.
+  fields:
+    entity_id:
+      description: Climate entity or entities whose gateway will be used.
+      example: "climate.central_unit"
+    gateway:
+      description: The gateway MAC address, required when no entity_id is provided.
+      example: "00:03:50:00:00:00"
+    operation:
+      description: manual, off, antifreeze, thermal_protection, generic_protection, program, last_program, scenario, last_scenario, holiday_daily, holiday_days, disable_holiday, disable_holiday_program, disable_holiday_last_program, set_holiday_date, set_holiday_time.
+      example: "program"
+    mode_family:
+      description: heat, cool or generic.
+      example: "generic"
+    temperature:
+      description: Target temperature for manual.
+      example: 20
+    program:
+      description: Program number 1..3.
+      example: 2
+    scenario:
+      description: Scenario number 1..16.
+      example: 4
+    days:
+      description: Holiday duration in days.
+      example: 3
+    date:
+      description: Holiday deadline date in ISO format YYYY-MM-DD.
+      example: "2026-04-15"
+    time:
+      description: Holiday deadline time in ISO format HH:MM.
+      example: "08:30"
+
+thermo_request:
+  name: Thermo request
+  description: Issue a read-only WHO=4 or WHO=1004 request and update the internal thermo state cache.
+  fields:
+    entity_id:
+      description: Climate entity or entities to query.
+      example: "climate.night_area"
+    gateway:
+      description: The gateway MAC address, required when no entity_id is provided.
+      example: "00:03:50:00:00:00"
+    where:
+      description: Zone or split address when required by the selected request.
+      example: "2"
+    actuator:
+      description: Optional actuator number 0..9 for zone_actuator requests. Default 0 means all actuators of the zone.
+      example: 1
+    request:
+      description: zone_status, zone_temperature, zone_fan_speed, zone_complete_status, zone_local_offset, zone_setpoint, zone_valves, zone_actuator, central_mode, holiday_end_date, holiday_end_time, split_control, diag_central, diag_central_autodiagnostic, diag_failure_zones, diag_zone, diag_all_zones, diag_zone_autodiagnostic, diag_failure_counts.
+      example: "central_mode"
+    wait_for_completion:
+      description: Wait for the direct reply on the command session.
+      example: true
+
+thermo_split_set:
+  name: Thermo split set
+  description: Send a split-control WHO=4 command.
+  fields:
+    entity_id:
+      description: Split climate entity or entities to target.
+      example: "climate.living_room_split"
+    gateway:
+      description: The gateway MAC address, required when no entity_id is provided.
+      example: "00:03:50:00:00:00"
+    where:
+      description: Split address in the form 3#zone#split.
+      example: "3#1#1"
+    operation:
+      description: Split mode heat, cool, auto, off, fan_only or dry.
+      example: "cool"
+    temperature:
+      description: Split setpoint temperature.
+      example: 23.5
+    fan_mode:
+      description: Split fan mode auto, low, medium, high or silent.
+      example: "auto"
+    swing_mode:
+      description: Split swing mode on or off.
+      example: "on"

@@ -1,0 +1,30 @@
+template:
+  - trigger:
+      - platform: homeassistant
+        event: start
+      - platform: state
+        entity_id:
+          - button.scene_1_start
+          - button.scene_2_start
+          - sensor.audio_radio_radio_station
+    sensor:
+      - name: "MyHOME last scenario"
+        unique_id: "example_myhome_last_scenario"
+        icon: mdi:history
+        state: >
+          {% set scene_1 = states('button.scene_1_start') %}
+          {% set scene_2 = states('button.scene_2_start') %}
+          {% if 'T' in scene_2 and scene_2 > scene_1 %}
+            Scene 2
+          {% elif 'T' in scene_1 %}
+            Scene 1
+          {% else %}
+            None
+          {% endif %}
+
+      - name: "MyHOME scenario radio outcome"
+        unique_id: "example_myhome_scenario_radio_outcome"
+        icon: mdi:radio
+        state: >
+          {% set station = states('sensor.audio_radio_radio_station') %}
+          {{ 'Station ' ~ station if station not in ['unknown', 'unavailable', ''] else 'Radio state unavailable' }}
