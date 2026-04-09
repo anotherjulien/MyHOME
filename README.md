@@ -27,3 +27,32 @@ If you've been using this integration in version 0.8 and prior, configuration st
 
 Please find the [configuration](https://github.com/anotherjulien/MyHOME/wiki/Configuration) on the project's wiki!  
 [Advanced uses](https://github.com/anotherjulien/MyHOME/wiki/Advanced-uses) are also listed in the wiki.
+
+## Extended OpenWebNet coverage
+
+This branch also expands the integration around reusable OpenWebNet service families that were previously missing or only reachable through raw frames:
+
+- gateway helpers and structured WHO=13 readbacks
+- advanced thermoregulation WHO=4 and WHO=1004 helpers
+- burglar alarm WHO=5 readbacks and AUX WHO=9 controls
+- audio, radio and video helpers for WHO=22 and WHO=7
+- scenario, scene programmer and virtual command helpers for WHO=0, WHO=15, WHO=17 and WHO=25
+- lighting management and energy helpers for WHO=24 and WHO=18
+
+The canonical service definitions remain in [custom_components/myhome/services.yaml](custom_components/myhome/services.yaml).
+
+## Sanitized examples
+
+Reusable Home Assistant examples are included under [examples](examples):
+
+- `myhome.example.yaml` for gateway and entity configuration
+- `configuration.example.yaml` for package and dashboard includes
+- `packages/` for Google Home bridges, service wrappers and scenario status helpers
+- `lovelace/` for audio and climate dashboard examples
+- `google_assistant/` for entity exposure examples
+
+All example files use placeholders and generic entity names. They are intentionally sanitized and should be copied and adapted instead of used as-is.
+
+## Tests
+
+Pure parser and builder tests that do not require a running Home Assistant instance are included under [tests](tests). They cover the reusable OpenWebNet helper modules added in this branch and can run in GitHub Actions with a lightweight Python environment.

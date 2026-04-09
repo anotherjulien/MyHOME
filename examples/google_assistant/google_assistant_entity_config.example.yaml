@@ -1,0 +1,37 @@
+# Copy selected entries into your own google_assistant entity_config file.
+
+button.audio_radio_radio_query_status:
+  expose: true
+  room: Living room
+  aliases:
+    - Refresh radio status
+
+button.audio_radio_radio_next_station:
+  expose: true
+  room: Living room
+  aliases:
+    - Next radio station
+
+sensor.audio_radio_radio_frequency:
+  expose: true
+  room: Living room
+  aliases:
+    - Radio frequency
+
+binary_sensor.audio_radio_in_use:
+  expose: true
+  room: Living room
+  aliases:
+    - Radio in use
+
+switch.scene_1_enabled:
+  expose: true
+  room: Entrance
+  aliases:
+    - Scene 1 enabled
+
+camera.entrance_panel:
+  expose: true
+  room: Entrance
+  aliases:
+    - Front panel camera

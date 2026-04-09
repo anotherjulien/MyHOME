@@ -1,0 +1,47 @@
+# Example proxies for exposing unsupported or awkward entities to Google Home.
+
+template:
+  - switch:
+      - name: "MyHOME radio in use"
+        unique_id: "example_google_home_radio_in_use"
+        icon: mdi:radio
+        availability: "{{ states('binary_sensor.audio_radio_in_use') not in ['unknown', 'unavailable'] }}"
+        state: "{{ is_state('binary_sensor.audio_radio_in_use', 'on') }}"
+        turn_on:
+          - action: button.press
+            target:
+              entity_id: button.audio_radio_radio_query_status
+        turn_off:
+          - action: button.press
+            target:
+              entity_id: button.audio_radio_radio_query_status
+
+      - name: "MyHOME alarm automation"
+        unique_id: "example_google_home_alarm_automation"
+        icon: mdi:robot
+        availability: "{{ states('automation.myhome_gateway_daily_sync') not in ['unknown', 'unavailable'] }}"
+        state: "{{ is_state('automation.myhome_gateway_daily_sync', 'on') }}"
+        turn_on:
+          - action: automation.turn_on
+            target:
+              entity_id: automation.myhome_gateway_daily_sync
+        turn_off:
+          - action: automation.turn_off
+            target:
+              entity_id: automation.myhome_gateway_daily_sync
+
+  - sensor:
+      - name: "MyHOME radio band"
+        unique_id: "example_google_home_radio_band"
+        icon: mdi:radio
+        state: "{{ states('sensor.audio_radio_radio_band') }}"
+
+      - name: "MyHOME radio frequency"
+        unique_id: "example_google_home_radio_frequency"
+        icon: mdi:radio-handheld
+        state: "{{ states('sensor.audio_radio_radio_frequency') }}"
+
+      - name: "MyHOME gateway firmware"
+        unique_id: "example_google_home_gateway_firmware"
+        icon: mdi:chip
+        state: "{{ state_attr('event.main_gateway_gateway', 'firmware_version') or 'unknown' }}"

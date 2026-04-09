@@ -1,0 +1,66 @@
+# Example service wrappers using the typed MyHOME services introduced by the integration.
+
+script:
+  myhome_sync_gateway_datetime:
+    alias: "MyHOME - Sync gateway datetime"
+    mode: single
+    sequence:
+      - action: myhome.gateway_command
+        data:
+          gateway: "00:03:50:AA:BB:CC"
+          operation: set_datetime_now
+          time_zone: Europe/Berlin
+
+  myhome_scene_1_activate:
+    alias: "MyHOME - Activate scene 1"
+    mode: single
+    sequence:
+      - action: myhome.scene_programmer_command
+        data:
+          gateway: "00:03:50:DD:EE:FF"
+          where: 1
+          operation: start
+
+  myhome_virtual_button_short_press:
+    alias: "MyHOME - Virtual CEN Plus short press"
+    mode: queued
+    sequence:
+      - action: myhome.cenplus_command
+        data:
+          gateway: "00:03:50:AA:BB:CC"
+          where: 33
+          pushbutton: 1
+          operation: short_press
+
+  myhome_audio_query_kitchen:
+    alias: "MyHOME - Query kitchen audio"
+    mode: queued
+    sequence:
+      - action: myhome.audio_zone_command
+        data:
+          gateway: "00:03:50:AA:BB:CC"
+          area: 1
+          point: 1
+          operation: query_state
+
+  myhome_lighting_readback:
+    alias: "MyHOME - Query lighting management"
+    mode: queued
+    sequence:
+      - action: myhome.light_management_request
+        data:
+          gateway: "00:03:50:AA:BB:CC"
+          where: "1000#4#00#0#8"
+          request: all
+          sensor_address: "65"
+
+automation:
+  - alias: "MyHOME - Refresh radio on startup"
+    id: "example_myhome_refresh_radio_on_startup"
+    trigger:
+      - platform: homeassistant
+        event: start
+    action:
+      - action: button.press
+        target:
+          entity_id: button.audio_radio_radio_query_status

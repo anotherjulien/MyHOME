@@ -11,14 +11,19 @@ from voluptuous import (
     All,
     In,
     Invalid,
+    Range,
 )
 from homeassistant.helpers.device_registry import format_mac as ha_format_mac
 from homeassistant.components.light import DOMAIN as LIGHT
+from homeassistant.components.camera import DOMAIN as CAMERA
 from homeassistant.components.switch import (
     SwitchDeviceClass,
     DOMAIN as SWITCH,
 )
 from homeassistant.components.button import DOMAIN as BUTTON
+from homeassistant.components.number import DOMAIN as NUMBER
+from homeassistant.components.select import DOMAIN as SELECT
+from homeassistant.components.text import DOMAIN as TEXT
 from homeassistant.components.cover import DOMAIN as COVER
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -29,12 +34,15 @@ from homeassistant.components.sensor import (
     DOMAIN as SENSOR,
 )
 from homeassistant.components.climate import DOMAIN as CLIMATE
+from homeassistant.components.alarm_control_panel import DOMAIN as ALARM_CONTROL_PANEL
 from homeassistant.const import CONF_NAME, CONF_MAC
 
 from .const import (
     CONF_PLATFORMS,
     CONF_WHO,
     CONF_WHERE,
+    CONF_OPERATION,
+    CONF_SENSOR_ADDRESS,
     CONF_BUS_INTERFACE,
     CONF_ENTITIES,
     CONF_ENTITY_NAME,
@@ -156,6 +164,24 @@ class SpecialWhere(object):
         return "Where(%s, msg=%r)" % ("String", self.msg)
 
 
+class LightManagementWhere(object):
+    def __init__(self, msg=None):
+        self.msg = msg
+
+    def __call__(self, v):
+        if (
+            type(v) == str
+            and re.fullmatch(r"\d+(?:#\d+)*", v) is not None
+        ):
+            return v
+        raise Invalid(
+            f"Invalid lighting-management WHERE {v}, it must be digits optionally separated by '#'."
+        )
+
+    def __repr__(self):
+        return "Where(%s, msg=%r)" % ("String", self.msg)
+
+
 class BusInterface(object):
     def __init__(self, msg=None):
         self.msg = msg
@@ -188,19 +214,42 @@ class MyHomeConfigSchema(Schema):
                 or (SWITCH in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS])
                 or (COVER in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS])
             ):
-                _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON] = {}
+                _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS].setdefault(
+                    BUTTON, {}
+                )
                 if LIGHT in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS]:
                     for key, value in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][LIGHT].items():
                         if not value[CONF_WHERE].startswith("#"):
                             _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON][key] = value
                 if SWITCH in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS]:
                     for key, value in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][SWITCH].items():
+                        if value[CONF_WHO] == "17":
+                            continue
                         if not value[CONF_WHERE].startswith("#"):
                             _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON][key] = value
                 if COVER in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS]:
                     for key, value in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][COVER].items():
                         if not value[CONF_WHERE].startswith("#"):
                             _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BUTTON][key] = value
+
+            if SWITCH in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS]:
+                _load_switches_configured = any(
+                    value[CONF_WHO] == "18"
+                    for value in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][SWITCH].values()
+                )
+                if _load_switches_configured:
+                    _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS].setdefault(NUMBER, {})
+                    _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS].setdefault(SENSOR, {})
+                    _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS].setdefault(BINARY_SENSOR, {})
+
+            if BINARY_SENSOR in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS]:
+                _lighting_motion_sensors_configured = any(
+                    value[CONF_WHO] == "1"
+                    and value.get(CONF_DEVICE_CLASS) == BinarySensorDeviceClass.MOTION
+                    for value in _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS][BINARY_SENSOR].values()
+                )
+                if _lighting_motion_sensors_configured:
+                    _rekeyed_data[data[gateway][CONF_MAC]][CONF_PLATFORMS].setdefault(SENSOR, {})
 
         return _rekeyed_data
 
@@ -212,7 +261,20 @@ class MyHomeDeviceSchema(Schema):
 
         for device in data:
             data[device][CONF_ENTITIES] = {}
-            if CONF_WHERE in data[device]:
+            if CONF_OPERATION in data[device]:
+                if CONF_WHERE in data[device]:
+                    _new_key = (
+                        f"{data[device][CONF_WHO]}-"
+                        f"{data[device][CONF_WHERE]}-"
+                        f"{data[device][CONF_OPERATION]}"
+                    )
+                else:
+                    _new_key = (
+                        f"{data[device][CONF_WHO]}-"
+                        f"{data[device][CONF_OPERATION]}"
+                    )
+                _rekeyed_data[_new_key] = data[device]
+            elif CONF_WHERE in data[device]:
                 _new_key = (
                     f"{data[device][CONF_WHO]}-{data[device][CONF_WHERE]}#4#{data[device][CONF_BUS_INTERFACE]}"
                     if CONF_BUS_INTERFACE in data[device] and data[device][CONF_BUS_INTERFACE] is not None
@@ -245,6 +307,12 @@ class MyHomeSensorSchema(Schema):
 
         for device in data:
             data[device][CONF_ENTITIES] = {}
+            if CONF_OPERATION in data[device]:
+                if data[device].get(CONF_WHO) != "24":
+                    raise Invalid("invalid sensor operation for selected who")
+            elif CONF_DEVICE_CLASS not in data[device]:
+                raise Invalid("sensor requires either class or operation")
+
             if CONF_DEVICE_CLASS in data[device]:
                 if data[device][CONF_DEVICE_CLASS] in [
                     SensorDeviceClass.POWER,
@@ -269,15 +337,41 @@ class MyHomeSensorSchema(Schema):
                         data[device][CONF_WHO] = "1"
                     elif data[device][CONF_WHO] != "1":
                         raise Invalid("invalid sensor class for selected who")
+            if data[device].get(CONF_WHO) == "24":
+                data[device][CONF_WHERE] = LightManagementWhere()(data[device][CONF_WHERE])
+            else:
+                data[device][CONF_WHERE] = SpecialWhere()(data[device][CONF_WHERE])
             if CONF_WHERE in data[device]:
                 _new_key = (
-                    f"{data[device][CONF_WHO]}-{data[device][CONF_WHERE]}#4#{data[device][CONF_BUS_INTERFACE]}"
-                    if CONF_BUS_INTERFACE in data[device] and data[device][CONF_BUS_INTERFACE] is not None
-                    else f"{data[device][CONF_WHO]}-{data[device][CONF_WHERE]}"
+                    f"{data[device][CONF_WHO]}-{data[device][CONF_WHERE]}-{data[device][CONF_OPERATION]}"
+                    if CONF_OPERATION in data[device]
+                    else (
+                        f"{data[device][CONF_WHO]}-{data[device][CONF_WHERE]}#4#{data[device][CONF_BUS_INTERFACE]}"
+                        if CONF_BUS_INTERFACE in data[device] and data[device][CONF_BUS_INTERFACE] is not None
+                        else f"{data[device][CONF_WHO]}-{data[device][CONF_WHERE]}"
+                    )
                 )
                 _rekeyed_data[_new_key] = data[device]
             if CONF_DEVICE_MODEL not in data[device]:
                 data[device][CONF_DEVICE_MODEL] = None
+            if CONF_ENTITY_NAME not in data[device]:
+                data[device][CONF_ENTITY_NAME] = None
+
+        return _rekeyed_data
+
+
+class MyHomeAlarmSchema(Schema):
+    def __call__(self, data):
+        data = super().__call__(data)
+        _rekeyed_data = {}
+
+        for device in data:
+            data[device][CONF_ENTITIES] = {}
+            if CONF_DEVICE_MODEL not in data[device]:
+                data[device][CONF_DEVICE_MODEL] = None
+            if CONF_ENTITY_NAME not in data[device]:
+                data[device][CONF_ENTITY_NAME] = None
+            _rekeyed_data[device] = data[device]
 
         return _rekeyed_data
 
@@ -304,13 +398,21 @@ light_schema = MyHomeDeviceSchema(
 switch_schema = MyHomeDeviceSchema(
     {
         Required(str): {
-            Optional(CONF_WHO, default="1"): "1",
+            Optional(CONF_WHO, default="1"): In(["1", "17", "18", "24"]),
             Required(CONF_WHERE): All(
-                Coerce(str), Any(General(), Area(), Group(), PointToPoint(), msg="Invalid <WHERE>, expecting a valid General, Area, Group or Point-to-Point <WHERE>")
+                Coerce(str), Any(
+                    General(),
+                    Area(),
+                    Group(),
+                    PointToPoint(),
+                    LightManagementWhere(),
+                    msg="Invalid <WHERE>, expecting a valid General, Area, Group, Point-to-Point or WHO=24 lighting-management <WHERE>",
+                )
             ),
             Optional(CONF_BUS_INTERFACE): All(Coerce(str), BusInterface()),
             Required(CONF_NAME): str,
             Optional(CONF_ENTITY_NAME): str,
+            Optional(CONF_OPERATION): In(["active", "enabled", "auto_switch_on", "auto_switch_off"]),
             Optional(CONF_ICON): str,
             Optional(CONF_ICON_ON): str,
             Optional(CONF_DEVICE_CLASS, default=SwitchDeviceClass.SWITCH): In(
@@ -336,6 +438,77 @@ cover_schema = MyHomeDeviceSchema(
             Required(CONF_NAME): str,
             Optional(CONF_ENTITY_NAME): str,
             Optional(CONF_ADVANCED_SHUTTER, default=False): Boolean(),
+            Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
+            Optional(CONF_DEVICE_MODEL): Coerce(str),
+        }
+    }
+)
+
+button_schema = MyHomeDeviceSchema(
+    {
+        Required(str): {
+            Required(CONF_WHO): In(["7", "17"]),
+            Optional(CONF_WHERE): All(Coerce(str), SpecialWhere()),
+            Required(CONF_NAME): str,
+            Optional(CONF_ENTITY_NAME): str,
+            Required(CONF_OPERATION): Coerce(str),
+            Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
+            Optional(CONF_DEVICE_MODEL): Coerce(str),
+        }
+    }
+)
+
+number_schema = MyHomeDeviceSchema(
+    {
+        Required(str): {
+            Required(CONF_WHO): In(["24"]),
+            Required(CONF_WHERE): All(Coerce(str), LightManagementWhere()),
+            Required(CONF_NAME): str,
+            Optional(CONF_ENTITY_NAME): str,
+            Required(CONF_OPERATION): In(
+                [
+                    "switch_on_value",
+                    "max_lux",
+                    "maintained_lux",
+                    "switch_on_delay",
+                    "switch_off_delay",
+                    "delay_timer",
+                    "standby_timer",
+                    "standby_value",
+                    "off_value",
+                    "slave_offset",
+                ]
+            ),
+            Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
+            Optional(CONF_DEVICE_MODEL): Coerce(str),
+        }
+    }
+)
+
+select_schema = MyHomeDeviceSchema(
+    {
+        Required(str): {
+            Required(CONF_WHO): In(["24"]),
+            Required(CONF_WHERE): All(Coerce(str), LightManagementWhere()),
+            Required(CONF_NAME): str,
+            Optional(CONF_ENTITY_NAME): str,
+            Required(CONF_OPERATION): In(["mode", "exit_condition"]),
+            Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
+            Optional(CONF_DEVICE_MODEL): Coerce(str),
+        }
+    }
+)
+
+text_schema = MyHomeDeviceSchema(
+    {
+        Required(str): {
+            Optional(CONF_WHO, default="22"): "22",
+            Required(CONF_WHERE): All(Coerce(str), LightManagementWhere()),
+            Required(CONF_NAME): str,
+            Optional(CONF_ENTITY_NAME): str,
+            Required(CONF_OPERATION): In(
+                ["equalization_1", "equalization_2", "equalization_3"]
+            ),
             Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
             Optional(CONF_DEVICE_MODEL): Coerce(str),
         }
@@ -387,10 +560,14 @@ binary_sensor_schema = MyHomeDeviceSchema(
 sensor_schema = MyHomeSensorSchema(
     {
         Required(str): {
-            Optional(CONF_WHO): In(["1", "4", "18"]),
-            Required(CONF_WHERE): All(Coerce(str), SpecialWhere()),
+            Optional(CONF_WHO): In(["1", "4", "18", "24"]),
+            Required(CONF_WHERE): All(
+                Coerce(str),
+                Any(SpecialWhere(), LightManagementWhere()),
+            ),
             Required(CONF_NAME): str,
-            Required(CONF_DEVICE_CLASS): In(
+            Optional(CONF_ENTITY_NAME): str,
+            Optional(CONF_DEVICE_CLASS): In(
                 [
                     SensorDeviceClass.TEMPERATURE,
                     SensorDeviceClass.POWER,
@@ -398,6 +575,15 @@ sensor_schema = MyHomeSensorSchema(
                     SensorDeviceClass.ILLUMINANCE,
                 ]
             ),
+            Optional(CONF_OPERATION): In(
+                [
+                    "state_time",
+                    "centralized_lux",
+                    "sensor_address",
+                    "error_name",
+                ]
+            ),
+            Optional(CONF_SENSOR_ADDRESS): Coerce(str),
             Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
             Optional(CONF_DEVICE_MODEL): Coerce(str),
         }
@@ -421,15 +607,48 @@ climate_schema = MyHomeDeviceSchema(
     }
 )
 
+alarm_control_panel_schema = MyHomeAlarmSchema(
+    {
+        Required(str): {
+            Required(CONF_NAME): str,
+            Optional(CONF_ENTITY_NAME): str,
+            Optional("control_channel"): All(Coerce(int), Range(min=1, max=255)),
+            Optional("arm_channel"): All(Coerce(int), Range(min=1, max=255)),
+            Optional("disarm_channel"): All(Coerce(int), Range(min=1, max=255)),
+            Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
+            Optional(CONF_DEVICE_MODEL): Coerce(str),
+        }
+    }
+)
+
+camera_schema = MyHomeDeviceSchema(
+    {
+        Required(str): {
+            Optional(CONF_WHO, default="7"): "7",
+            Optional(CONF_WHERE, default="0"): All(Coerce(str), SpecialWhere()),
+            Required(CONF_NAME): str,
+            Optional(CONF_ENTITY_NAME): str,
+            Optional(CONF_MANUFACTURER, default="BTicino S.p.A."): str,
+            Optional(CONF_DEVICE_MODEL): Coerce(str),
+        }
+    }
+)
+
 gateway_schema = Schema(
     {
         Required(CONF_MAC): MacAddress(),
+        Optional(CAMERA): camera_schema,
         Optional(LIGHT): light_schema,
         Optional(SWITCH): switch_schema,
+        Optional(BUTTON): button_schema,
+        Optional(NUMBER): number_schema,
+        Optional(SELECT): select_schema,
+        Optional(TEXT): text_schema,
         Optional(COVER): cover_schema,
         Optional(BINARY_SENSOR): binary_sensor_schema,
         Optional(SENSOR): sensor_schema,
         Optional(CLIMATE): climate_schema,
+        Optional(ALARM_CONTROL_PANEL): alarm_control_panel_schema,
     }
 )
 

@@ -1,0 +1,167 @@
+# Example MyHOME YAML configuration.
+# Replace gateway labels, MAC addresses and entity names to match your own installation.
+# Gateway host, port and password are configured in the Home Assistant UI config entry.
+
+main_gateway:
+  mac: "00:03:50:AA:BB:CC"
+
+  light:
+    all_lights:
+      where: "0"
+      name: "All lights"
+      dimmable: false
+    living_room_lamp:
+      where: "11"
+      name: "Living room lamp"
+      dimmable: true
+
+  cover:
+    all_shutters:
+      where: "0"
+      name: "All shutters"
+      advanced: false
+    kitchen_shutter:
+      where: "41"
+      name: "Kitchen shutter"
+      advanced: false
+
+  climate:
+    central_unit:
+      zone: "1"
+      name: "Central thermoregulation"
+      heat: true
+      cool: false
+      central: true
+      standalone: false
+    living_area:
+      zone: "2"
+      name: "Living area"
+      heat: true
+      cool: false
+      standalone: true
+    living_room_split:
+      zone: "3#1#1"
+      name: "Living room split"
+      heat: true
+      cool: true
+      fan: true
+      standalone: true
+
+  binary_sensor:
+    hallway_motion:
+      who: "25"
+      where: "301"
+      name: "Hallway motion"
+      class: "motion"
+
+  sensor:
+    main_power:
+      where: "51"
+      name: "Main power"
+      class: "power"
+    lighting_zone_lux:
+      who: "24"
+      where: "1000#4#00#0#8"
+      name: "Lighting zone"
+      operation: "centralized_lux"
+      sensor_address: "65"
+
+  switch:
+    dishwasher_load:
+      who: "18"
+      where: "71"
+      name: "Dishwasher load"
+    living_room_auto_switch_on:
+      who: "24"
+      where: "1000#4#00#0#8"
+      name: "Living room lighting"
+      operation: "auto_switch_on"
+    living_room_auto_switch_off:
+      who: "24"
+      where: "1000#4#00#0#8"
+      name: "Living room lighting"
+      operation: "auto_switch_off"
+
+  number:
+    living_room_switch_on_value:
+      who: "24"
+      where: "1000#4#00#0#8"
+      name: "Living room lighting"
+      operation: "switch_on_value"
+    living_room_maintained_lux:
+      who: "24"
+      where: "1000#4#00#0#8"
+      name: "Living room lighting"
+      operation: "maintained_lux"
+
+  select:
+    living_room_mode:
+      who: "24"
+      where: "1000#4#00#0#8"
+      name: "Living room lighting"
+      operation: "mode"
+    living_room_exit_condition:
+      who: "24"
+      where: "1000#4#00#0#8"
+      name: "Living room lighting"
+      operation: "exit_condition"
+
+  text:
+    kitchen_equalization_1:
+      who: "22"
+      where: "1#1"
+      name: "Kitchen audio"
+      operation: "equalization_1"
+
+  button:
+    scene_1_start:
+      who: "17"
+      where: "1"
+      name: "Scene 1"
+      operation: "start"
+    entrance_receive_video:
+      who: "7"
+      where: "4001"
+      name: "Entrance video"
+      operation: "receive_video"
+
+  alarm_control_panel:
+    home_alarm:
+      name: "Home alarm"
+      control_channel: 1
+      arm_channel: 2
+      disarm_channel: 3
+
+  camera:
+    entrance_panel:
+      name: "Entrance panel"
+      where: "4001"
+
+scene_gateway:
+  mac: "00:03:50:DD:EE:FF"
+
+  switch:
+    scene_1_active:
+      who: "17"
+      where: "1"
+      operation: "active"
+      name: "Scene 1"
+      entity_name: "Active"
+    scene_1_enabled:
+      who: "17"
+      where: "1"
+      operation: "enabled"
+      name: "Scene 1"
+      entity_name: "Enabled"
+    scene_2_active:
+      who: "17"
+      where: "2"
+      operation: "active"
+      name: "Scene 2"
+      entity_name: "Active"
+    scene_2_enabled:
+      who: "17"
+      where: "2"
+      operation: "enabled"
+      name: "Scene 2"
+      entity_name: "Enabled"
