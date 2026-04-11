@@ -123,7 +123,7 @@ class DisableCommandButtonEntity(ButtonEntity, MyHOMEEntity):
         self._attr_has_entity_name = True
         self._attr_icon = "mdi:lock-alert"
 
-        self._attr_entity_category = EntityCategory(Const_EntityCategory.CONFIG)
+        self._attr_entity_category = Const_EntityCategory.CONFIG
 
         self._attr_unique_id = f"{gateway.mac}-{self._device_id}-disable"
         self._interface = interface
@@ -192,7 +192,7 @@ class EnableCommandButtonEntity(ButtonEntity, MyHOMEEntity):
         self._attr_has_entity_name = True
         self._attr_icon = "mdi:lock-open-variant-outline"
 
-        self._attr_entity_category = EntityCategory(Const_EntityCategory.CONFIG)
+        self._attr_entity_category = Const_EntityCategory.CONFIG
 
         self._attr_unique_id = f"{gateway.mac}-{self._device_id}-enable"
         self._interface = interface
