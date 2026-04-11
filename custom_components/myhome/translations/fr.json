@@ -74,5 +74,45 @@
       "invalid_password": "Mot de passe invalide",
       "password_error": "Mot de passe invalide"
     }
+  },
+  "services": {
+    "sync_time": {
+      "name": "Synchroniser l'heure",
+      "description": "Synchroniser l'heure du serveur MyHome avec l'heure locale de Home Assistant.",
+      "fields": {
+        "gateway": {
+          "name": "Serveur",
+          "description": "L'adresse MAC du serveur, telle que présente dans la configuration."
+        }
+      }
+    },
+    "send_message": {
+      "name": "Envoyer un message",
+      "description": "Envoyer un message OpenWebNet arbitraire (mais valide) au serveur.",
+      "fields": {
+        "gateway": {
+          "name": "Serveur",
+          "description": "L'adresse MAC du serveur, telle que présente dans la configuration."
+        },
+        "message": {
+          "name": "Message",
+          "description": "Message OpenWebNet valide."
+        }
+      }
+    },
+    "start_sending_instant_power": {
+      "name": "Commencer à envoyer la puissance instantanée",
+      "description": "Recevoir des mises à jour automatiques de la puissance instantanée d'un capteur.",
+      "fields": {
+        "entity_id": {
+          "name": "Entitée",
+          "description": "Nom(s) des entitées qui vont commencer à envoyer automatiquement la puissance instantanée."
+        },
+        "duration": {
+          "name": "Durée",
+          "description": "Pendant combien de temps la puissance instantanée va-t-elle être automatiquement envoyée."
+        }
+      }
+    }
   }
 }
