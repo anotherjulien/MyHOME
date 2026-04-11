@@ -221,9 +221,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
                 gateway = mac
         timezone = hass.config.as_dict()["time_zone"]
         if gateway in hass.data[DOMAIN]:
-            await hass.data[DOMAIN][gateway][CONF_ENTITY].send(
-                OWNGatewayCommand.set_datetime_to_now(timezone)
+            _set_datetime_message = await hass.async_add_executor_job(
+                OWNGatewayCommand.set_datetime_to_now,
+                timezone
             )
+            LOGGER.warning(f"got date time set message '{_set_datetime_message}'")
+            await hass.data[DOMAIN][gateway][CONF_ENTITY].send(_set_datetime_message)
         else:
             LOGGER.error(
                 "Gateway `%s` not found, could not send time synchronisation message.",
