@@ -5,6 +5,11 @@ import yaml
 
 from OWNd.message import OWNCommand, OWNGatewayCommand
 
+from logging import getLogger
+import inspect
+_logger = getLogger(__name__)
+_logger.warning(f"Loaded OWNd from {inspect.getfile(OWNGatewayCommand)}")
+
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
@@ -221,12 +226,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
                 gateway = mac
         timezone = hass.config.as_dict()["time_zone"]
         if gateway in hass.data[DOMAIN]:
-            _set_datetime_message = await hass.async_add_executor_job(
-                OWNGatewayCommand.set_datetime_to_now,
-                timezone
+           
+            try:
+                _timezone_info = await hass.async_add_executor_job(
+                    OWNGatewayCommand.get_timezone_info,
+                    timezone
+                )
+            except AttributeError as e:
+                LOGGER.error(e)
+                LOGGER.warning(f"Loaded OWNd from {inspect.getfile(OWNGatewayCommand)}")
+                LOGGER.warning(f"{dir(OWNGatewayCommand)}")
+
+            await hass.data[DOMAIN][gateway][CONF_ENTITY].send(
+                OWNGatewayCommand.set_datetime_to_now(_timezone_info)
             )
-            LOGGER.warning(f"got date time set message '{_set_datetime_message}'")
-            await hass.data[DOMAIN][gateway][CONF_ENTITY].send(_set_datetime_message)
         else:
             LOGGER.error(
                 "Gateway `%s` not found, could not send time synchronisation message.",

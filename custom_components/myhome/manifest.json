@@ -9,8 +9,11 @@
   "integration_type": "hub",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/anotherjulien/MyHOME/issues",
-  "requirements": [
+  "_old_requirements": [
     "OWNd==0.7.48"
+  ],
+  "_requirements": [
+    "OWNd @ git+https://github.com/sxpert/OWNd.git@master"
   ],
   "ssdp": [
     {
