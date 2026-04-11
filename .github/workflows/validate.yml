@@ -14,4 +14,4 @@ jobs:
       - name: HACS validation
         uses: "hacs/action@main"
         with:
-          ategory: "integration"
+          category: "integration"
