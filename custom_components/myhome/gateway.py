@@ -377,12 +377,9 @@ class MyHOMEGatewayHandler:
 
         while not self._terminate_sender:
             task = await self.send_buffer.get()
+            msg = task['message']
             LOGGER.debug(
-                "%s Message `%s` was successfully unqueued by worker %s.",
-                self.name,
-                self.gateway.host,
-                task["message"],
-                worker_id,
+                f"{self.name} {self.gateway.host} Message `{msg}` was successfully unqueued by worker {worker_id}."
             )
             await _command_session.send(message=task["message"], is_status_request=task["is_status_request"])
             self.send_buffer.task_done()

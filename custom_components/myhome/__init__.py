@@ -5,6 +5,11 @@ import yaml
 
 from OWNd.message import OWNCommand, OWNGatewayCommand
 
+from logging import getLogger
+import inspect
+_logger = getLogger(__name__)
+_logger.warning(f"Loaded OWNd from {inspect.getfile(OWNGatewayCommand)}")
+
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
@@ -46,17 +51,23 @@ async def async_setup(hass, config):
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     if entry.data[CONF_MAC] not in hass.data[DOMAIN]:
         hass.data[DOMAIN][entry.data[CONF_MAC]] = {}
+   
+    system_config_dir = hass.config.config_dir
+    default_config_path = f"{system_config_dir}/myhome.yaml"
 
     _config_file_path = (
         str(entry.options[CONF_FILE_PATH])
         if CONF_FILE_PATH in entry.options
-        else "/config/myhome.yaml"
+        # else "/config/myhome.yaml"
+        else default_config_path
     )
     _generate_events = (
         entry.options[CONF_GENERATE_EVENTS]
         if CONF_GENERATE_EVENTS in entry.options
         else False
     )
+
+    LOGGER.warning(f"looking for config file at '{_config_file_path}'")
 
     try:
         async with aiofiles.open(_config_file_path, mode="r") as yaml_file:
@@ -215,8 +226,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
                 gateway = mac
         timezone = hass.config.as_dict()["time_zone"]
         if gateway in hass.data[DOMAIN]:
+           
+            try:
+                _timezone_info = await hass.async_add_executor_job(
+                    OWNGatewayCommand.get_timezone_info,
+                    timezone
+                )
+            except AttributeError as e:
+                LOGGER.error(e)
+                LOGGER.warning(f"Loaded OWNd from {inspect.getfile(OWNGatewayCommand)}")
+                LOGGER.warning(f"{dir(OWNGatewayCommand)}")
+
             await hass.data[DOMAIN][gateway][CONF_ENTITY].send(
-                OWNGatewayCommand.set_datetime_to_now(timezone)
+                OWNGatewayCommand.set_datetime_to_now(_timezone_info)
             )
         else:
             LOGGER.error(
