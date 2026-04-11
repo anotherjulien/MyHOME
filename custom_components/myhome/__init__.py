@@ -53,13 +53,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     _config_file_path = (
         str(entry.options[CONF_FILE_PATH])
         if CONF_FILE_PATH in entry.options
-        else "/config/myhome.yaml"
+        # else "/config/myhome.yaml"
+        else default_config_path
     )
     _generate_events = (
         entry.options[CONF_GENERATE_EVENTS]
         if CONF_GENERATE_EVENTS in entry.options
         else False
     )
+
+    LOGGER.warning(f"looking for config file at '{_config_file_path}'")
 
     try:
         async with aiofiles.open(_config_file_path, mode="r") as yaml_file:
