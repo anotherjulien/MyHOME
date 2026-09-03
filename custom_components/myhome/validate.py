@@ -424,12 +424,19 @@ climate_schema = MyHomeDeviceSchema(
 gateway_schema = Schema(
     {
         Required(CONF_MAC): MacAddress(),
-        Optional(LIGHT): light_schema,
-        Optional(SWITCH): switch_schema,
-        Optional(COVER): cover_schema,
-        Optional(BINARY_SENSOR): binary_sensor_schema,
-        Optional(SENSOR): sensor_schema,
-        Optional(CLIMATE): climate_schema,
+        # NOTE: the custom schemas below are wrapped in a lambda instead of being
+        # referenced directly. When a Voluptuous Schema subclass with a custom
+        # __call__ (for rekeying devices by who-where) is used as a nested schema
+        # value, Home Assistant's voluptuous shim ("probatio") does not invoke the
+        # subclass's __call__ override - it only validates the inner field schema,
+        # silently skipping the rekeying. Wrapping in a plain lambda forces it to
+        # be treated as a generic callable, which correctly invokes our __call__.
+        Optional(LIGHT): lambda v: light_schema(v),
+        Optional(SWITCH): lambda v: switch_schema(v),
+        Optional(COVER): lambda v: cover_schema(v),
+        Optional(BINARY_SENSOR): lambda v: binary_sensor_schema(v),
+        Optional(SENSOR): lambda v: sensor_schema(v),
+        Optional(CLIMATE): lambda v: climate_schema(v),
     }
 )
 

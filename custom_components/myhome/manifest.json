@@ -2,13 +2,13 @@
   "domain": "myhome",
   "name": "MyHOME",
   "codeowners": [
-    "@anotherjulien"
+    "@davmapo"
   ],
   "config_flow": true,
-  "documentation": "https://github.com/anotherjulien/MyHOME",
+  "documentation": "https://github.com/davmapo/MyHOME",
   "integration_type": "hub",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/anotherjulien/MyHOME/issues",
+  "issue_tracker": "https://github.com/davmapo/MyHOME/issues",
   "requirements": [
     "OWNd==0.7.48"
   ],
@@ -69,5 +69,5 @@
       "modelName": "MH201"
     }
   ],
-  "version": "0.9.3"
+  "version": "0.9.9"
 }

@@ -87,7 +87,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                 manufacturer=_configured_climate_devices[_climate_device][
                     CONF_MANUFACTURER
                 ],
-                model=_configured_climate_devices[_climate_device][CONF_DEVICE_MODEL],
+                model=_configured_climate_devices[_climate_device].get(CONF_DEVICE_MODEL),
                 gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_ENTITY],
             )
         )
@@ -184,6 +184,16 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
         """
         await self._gateway_handler.send_status_request(
             OWNHeatingCommand.status(self._where)
+        )
+        # OWNHeatingCommand.status() only requests the generic status, which the
+        # gateway answers with temperature/target/offset/mode but never actuator
+        # (dimension 20, used to detect actual heating/cooling activity) or
+        # humidity (dimension 60) unless explicitly asked for.
+        await self._gateway_handler.send_status_request(
+            OWNHeatingCommand(f"*#{self._who}*{self._where}*20##")
+        )
+        await self._gateway_handler.send_status_request(
+            OWNHeatingCommand(f"*#{self._who}*{self._where}*60##")
         )
 
     @property
@@ -328,7 +338,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                     message.human_readable_log,
                 )
                 self._attr_hvac_mode = HVACMode.AUTO
-                if self._attr_hvac_action == HVACAction.OFF:
+                if self._attr_hvac_action in (None, HVACAction.OFF):
                     self._attr_hvac_action = HVACAction.IDLE
             elif (
                 message.mode == CLIMATE_MODE_COOL
@@ -340,7 +350,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                     message.human_readable_log,
                 )
                 self._attr_hvac_mode = HVACMode.COOL
-                if self._attr_hvac_action == HVACAction.OFF:
+                if self._attr_hvac_action in (None, HVACAction.OFF):
                     self._attr_hvac_action = HVACAction.IDLE
             elif (
                 message.mode == CLIMATE_MODE_HEAT
@@ -352,7 +362,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                     message.human_readable_log,
                 )
                 self._attr_hvac_mode = HVACMode.HEAT
-                if self._attr_hvac_action == HVACAction.OFF:
+                if self._attr_hvac_action in (None, HVACAction.OFF):
                     self._attr_hvac_action = HVACAction.IDLE
             elif message.mode == CLIMATE_MODE_OFF:
                 LOGGER.info(
@@ -373,7 +383,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                     message.human_readable_log,
                 )
                 self._attr_hvac_mode = HVACMode.AUTO
-                if self._attr_hvac_action == HVACAction.OFF:
+                if self._attr_hvac_action in (None, HVACAction.OFF):
                     self._attr_hvac_action = HVACAction.IDLE
             elif (
                 message.mode == CLIMATE_MODE_COOL
@@ -385,7 +395,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                     message.human_readable_log,
                 )
                 self._attr_hvac_mode = HVACMode.COOL
-                if self._attr_hvac_action == HVACAction.OFF:
+                if self._attr_hvac_action in (None, HVACAction.OFF):
                     self._attr_hvac_action = HVACAction.IDLE
             elif (
                 message.mode == CLIMATE_MODE_HEAT
@@ -397,7 +407,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                     message.human_readable_log,
                 )
                 self._attr_hvac_mode = HVACMode.HEAT
-                if self._attr_hvac_action == HVACAction.OFF:
+                if self._attr_hvac_action in (None, HVACAction.OFF):
                     self._attr_hvac_action = HVACAction.IDLE
             elif message.mode == CLIMATE_MODE_OFF:
                 LOGGER.info(
@@ -417,19 +427,20 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                 self._gateway_handler.log_id,
                 message.human_readable_log,
             )
-            if message.is_active():
-                if self._heating and self._cooling:
-                    if message.is_heating():
+            if message.where != "0":
+                if message.is_active():
+                    if self._heating and self._cooling:
+                        if message.is_heating() or self._attr_hvac_mode == HVACMode.HEAT:
+                            self._attr_hvac_action = HVACAction.HEATING
+                        elif message.is_cooling() or self._attr_hvac_mode == HVACMode.COOL:
+                            self._attr_hvac_action = HVACAction.COOLING
+                    elif self._heating or self._attr_hvac_mode == HVACMode.HEAT:
                         self._attr_hvac_action = HVACAction.HEATING
-                    elif message.is_cooling():
+                    elif self._cooling or self._attr_hvac_mode == HVACMode.COOL:
                         self._attr_hvac_action = HVACAction.COOLING
-                elif self._heating:
-                    self._attr_hvac_action = HVACAction.HEATING
-                elif self._cooling:
-                    self._attr_hvac_action = HVACAction.COOLING
-            elif self._attr_hvac_mode == HVACMode.OFF:
-                self._attr_hvac_action = HVACAction.OFF
-            else:
-                self._attr_hvac_action = HVACAction.IDLE
+                elif self._attr_hvac_mode == HVACMode.OFF:
+                    self._attr_hvac_action = HVACAction.OFF
+                else:
+                    self._attr_hvac_action = HVACAction.IDLE
 
         self.async_schedule_update_ha_state()

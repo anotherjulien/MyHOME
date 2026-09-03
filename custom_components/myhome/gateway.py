@@ -281,6 +281,15 @@ class MyHOMEGatewayHandler:
                                             )
                                         ):
                                             self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][_platform][message.entity][CONF_ENTITIES][_entity].handle_event(message)
+                    if (
+                        isinstance(message, OWNHeatingEvent)
+                        and message.dimension == 20
+                        and message.entity in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS].get(CLIMATE, {})
+                        and CLIMATE in self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][CLIMATE][message.entity].get(CONF_ENTITIES, {})
+                    ):
+                        _climate_entity = self.hass.data[DOMAIN][self.mac][CONF_PLATFORMS][CLIMATE][message.entity][CONF_ENTITIES][CLIMATE]
+                        _climate_entity.handle_event(message)
+                        _climate_entity.async_schedule_update_ha_state()
 
                 else:
                     LOGGER.debug(
@@ -378,7 +387,7 @@ class MyHOMEGatewayHandler:
         while not self._terminate_sender:
             task = await self.send_buffer.get()
             LOGGER.debug(
-                "%s Message `%s` was successfully unqueued by worker %s.",
+                "%s (%s) Message `%s` was successfully unqueued by worker %s.",
                 self.name,
                 self.gateway.host,
                 task["message"],
