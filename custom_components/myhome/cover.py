@@ -41,18 +41,18 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     _covers = []
     _configured_covers = hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][PLATFORM]
 
-    for _cover in _configured_covers.keys():
+    for _cover_id in _configured_covers.keys():
         _cover = MyHOMECover(
             hass=hass,
-            device_id=_cover,
-            who=_configured_covers[_cover][CONF_WHO],
-            where=_configured_covers[_cover][CONF_WHERE],
-            interface=_configured_covers[_cover][CONF_BUS_INTERFACE] if CONF_BUS_INTERFACE in _configured_covers[_cover] else None,
-            name=_configured_covers[_cover][CONF_NAME],
-            entity_name=_configured_covers[_cover][CONF_ENTITY_NAME],
-            advanced=_configured_covers[_cover][CONF_ADVANCED_SHUTTER],
-            manufacturer=_configured_covers[_cover][CONF_MANUFACTURER],
-            model=_configured_covers[_cover][CONF_DEVICE_MODEL],
+            device_id=_cover_id,
+            who=_configured_covers[_cover_id][CONF_WHO],
+            where=_configured_covers[_cover_id][CONF_WHERE],
+            interface=_configured_covers[_cover_id][CONF_BUS_INTERFACE] if CONF_BUS_INTERFACE in _configured_covers[_cover_id] else None,
+            name=_configured_covers[_cover_id][CONF_NAME],
+            entity_name=_configured_covers[_cover_id][CONF_ENTITY_NAME],
+            advanced=_configured_covers[_cover_id][CONF_ADVANCED_SHUTTER],
+            manufacturer=_configured_covers[_cover_id][CONF_MANUFACTURER],
+            model=_configured_covers[_cover_id][CONF_DEVICE_MODEL],
             gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_ENTITY],
         )
         _covers.append(_cover)

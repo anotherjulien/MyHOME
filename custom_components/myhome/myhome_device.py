@@ -45,15 +45,31 @@ class MyHOMEEntity(Entity):
             "name": name,
             "manufacturer": self._manufacturer,
             "model": self._model,
-            "via_device": (DOMAIN, self._gateway_handler.unique_id),
         }
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""
-        self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id][CONF_ENTITIES][self._platform] = self
+        # Set via_device_id to link this device to the gateway
+        if "via_device_id" not in self._attr_device_info:
+            from homeassistant.helpers import device_registry as dr
+            device_registry = dr.async_get(self._hass)
+            gateway_device = device_registry.async_get_device(
+                identifiers={(DOMAIN, self._gateway_handler.unique_id)}
+            )
+            if gateway_device:
+                self._attr_device_info["via_device_id"] = gateway_device.id
+
+        # Initialize CONF_ENTITIES dict if it doesn't exist
+        device_data = self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id]
+        if CONF_ENTITIES not in device_data:
+            device_data[CONF_ENTITIES] = {}
+
+        # Store entity reference
+        device_data[CONF_ENTITIES][self._platform] = self
         await self.async_update()
 
     async def async_will_remove_from_hass(self):
         """When entity is removed from hass."""
-        if self._platform in self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id][CONF_ENTITIES]:
-            del self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id][CONF_ENTITIES][self._platform]
+        device_data = self._hass.data[DOMAIN][self._gateway_handler.mac][CONF_PLATFORMS][self._platform][self._device_id]
+        if CONF_ENTITIES in device_data and self._platform in device_data[CONF_ENTITIES]:
+            del device_data[CONF_ENTITIES][self._platform]

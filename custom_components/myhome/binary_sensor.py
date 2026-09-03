@@ -50,51 +50,51 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     _binary_sensors = []
     _configured_binary_sensors = hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_PLATFORMS][PLATFORM]
 
-    for _binary_sensor in _configured_binary_sensors.keys():
-        _who = int(_configured_binary_sensors[_binary_sensor][CONF_WHO])
-        _device_class = _configured_binary_sensors[_binary_sensor][CONF_DEVICE_CLASS]
+    for _binary_sensor_id in _configured_binary_sensors.keys():
+        _who = int(_configured_binary_sensors[_binary_sensor_id][CONF_WHO])
+        _device_class = _configured_binary_sensors[_binary_sensor_id][CONF_DEVICE_CLASS]
         if _who == 25:
             _binary_sensor = MyHOMEDryContact(
                 hass=hass,
-                device_id=_binary_sensor,
-                who=_configured_binary_sensors[_binary_sensor][CONF_WHO],
-                where=_configured_binary_sensors[_binary_sensor][CONF_WHERE],
-                name=_configured_binary_sensors[_binary_sensor][CONF_NAME],
-                entity_name=_configured_binary_sensors[_binary_sensor][CONF_ENTITY_NAME],
-                inverted=_configured_binary_sensors[_binary_sensor][CONF_INVERTED],
+                device_id=_binary_sensor_id,
+                who=_configured_binary_sensors[_binary_sensor_id][CONF_WHO],
+                where=_configured_binary_sensors[_binary_sensor_id][CONF_WHERE],
+                name=_configured_binary_sensors[_binary_sensor_id][CONF_NAME],
+                entity_name=_configured_binary_sensors[_binary_sensor_id][CONF_ENTITY_NAME],
+                inverted=_configured_binary_sensors[_binary_sensor_id][CONF_INVERTED],
                 device_class=_device_class,
-                manufacturer=_configured_binary_sensors[_binary_sensor][CONF_MANUFACTURER],
-                model=_configured_binary_sensors[_binary_sensor][CONF_DEVICE_MODEL],
+                manufacturer=_configured_binary_sensors[_binary_sensor_id][CONF_MANUFACTURER],
+                model=_configured_binary_sensors[_binary_sensor_id][CONF_DEVICE_MODEL],
                 gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_ENTITY],
             )
             _binary_sensors.append(_binary_sensor)
         elif _who == 9:
             _binary_sensor = MyHOMEAuxiliary(
                 hass=hass,
-                device_id=_binary_sensor,
-                who=_configured_binary_sensors[_binary_sensor][CONF_WHO],
-                where=_configured_binary_sensors[_binary_sensor][CONF_WHERE],
-                name=_configured_binary_sensors[_binary_sensor][CONF_NAME],
-                entity_name=_configured_binary_sensors[_binary_sensor][CONF_ENTITY_NAME],
-                inverted=_configured_binary_sensors[_binary_sensor][CONF_INVERTED],
+                device_id=_binary_sensor_id,
+                who=_configured_binary_sensors[_binary_sensor_id][CONF_WHO],
+                where=_configured_binary_sensors[_binary_sensor_id][CONF_WHERE],
+                name=_configured_binary_sensors[_binary_sensor_id][CONF_NAME],
+                entity_name=_configured_binary_sensors[_binary_sensor_id][CONF_ENTITY_NAME],
+                inverted=_configured_binary_sensors[_binary_sensor_id][CONF_INVERTED],
                 device_class=_device_class,
-                manufacturer=_configured_binary_sensors[_binary_sensor][CONF_MANUFACTURER],
-                model=_configured_binary_sensors[_binary_sensor][CONF_DEVICE_MODEL],
+                manufacturer=_configured_binary_sensors[_binary_sensor_id][CONF_MANUFACTURER],
+                model=_configured_binary_sensors[_binary_sensor_id][CONF_DEVICE_MODEL],
                 gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_ENTITY],
             )
             _binary_sensors.append(_binary_sensor)
         elif _who == 1 and _device_class == BinarySensorDeviceClass.MOTION:
             _binary_sensor = MyHOMEMotionSensor(
                 hass=hass,
-                device_id=_binary_sensor,
-                who=_configured_binary_sensors[_binary_sensor][CONF_WHO],
-                where=_configured_binary_sensors[_binary_sensor][CONF_WHERE],
-                name=_configured_binary_sensors[_binary_sensor][CONF_NAME],
-                entity_name=_configured_binary_sensors[_binary_sensor][CONF_ENTITY_NAME],
-                inverted=_configured_binary_sensors[_binary_sensor][CONF_INVERTED],
+                device_id=_binary_sensor_id,
+                who=_configured_binary_sensors[_binary_sensor_id][CONF_WHO],
+                where=_configured_binary_sensors[_binary_sensor_id][CONF_WHERE],
+                name=_configured_binary_sensors[_binary_sensor_id][CONF_NAME],
+                entity_name=_configured_binary_sensors[_binary_sensor_id][CONF_ENTITY_NAME],
+                inverted=_configured_binary_sensors[_binary_sensor_id][CONF_INVERTED],
                 device_class=_device_class,
-                manufacturer=_configured_binary_sensors[_binary_sensor][CONF_MANUFACTURER],
-                model=_configured_binary_sensors[_binary_sensor][CONF_DEVICE_MODEL],
+                manufacturer=_configured_binary_sensors[_binary_sensor_id][CONF_MANUFACTURER],
+                model=_configured_binary_sensors[_binary_sensor_id][CONF_DEVICE_MODEL],
                 gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_ENTITY],
             )
             _binary_sensors.append(_binary_sensor)
