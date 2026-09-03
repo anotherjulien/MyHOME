@@ -421,15 +421,21 @@ climate_schema = MyHomeDeviceSchema(
     }
 )
 
+# The device schemas are Schema subclasses whose overridden __call__ performs
+# post-processing (rekeying to "who-where" and injecting default keys). Nested
+# schema instances are not guaranteed to be invoked through __call__ by the
+# validation engine (HA Core 2026.9 replaced voluptuous with probatio, whose
+# compatibility shim compiles nested Schema declarations directly), so wrap
+# them in plain callables to force the subclass __call__ to run.
 gateway_schema = Schema(
     {
         Required(CONF_MAC): MacAddress(),
-        Optional(LIGHT): light_schema,
-        Optional(SWITCH): switch_schema,
-        Optional(COVER): cover_schema,
-        Optional(BINARY_SENSOR): binary_sensor_schema,
-        Optional(SENSOR): sensor_schema,
-        Optional(CLIMATE): climate_schema,
+        Optional(LIGHT): lambda v: light_schema(v),
+        Optional(SWITCH): lambda v: switch_schema(v),
+        Optional(COVER): lambda v: cover_schema(v),
+        Optional(BINARY_SENSOR): lambda v: binary_sensor_schema(v),
+        Optional(SENSOR): lambda v: sensor_schema(v),
+        Optional(CLIMATE): lambda v: climate_schema(v),
     }
 )
 
