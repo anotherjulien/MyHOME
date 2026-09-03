@@ -118,23 +118,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     entity_registry = er.async_get(hass)
     device_registry = dr.async_get(hass)
 
-    # Ensure manufacturer is a string (Home Assistant 2026.12.0 requires string types)
-    _manufacturer = hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].manufacturer
-    if isinstance(_manufacturer, list):
-        _manufacturer = ", ".join(str(m) for m in _manufacturer)
-    elif not isinstance(_manufacturer, str):
-        _manufacturer = str(_manufacturer) if _manufacturer else "BTicino S.p.A."
+    def _as_string(value, default=None):
+        """Coerce device registry text fields to str (HA 2026.12.0 requires string types)."""
+        if value is None:
+            return default
+        if isinstance(value, str):
+            return value
+        if isinstance(value, (list, tuple, set)):
+            return ", ".join(str(v) for v in value) or default
+        return str(value)
+
+    _gateway_entity = hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY]
 
     gateway_device_entry = device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
         connections={(dr.CONNECTION_NETWORK_MAC, entry.data[CONF_MAC])},
-        identifiers={
-            (DOMAIN, hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].unique_id)
-        },
-        manufacturer=_manufacturer,
-        name=hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].name,
-        model=hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].model,
-        sw_version=hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].firmware,
+        identifiers={(DOMAIN, _gateway_entity.unique_id)},
+        manufacturer=_as_string(_gateway_entity.manufacturer, "BTicino S.p.A."),
+        name=_as_string(_gateway_entity.name),
+        model=_as_string(_gateway_entity.model),
+        sw_version=_as_string(_gateway_entity.firmware),
     )
 
     await hass.config_entries.async_forward_entry_setups(

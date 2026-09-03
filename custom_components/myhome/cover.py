@@ -49,10 +49,10 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             where=_configured_covers[_cover_id][CONF_WHERE],
             interface=_configured_covers[_cover_id][CONF_BUS_INTERFACE] if CONF_BUS_INTERFACE in _configured_covers[_cover_id] else None,
             name=_configured_covers[_cover_id][CONF_NAME],
-            entity_name=_configured_covers[_cover_id][CONF_ENTITY_NAME],
+            entity_name=_configured_covers[_cover_id].get(CONF_ENTITY_NAME),
             advanced=_configured_covers[_cover_id][CONF_ADVANCED_SHUTTER],
             manufacturer=_configured_covers[_cover_id][CONF_MANUFACTURER],
-            model=_configured_covers[_cover_id][CONF_DEVICE_MODEL],
+            model=_configured_covers[_cover_id].get(CONF_DEVICE_MODEL),
             gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_ENTITY],
         )
         _covers.append(_cover)

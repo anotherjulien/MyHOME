@@ -60,11 +60,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                 who=_configured_binary_sensors[_binary_sensor_id][CONF_WHO],
                 where=_configured_binary_sensors[_binary_sensor_id][CONF_WHERE],
                 name=_configured_binary_sensors[_binary_sensor_id][CONF_NAME],
-                entity_name=_configured_binary_sensors[_binary_sensor_id][CONF_ENTITY_NAME],
+                entity_name=_configured_binary_sensors[_binary_sensor_id].get(CONF_ENTITY_NAME),
                 inverted=_configured_binary_sensors[_binary_sensor_id][CONF_INVERTED],
                 device_class=_device_class,
                 manufacturer=_configured_binary_sensors[_binary_sensor_id][CONF_MANUFACTURER],
-                model=_configured_binary_sensors[_binary_sensor_id][CONF_DEVICE_MODEL],
+                model=_configured_binary_sensors[_binary_sensor_id].get(CONF_DEVICE_MODEL),
                 gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_ENTITY],
             )
             _binary_sensors.append(_binary_sensor)
@@ -75,11 +75,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                 who=_configured_binary_sensors[_binary_sensor_id][CONF_WHO],
                 where=_configured_binary_sensors[_binary_sensor_id][CONF_WHERE],
                 name=_configured_binary_sensors[_binary_sensor_id][CONF_NAME],
-                entity_name=_configured_binary_sensors[_binary_sensor_id][CONF_ENTITY_NAME],
+                entity_name=_configured_binary_sensors[_binary_sensor_id].get(CONF_ENTITY_NAME),
                 inverted=_configured_binary_sensors[_binary_sensor_id][CONF_INVERTED],
                 device_class=_device_class,
                 manufacturer=_configured_binary_sensors[_binary_sensor_id][CONF_MANUFACTURER],
-                model=_configured_binary_sensors[_binary_sensor_id][CONF_DEVICE_MODEL],
+                model=_configured_binary_sensors[_binary_sensor_id].get(CONF_DEVICE_MODEL),
                 gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_ENTITY],
             )
             _binary_sensors.append(_binary_sensor)
@@ -90,11 +90,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                 who=_configured_binary_sensors[_binary_sensor_id][CONF_WHO],
                 where=_configured_binary_sensors[_binary_sensor_id][CONF_WHERE],
                 name=_configured_binary_sensors[_binary_sensor_id][CONF_NAME],
-                entity_name=_configured_binary_sensors[_binary_sensor_id][CONF_ENTITY_NAME],
+                entity_name=_configured_binary_sensors[_binary_sensor_id].get(CONF_ENTITY_NAME),
                 inverted=_configured_binary_sensors[_binary_sensor_id][CONF_INVERTED],
                 device_class=_device_class,
                 manufacturer=_configured_binary_sensors[_binary_sensor_id][CONF_MANUFACTURER],
-                model=_configured_binary_sensors[_binary_sensor_id][CONF_DEVICE_MODEL],
+                model=_configured_binary_sensors[_binary_sensor_id].get(CONF_DEVICE_MODEL),
                 gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_ENTITY],
             )
             _binary_sensors.append(_binary_sensor)

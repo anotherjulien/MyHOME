@@ -53,14 +53,14 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_id=_light_id,
             who=_configured_lights[_light_id][CONF_WHO],
             where=_configured_lights[_light_id][CONF_WHERE],
-            icon=_configured_lights[_light_id][CONF_ICON],
-            icon_on=_configured_lights[_light_id][CONF_ICON_ON],
+            icon=_configured_lights[_light_id].get(CONF_ICON),
+            icon_on=_configured_lights[_light_id].get(CONF_ICON_ON),
             interface=_configured_lights[_light_id][CONF_BUS_INTERFACE] if CONF_BUS_INTERFACE in _configured_lights[_light_id] else None,
             name=_configured_lights[_light_id][CONF_NAME],
-            entity_name=_configured_lights[_light_id][CONF_ENTITY_NAME],
+            entity_name=_configured_lights[_light_id].get(CONF_ENTITY_NAME),
             dimmable=_configured_lights[_light_id][CONF_DIMMABLE],
             manufacturer=_configured_lights[_light_id][CONF_MANUFACTURER],
-            model=_configured_lights[_light_id][CONF_DEVICE_MODEL],
+            model=_configured_lights[_light_id].get(CONF_DEVICE_MODEL),
             gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_ENTITY],
         )
         _lights.append(_light)

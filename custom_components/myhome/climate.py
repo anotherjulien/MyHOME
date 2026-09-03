@@ -87,7 +87,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                 manufacturer=_configured_climate_devices[_climate_device][
                     CONF_MANUFACTURER
                 ],
-                model=_configured_climate_devices[_climate_device][CONF_DEVICE_MODEL],
+                model=_configured_climate_devices[_climate_device].get(CONF_DEVICE_MODEL),
                 gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_ENTITY],
             )
         )

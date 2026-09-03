@@ -118,7 +118,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                         name=_configured_sensors[_sensor][CONF_NAME],
                         device_class=_configured_sensors[_sensor][CONF_DEVICE_CLASS],
                         manufacturer=_configured_sensors[_sensor][CONF_MANUFACTURER],
-                        model=_configured_sensors[_sensor][CONF_DEVICE_MODEL],
+                        model=_configured_sensors[_sensor].get(CONF_DEVICE_MODEL),
                         gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][
                             CONF_ENTITY
                         ],
@@ -137,7 +137,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                         entity_specific_id=entity_specific_id,
                         device_class=SensorDeviceClass.ENERGY,
                         manufacturer=_configured_sensors[_sensor][CONF_MANUFACTURER],
-                        model=_configured_sensors[_sensor][CONF_DEVICE_MODEL],
+                        model=_configured_sensors[_sensor].get(CONF_DEVICE_MODEL),
                         gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][
                             CONF_ENTITY
                         ],
@@ -157,7 +157,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                     name=_configured_sensors[_sensor][CONF_NAME],
                     device_class=_configured_sensors[_sensor][CONF_DEVICE_CLASS],
                     manufacturer=_configured_sensors[_sensor][CONF_MANUFACTURER],
-                    model=_configured_sensors[_sensor][CONF_DEVICE_MODEL],
+                    model=_configured_sensors[_sensor].get(CONF_DEVICE_MODEL),
                     gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_ENTITY],
                 )
             )
@@ -175,7 +175,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                     name=_configured_sensors[_sensor][CONF_NAME],
                     device_class=_configured_sensors[_sensor][CONF_DEVICE_CLASS],
                     manufacturer=_configured_sensors[_sensor][CONF_MANUFACTURER],
-                    model=_configured_sensors[_sensor][CONF_DEVICE_MODEL],
+                    model=_configured_sensors[_sensor].get(CONF_DEVICE_MODEL),
                     gateway=hass.data[DOMAIN][config_entry.data[CONF_MAC]][CONF_ENTITY],
                 )
             )

@@ -53,8 +53,9 @@ class MyHOMEEntity(Entity):
         if "via_device_id" not in self._attr_device_info:
             from homeassistant.helpers import device_registry as dr
             device_registry = dr.async_get(self._hass)
-            gateway_device = device_registry.async_get_device(
-                identifiers={(DOMAIN, self._gateway_handler.unique_id)}
+            gateway_device = device_registry.async_get_device_by_identifier(
+                (DOMAIN, self._gateway_handler.unique_id),
+                self._gateway_handler.config_entry.entry_id,
             )
             if gateway_device:
                 self._attr_device_info["via_device_id"] = gateway_device.id
