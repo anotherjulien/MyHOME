@@ -328,7 +328,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                     message.human_readable_log,
                 )
                 self._attr_hvac_mode = HVACMode.AUTO
-                if self._attr_hvac_action == HVACAction.OFF:
+                if self._attr_hvac_action in (None, HVACAction.OFF):
                     self._attr_hvac_action = HVACAction.IDLE
             elif (
                 message.mode == CLIMATE_MODE_COOL
@@ -340,7 +340,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                     message.human_readable_log,
                 )
                 self._attr_hvac_mode = HVACMode.COOL
-                if self._attr_hvac_action == HVACAction.OFF:
+                if self._attr_hvac_action in (None, HVACAction.OFF):
                     self._attr_hvac_action = HVACAction.IDLE
             elif (
                 message.mode == CLIMATE_MODE_HEAT
@@ -352,7 +352,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                     message.human_readable_log,
                 )
                 self._attr_hvac_mode = HVACMode.HEAT
-                if self._attr_hvac_action == HVACAction.OFF:
+                if self._attr_hvac_action in (None, HVACAction.OFF):
                     self._attr_hvac_action = HVACAction.IDLE
             elif message.mode == CLIMATE_MODE_OFF:
                 LOGGER.info(
@@ -373,7 +373,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                     message.human_readable_log,
                 )
                 self._attr_hvac_mode = HVACMode.AUTO
-                if self._attr_hvac_action == HVACAction.OFF:
+                if self._attr_hvac_action in (None, HVACAction.OFF):
                     self._attr_hvac_action = HVACAction.IDLE
             elif (
                 message.mode == CLIMATE_MODE_COOL
@@ -385,7 +385,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                     message.human_readable_log,
                 )
                 self._attr_hvac_mode = HVACMode.COOL
-                if self._attr_hvac_action == HVACAction.OFF:
+                if self._attr_hvac_action in (None, HVACAction.OFF):
                     self._attr_hvac_action = HVACAction.IDLE
             elif (
                 message.mode == CLIMATE_MODE_HEAT
@@ -397,7 +397,7 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
                     message.human_readable_log,
                 )
                 self._attr_hvac_mode = HVACMode.HEAT
-                if self._attr_hvac_action == HVACAction.OFF:
+                if self._attr_hvac_action in (None, HVACAction.OFF):
                     self._attr_hvac_action = HVACAction.IDLE
             elif message.mode == CLIMATE_MODE_OFF:
                 LOGGER.info(
