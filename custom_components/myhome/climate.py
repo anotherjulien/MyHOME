@@ -185,6 +185,16 @@ class MyHOMEClimate(MyHOMEEntity, ClimateEntity):
         await self._gateway_handler.send_status_request(
             OWNHeatingCommand.status(self._where)
         )
+        # OWNHeatingCommand.status() only requests the generic status, which the
+        # gateway answers with temperature/target/offset/mode but never actuator
+        # (dimension 20, used to detect actual heating/cooling activity) or
+        # humidity (dimension 60) unless explicitly asked for.
+        await self._gateway_handler.send_status_request(
+            OWNHeatingCommand(f"*#{self._who}*{self._where}*20##")
+        )
+        await self._gateway_handler.send_status_request(
+            OWNHeatingCommand(f"*#{self._who}*{self._where}*60##")
+        )
 
     @property
     def target_temperature(self) -> float:
