@@ -31,6 +31,17 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 PLATFORMS = ["light", "switch", "cover", "climate", "binary_sensor", "sensor"]
 
 
+def _coerce_str(value):
+    """Coerce legacy tuple/list values (from older manual config entries) to a plain string.
+
+    The device registry rejects non-string values; older config entries stored some
+    fields (e.g. manufacturer) wrapped in a single-element tuple.
+    """
+    if isinstance(value, (list, tuple)):
+        value = value[0] if value else None
+    return value
+
+
 async def async_setup(hass, config):
     """Set up the MyHOME component."""
     hass.data[DOMAIN] = {}
@@ -124,10 +135,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         identifiers={
             (DOMAIN, hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].unique_id)
         },
-        manufacturer=hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].manufacturer,
-        name=hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].name,
-        model=hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].model,
-        sw_version=hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].firmware,
+        manufacturer=_coerce_str(hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].manufacturer),
+        name=_coerce_str(hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].name),
+        model=_coerce_str(hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].model),
+        sw_version=_coerce_str(hass.data[DOMAIN][entry.data[CONF_MAC]][CONF_ENTITY].firmware),
     )
 
     await hass.config_entries.async_forward_entry_setups(

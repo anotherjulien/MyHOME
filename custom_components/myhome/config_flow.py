@@ -148,14 +148,14 @@ class MyhomeFlowHandler(ConfigFlow, domain=DOMAIN):
                 errors["serialNumber"] = "invalid_mac"
 
             if not errors:
-                user_input["ssdp_location"] = (None,)
-                user_input["ssdp_st"] = (None,)
-                user_input["deviceType"] = (None,)
-                user_input["friendlyName"] = (None,)
-                user_input["manufacturer"] = ("BTicino S.p.A.",)
-                user_input["manufacturerURL"] = ("http://www.bticino.it",)
-                user_input["modelNumber"] = (None,)
-                user_input["UDN"] = (None,)
+                user_input["ssdp_location"] = None
+                user_input["ssdp_st"] = None
+                user_input["deviceType"] = None
+                user_input["friendlyName"] = None
+                user_input["manufacturer"] = "BTicino S.p.A."
+                user_input["manufacturerURL"] = "http://www.bticino.it"
+                user_input["modelNumber"] = None
+                user_input["UDN"] = None
                 self.gateway_handler = OWNGateway(user_input)
                 await self.async_set_unique_id(user_input["serialNumber"], raise_on_progress=False)
                 return await self.async_step_test_connection()
